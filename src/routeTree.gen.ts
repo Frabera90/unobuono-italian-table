@@ -9,38 +9,75 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as DemoRouteImport } from './routes/demo'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MenuTableNumberRouteImport } from './routes/menu.$tableNumber'
+import { Route as BookRestaurantIdRouteImport } from './routes/book.$restaurantId'
 
+const DemoRoute = DemoRouteImport.update({
+  id: '/demo',
+  path: '/demo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MenuTableNumberRoute = MenuTableNumberRouteImport.update({
+  id: '/menu/$tableNumber',
+  path: '/menu/$tableNumber',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookRestaurantIdRoute = BookRestaurantIdRouteImport.update({
+  id: '/book/$restaurantId',
+  path: '/book/$restaurantId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/demo': typeof DemoRoute
+  '/book/$restaurantId': typeof BookRestaurantIdRoute
+  '/menu/$tableNumber': typeof MenuTableNumberRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/demo': typeof DemoRoute
+  '/book/$restaurantId': typeof BookRestaurantIdRoute
+  '/menu/$tableNumber': typeof MenuTableNumberRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/demo': typeof DemoRoute
+  '/book/$restaurantId': typeof BookRestaurantIdRoute
+  '/menu/$tableNumber': typeof MenuTableNumberRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/demo' | '/book/$restaurantId' | '/menu/$tableNumber'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/demo' | '/book/$restaurantId' | '/menu/$tableNumber'
+  id: '__root__' | '/' | '/demo' | '/book/$restaurantId' | '/menu/$tableNumber'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DemoRoute: typeof DemoRoute
+  BookRestaurantIdRoute: typeof BookRestaurantIdRoute
+  MenuTableNumberRoute: typeof MenuTableNumberRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/demo': {
+      id: '/demo'
+      path: '/demo'
+      fullPath: '/demo'
+      preLoaderRoute: typeof DemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,12 +85,38 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/menu/$tableNumber': {
+      id: '/menu/$tableNumber'
+      path: '/menu/$tableNumber'
+      fullPath: '/menu/$tableNumber'
+      preLoaderRoute: typeof MenuTableNumberRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/book/$restaurantId': {
+      id: '/book/$restaurantId'
+      path: '/book/$restaurantId'
+      fullPath: '/book/$restaurantId'
+      preLoaderRoute: typeof BookRestaurantIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DemoRoute: DemoRoute,
+  BookRestaurantIdRoute: BookRestaurantIdRoute,
+  MenuTableNumberRoute: MenuTableNumberRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
