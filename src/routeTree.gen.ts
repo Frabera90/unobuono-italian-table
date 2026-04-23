@@ -14,7 +14,15 @@ import { Route as OwnerRouteImport } from './routes/owner'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OwnerIndexRouteImport } from './routes/owner.index'
+import { Route as OwnerStatsRouteImport } from './routes/owner.stats'
+import { Route as OwnerSocialRouteImport } from './routes/owner.social'
+import { Route as OwnerSettingsRouteImport } from './routes/owner.settings'
+import { Route as OwnerReviewsRouteImport } from './routes/owner.reviews'
+import { Route as OwnerReservationsRouteImport } from './routes/owner.reservations'
+import { Route as OwnerMenuRouteImport } from './routes/owner.menu'
 import { Route as OwnerDashboardRouteImport } from './routes/owner.dashboard'
+import { Route as OwnerCrmRouteImport } from './routes/owner.crm'
+import { Route as OwnerAgentRouteImport } from './routes/owner.agent'
 import { Route as MenuTableNumberRouteImport } from './routes/menu.$tableNumber'
 import { Route as BookRestaurantIdRouteImport } from './routes/book.$restaurantId'
 
@@ -43,9 +51,49 @@ const OwnerIndexRoute = OwnerIndexRouteImport.update({
   path: '/',
   getParentRoute: () => OwnerRoute,
 } as any)
+const OwnerStatsRoute = OwnerStatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerSocialRoute = OwnerSocialRouteImport.update({
+  id: '/social',
+  path: '/social',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerSettingsRoute = OwnerSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerReviewsRoute = OwnerReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerReservationsRoute = OwnerReservationsRouteImport.update({
+  id: '/reservations',
+  path: '/reservations',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerMenuRoute = OwnerMenuRouteImport.update({
+  id: '/menu',
+  path: '/menu',
+  getParentRoute: () => OwnerRoute,
+} as any)
 const OwnerDashboardRoute = OwnerDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerCrmRoute = OwnerCrmRouteImport.update({
+  id: '/crm',
+  path: '/crm',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerAgentRoute = OwnerAgentRouteImport.update({
+  id: '/agent',
+  path: '/agent',
   getParentRoute: () => OwnerRoute,
 } as any)
 const MenuTableNumberRoute = MenuTableNumberRouteImport.update({
@@ -66,7 +114,15 @@ export interface FileRoutesByFullPath {
   '/waiter': typeof WaiterRoute
   '/book/$restaurantId': typeof BookRestaurantIdRoute
   '/menu/$tableNumber': typeof MenuTableNumberRoute
+  '/owner/agent': typeof OwnerAgentRoute
+  '/owner/crm': typeof OwnerCrmRoute
   '/owner/dashboard': typeof OwnerDashboardRoute
+  '/owner/menu': typeof OwnerMenuRoute
+  '/owner/reservations': typeof OwnerReservationsRoute
+  '/owner/reviews': typeof OwnerReviewsRoute
+  '/owner/settings': typeof OwnerSettingsRoute
+  '/owner/social': typeof OwnerSocialRoute
+  '/owner/stats': typeof OwnerStatsRoute
   '/owner/': typeof OwnerIndexRoute
 }
 export interface FileRoutesByTo {
@@ -75,7 +131,15 @@ export interface FileRoutesByTo {
   '/waiter': typeof WaiterRoute
   '/book/$restaurantId': typeof BookRestaurantIdRoute
   '/menu/$tableNumber': typeof MenuTableNumberRoute
+  '/owner/agent': typeof OwnerAgentRoute
+  '/owner/crm': typeof OwnerCrmRoute
   '/owner/dashboard': typeof OwnerDashboardRoute
+  '/owner/menu': typeof OwnerMenuRoute
+  '/owner/reservations': typeof OwnerReservationsRoute
+  '/owner/reviews': typeof OwnerReviewsRoute
+  '/owner/settings': typeof OwnerSettingsRoute
+  '/owner/social': typeof OwnerSocialRoute
+  '/owner/stats': typeof OwnerStatsRoute
   '/owner': typeof OwnerIndexRoute
 }
 export interface FileRoutesById {
@@ -86,7 +150,15 @@ export interface FileRoutesById {
   '/waiter': typeof WaiterRoute
   '/book/$restaurantId': typeof BookRestaurantIdRoute
   '/menu/$tableNumber': typeof MenuTableNumberRoute
+  '/owner/agent': typeof OwnerAgentRoute
+  '/owner/crm': typeof OwnerCrmRoute
   '/owner/dashboard': typeof OwnerDashboardRoute
+  '/owner/menu': typeof OwnerMenuRoute
+  '/owner/reservations': typeof OwnerReservationsRoute
+  '/owner/reviews': typeof OwnerReviewsRoute
+  '/owner/settings': typeof OwnerSettingsRoute
+  '/owner/social': typeof OwnerSocialRoute
+  '/owner/stats': typeof OwnerStatsRoute
   '/owner/': typeof OwnerIndexRoute
 }
 export interface FileRouteTypes {
@@ -98,7 +170,15 @@ export interface FileRouteTypes {
     | '/waiter'
     | '/book/$restaurantId'
     | '/menu/$tableNumber'
+    | '/owner/agent'
+    | '/owner/crm'
     | '/owner/dashboard'
+    | '/owner/menu'
+    | '/owner/reservations'
+    | '/owner/reviews'
+    | '/owner/settings'
+    | '/owner/social'
+    | '/owner/stats'
     | '/owner/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -107,7 +187,15 @@ export interface FileRouteTypes {
     | '/waiter'
     | '/book/$restaurantId'
     | '/menu/$tableNumber'
+    | '/owner/agent'
+    | '/owner/crm'
     | '/owner/dashboard'
+    | '/owner/menu'
+    | '/owner/reservations'
+    | '/owner/reviews'
+    | '/owner/settings'
+    | '/owner/social'
+    | '/owner/stats'
     | '/owner'
   id:
     | '__root__'
@@ -117,7 +205,15 @@ export interface FileRouteTypes {
     | '/waiter'
     | '/book/$restaurantId'
     | '/menu/$tableNumber'
+    | '/owner/agent'
+    | '/owner/crm'
     | '/owner/dashboard'
+    | '/owner/menu'
+    | '/owner/reservations'
+    | '/owner/reviews'
+    | '/owner/settings'
+    | '/owner/social'
+    | '/owner/stats'
     | '/owner/'
   fileRoutesById: FileRoutesById
 }
@@ -167,11 +263,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OwnerIndexRouteImport
       parentRoute: typeof OwnerRoute
     }
+    '/owner/stats': {
+      id: '/owner/stats'
+      path: '/stats'
+      fullPath: '/owner/stats'
+      preLoaderRoute: typeof OwnerStatsRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/social': {
+      id: '/owner/social'
+      path: '/social'
+      fullPath: '/owner/social'
+      preLoaderRoute: typeof OwnerSocialRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/settings': {
+      id: '/owner/settings'
+      path: '/settings'
+      fullPath: '/owner/settings'
+      preLoaderRoute: typeof OwnerSettingsRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/reviews': {
+      id: '/owner/reviews'
+      path: '/reviews'
+      fullPath: '/owner/reviews'
+      preLoaderRoute: typeof OwnerReviewsRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/reservations': {
+      id: '/owner/reservations'
+      path: '/reservations'
+      fullPath: '/owner/reservations'
+      preLoaderRoute: typeof OwnerReservationsRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/menu': {
+      id: '/owner/menu'
+      path: '/menu'
+      fullPath: '/owner/menu'
+      preLoaderRoute: typeof OwnerMenuRouteImport
+      parentRoute: typeof OwnerRoute
+    }
     '/owner/dashboard': {
       id: '/owner/dashboard'
       path: '/dashboard'
       fullPath: '/owner/dashboard'
       preLoaderRoute: typeof OwnerDashboardRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/crm': {
+      id: '/owner/crm'
+      path: '/crm'
+      fullPath: '/owner/crm'
+      preLoaderRoute: typeof OwnerCrmRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/agent': {
+      id: '/owner/agent'
+      path: '/agent'
+      fullPath: '/owner/agent'
+      preLoaderRoute: typeof OwnerAgentRouteImport
       parentRoute: typeof OwnerRoute
     }
     '/menu/$tableNumber': {
@@ -192,12 +344,28 @@ declare module '@tanstack/react-router' {
 }
 
 interface OwnerRouteChildren {
+  OwnerAgentRoute: typeof OwnerAgentRoute
+  OwnerCrmRoute: typeof OwnerCrmRoute
   OwnerDashboardRoute: typeof OwnerDashboardRoute
+  OwnerMenuRoute: typeof OwnerMenuRoute
+  OwnerReservationsRoute: typeof OwnerReservationsRoute
+  OwnerReviewsRoute: typeof OwnerReviewsRoute
+  OwnerSettingsRoute: typeof OwnerSettingsRoute
+  OwnerSocialRoute: typeof OwnerSocialRoute
+  OwnerStatsRoute: typeof OwnerStatsRoute
   OwnerIndexRoute: typeof OwnerIndexRoute
 }
 
 const OwnerRouteChildren: OwnerRouteChildren = {
+  OwnerAgentRoute: OwnerAgentRoute,
+  OwnerCrmRoute: OwnerCrmRoute,
   OwnerDashboardRoute: OwnerDashboardRoute,
+  OwnerMenuRoute: OwnerMenuRoute,
+  OwnerReservationsRoute: OwnerReservationsRoute,
+  OwnerReviewsRoute: OwnerReviewsRoute,
+  OwnerSettingsRoute: OwnerSettingsRoute,
+  OwnerSocialRoute: OwnerSocialRoute,
+  OwnerStatsRoute: OwnerStatsRoute,
   OwnerIndexRoute: OwnerIndexRoute,
 }
 
