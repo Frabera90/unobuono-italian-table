@@ -1,0 +1,11 @@
+{
+  "name": "Unobuono",
+  "short_name": "Unobuono",
+  "start_url": "/waiter",
+  "display": "standalone",
+  "theme_color": "#c4592a",
+  "background_color": "#f5f0e8",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "any", "type": "image/x-icon" }
+  ]
+}
