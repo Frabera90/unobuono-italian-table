@@ -9,11 +9,25 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WaiterRouteImport } from './routes/waiter'
+import { Route as OwnerRouteImport } from './routes/owner'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OwnerIndexRouteImport } from './routes/owner.index'
+import { Route as OwnerDashboardRouteImport } from './routes/owner.dashboard'
 import { Route as MenuTableNumberRouteImport } from './routes/menu.$tableNumber'
 import { Route as BookRestaurantIdRouteImport } from './routes/book.$restaurantId'
 
+const WaiterRoute = WaiterRouteImport.update({
+  id: '/waiter',
+  path: '/waiter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OwnerRoute = OwnerRouteImport.update({
+  id: '/owner',
+  path: '/owner',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DemoRoute = DemoRouteImport.update({
   id: '/demo',
   path: '/demo',
@@ -23,6 +37,16 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const OwnerIndexRoute = OwnerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerDashboardRoute = OwnerDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => OwnerRoute,
 } as any)
 const MenuTableNumberRoute = MenuTableNumberRouteImport.update({
   id: '/menu/$tableNumber',
@@ -38,39 +62,90 @@ const BookRestaurantIdRoute = BookRestaurantIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/demo': typeof DemoRoute
+  '/owner': typeof OwnerRouteWithChildren
+  '/waiter': typeof WaiterRoute
   '/book/$restaurantId': typeof BookRestaurantIdRoute
   '/menu/$tableNumber': typeof MenuTableNumberRoute
+  '/owner/dashboard': typeof OwnerDashboardRoute
+  '/owner/': typeof OwnerIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/demo': typeof DemoRoute
+  '/waiter': typeof WaiterRoute
   '/book/$restaurantId': typeof BookRestaurantIdRoute
   '/menu/$tableNumber': typeof MenuTableNumberRoute
+  '/owner/dashboard': typeof OwnerDashboardRoute
+  '/owner': typeof OwnerIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/demo': typeof DemoRoute
+  '/owner': typeof OwnerRouteWithChildren
+  '/waiter': typeof WaiterRoute
   '/book/$restaurantId': typeof BookRestaurantIdRoute
   '/menu/$tableNumber': typeof MenuTableNumberRoute
+  '/owner/dashboard': typeof OwnerDashboardRoute
+  '/owner/': typeof OwnerIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/demo' | '/book/$restaurantId' | '/menu/$tableNumber'
+  fullPaths:
+    | '/'
+    | '/demo'
+    | '/owner'
+    | '/waiter'
+    | '/book/$restaurantId'
+    | '/menu/$tableNumber'
+    | '/owner/dashboard'
+    | '/owner/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/demo' | '/book/$restaurantId' | '/menu/$tableNumber'
-  id: '__root__' | '/' | '/demo' | '/book/$restaurantId' | '/menu/$tableNumber'
+  to:
+    | '/'
+    | '/demo'
+    | '/waiter'
+    | '/book/$restaurantId'
+    | '/menu/$tableNumber'
+    | '/owner/dashboard'
+    | '/owner'
+  id:
+    | '__root__'
+    | '/'
+    | '/demo'
+    | '/owner'
+    | '/waiter'
+    | '/book/$restaurantId'
+    | '/menu/$tableNumber'
+    | '/owner/dashboard'
+    | '/owner/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DemoRoute: typeof DemoRoute
+  OwnerRoute: typeof OwnerRouteWithChildren
+  WaiterRoute: typeof WaiterRoute
   BookRestaurantIdRoute: typeof BookRestaurantIdRoute
   MenuTableNumberRoute: typeof MenuTableNumberRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/waiter': {
+      id: '/waiter'
+      path: '/waiter'
+      fullPath: '/waiter'
+      preLoaderRoute: typeof WaiterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/owner': {
+      id: '/owner'
+      path: '/owner'
+      fullPath: '/owner'
+      preLoaderRoute: typeof OwnerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/demo': {
       id: '/demo'
       path: '/demo'
@@ -84,6 +159,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/owner/': {
+      id: '/owner/'
+      path: '/'
+      fullPath: '/owner/'
+      preLoaderRoute: typeof OwnerIndexRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/dashboard': {
+      id: '/owner/dashboard'
+      path: '/dashboard'
+      fullPath: '/owner/dashboard'
+      preLoaderRoute: typeof OwnerDashboardRouteImport
+      parentRoute: typeof OwnerRoute
     }
     '/menu/$tableNumber': {
       id: '/menu/$tableNumber'
@@ -102,9 +191,23 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface OwnerRouteChildren {
+  OwnerDashboardRoute: typeof OwnerDashboardRoute
+  OwnerIndexRoute: typeof OwnerIndexRoute
+}
+
+const OwnerRouteChildren: OwnerRouteChildren = {
+  OwnerDashboardRoute: OwnerDashboardRoute,
+  OwnerIndexRoute: OwnerIndexRoute,
+}
+
+const OwnerRouteWithChildren = OwnerRoute._addFileChildren(OwnerRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DemoRoute: DemoRoute,
+  OwnerRoute: OwnerRouteWithChildren,
+  WaiterRoute: WaiterRoute,
   BookRestaurantIdRoute: BookRestaurantIdRoute,
   MenuTableNumberRoute: MenuTableNumberRoute,
 }
