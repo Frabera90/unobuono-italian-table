@@ -20,21 +20,21 @@ const NAV = [
 function OwnerLayout() {
   const loc = useLocation();
   const nav = useNavigate();
-  const [ok, setOk] = useState(false);
+  const [authState, setAuthState] = useState<"loading" | "ok" | "no">(() => {
+    if (typeof window === "undefined") return "loading";
+    return sessionStorage.getItem("owner-ok") === "1" ? "ok" : "no";
+  });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (sessionStorage.getItem("owner-ok") !== "1") {
-      if (loc.pathname !== "/owner") nav({ to: "/owner" });
-    } else {
-      setOk(true);
-    }
+    const ok = sessionStorage.getItem("owner-ok") === "1";
+    setAuthState(ok ? "ok" : "no");
+    if (!ok && loc.pathname !== "/owner") nav({ to: "/owner" });
   }, [loc.pathname, nav]);
 
   // PIN screen at /owner has no layout chrome
-  if (loc.pathname === "/owner" || !ok) {
-    return <Outlet />;
-  }
+  if (loc.pathname === "/owner") return <Outlet />;
+  if (authState !== "ok") return <div className="min-h-screen bg-background" />;
 
   return (
     <div className="min-h-screen bg-background md:flex">

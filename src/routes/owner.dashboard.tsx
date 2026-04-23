@@ -18,10 +18,10 @@ function DashboardPage() {
 
   async function loadStats() {
     const [r, p, rv, wl] = await Promise.all([
-      supabase.from("reservations").select("id", { count: "exact", head: true }).eq("date", today),
-      supabase.from("preorders").select("id, created_at", { count: "exact", head: true }).gte("created_at", today + "T00:00:00"),
-      supabase.from("reviews").select("id", { count: "exact", head: true }).eq("status", "new"),
-      supabase.from("waitlist").select("id", { count: "exact", head: true }).eq("status", "waiting"),
+      supabase.from("reservations").select("id", { count: "exact" }).eq("date", today),
+      supabase.from("preorders").select("id", { count: "exact" }).gte("created_at", today + "T00:00:00"),
+      supabase.from("reviews").select("id", { count: "exact" }).eq("status", "new"),
+      supabase.from("waitlist").select("id", { count: "exact" }).eq("status", "waiting"),
     ]);
     setStats({ resv: r.count || 0, preo: p.count || 0, reviews: rv.count || 0, waitlist: wl.count || 0 });
   }
