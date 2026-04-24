@@ -739,7 +739,20 @@ export type Database = {
         Args: { _restaurant_id: string; _user_id: string }
         Returns: boolean
       }
+      regenerate_staff_pin: { Args: never; Returns: string }
       restaurant_id_by_staff_pin: { Args: { _pin: string }; Returns: string }
+      staff_mark_call_seen: {
+        Args: { _call_id: string; _pin: string }
+        Returns: boolean
+      }
+      staff_set_preorder_status: {
+        Args: { _pin: string; _preorder_id: string; _status: string }
+        Returns: boolean
+      }
+      staff_toggle_arrived: {
+        Args: { _pin: string; _reservation_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "owner" | "staff" | "admin"
