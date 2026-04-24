@@ -40,8 +40,9 @@ function SocialPage() {
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [extraContext, setExtraContext] = useState("");
   const [platform, setPlatform] = useState<"instagram" | "facebook" | "both">("instagram");
-  const [scheduleNow, setScheduleNow] = useState(true);
+  const [scheduleMode, setScheduleMode] = useState<"now" | "today" | "custom">("now");
   const [scheduledAt, setScheduledAt] = useState<string>("");
+  const [todayTime, setTodayTime] = useState<string>("19:30");
   const [confetti, setConfetti] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
   const [originalImage, setOriginalImage] = useState<string | null>(null);
