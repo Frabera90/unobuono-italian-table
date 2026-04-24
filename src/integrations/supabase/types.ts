@@ -352,6 +352,7 @@ export type Database = {
           preorder_hours_before: number | null
           reminder_24h: boolean | null
           restaurant_id: string | null
+          staff_pin: string | null
           tiktok_handle: string | null
           tone: string | null
           updated_at: string | null
@@ -383,6 +384,7 @@ export type Database = {
           preorder_hours_before?: number | null
           reminder_24h?: boolean | null
           restaurant_id?: string | null
+          staff_pin?: string | null
           tiktok_handle?: string | null
           tone?: string | null
           updated_at?: string | null
@@ -414,6 +416,7 @@ export type Database = {
           preorder_hours_before?: number | null
           reminder_24h?: boolean | null
           restaurant_id?: string | null
+          staff_pin?: string | null
           tiktok_handle?: string | null
           tone?: string | null
           updated_at?: string | null
@@ -734,6 +737,20 @@ export type Database = {
       }
       owns_restaurant: {
         Args: { _restaurant_id: string; _user_id: string }
+        Returns: boolean
+      }
+      regenerate_staff_pin: { Args: never; Returns: string }
+      restaurant_id_by_staff_pin: { Args: { _pin: string }; Returns: string }
+      staff_mark_call_seen: {
+        Args: { _call_id: string; _pin: string }
+        Returns: boolean
+      }
+      staff_set_preorder_status: {
+        Args: { _pin: string; _preorder_id: string; _status: string }
+        Returns: boolean
+      }
+      staff_toggle_arrived: {
+        Args: { _pin: string; _reservation_id: string }
         Returns: boolean
       }
     }
