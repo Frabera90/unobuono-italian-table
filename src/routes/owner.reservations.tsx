@@ -11,13 +11,15 @@ export const Route = createFileRoute("/owner/reservations")({
 
 type Waitlist = { id: string; customer_name: string; customer_phone: string | null; party_size: number; date: string; preferred_time: string | null; status: string; created_at: string };
 type TableLite = { id: string; code: string; seats: number; zone_id: string | null };
+type Preorder = { id: string; customer_name: string | null; reservation_id: string | null; total: number | null; status: string | null; items: Array<{ name: string; qty: number; price: number }> | null; created_at: string };
 
 function ReservationsPage() {
   const [date, setDate] = useState(isoDate(new Date()));
   const [list, setList] = useState<Reservation[]>([]);
   const [waitlist, setWaitlist] = useState<Waitlist[]>([]);
   const [tables, setTables] = useState<TableLite[]>([]);
-  const [tab, setTab] = useState<"list" | "waitlist">("list");
+  const [preorders, setPreorders] = useState<Preorder[]>([]);
+  const [tab, setTab] = useState<"list" | "waitlist" | "preorders">("list");
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
 
   async function load() {
@@ -26,14 +28,16 @@ function ReservationsPage() {
     const { data: rest } = await supabase.from("restaurants").select("id").eq("owner_id", user.id).maybeSingle();
     if (!rest) return;
     setRestaurantId(rest.id);
-    const [{ data: r }, { data: w }, { data: t }] = await Promise.all([
+    const [{ data: r }, { data: w }, { data: t }, { data: p }] = await Promise.all([
       supabase.from("reservations").select("*").eq("restaurant_id", rest.id).eq("date", date).order("time"),
       supabase.from("waitlist").select("*").eq("restaurant_id", rest.id).eq("date", date).eq("status", "waiting").order("created_at"),
       supabase.from("tables").select("id,code,seats,zone_id").eq("restaurant_id", rest.id).order("code"),
+      supabase.from("preorders").select("id,customer_name,reservation_id,total,status,items,created_at").eq("restaurant_id", rest.id).order("created_at", { ascending: false }).limit(50),
     ]);
     setList((r || []) as Reservation[]);
     setWaitlist((w || []) as Waitlist[]);
     setTables((t || []) as TableLite[]);
+    setPreorders((p || []) as Preorder[]);
   }
 
   useEffect(() => {
@@ -41,6 +45,7 @@ function ReservationsPage() {
     const ch = supabase.channel("o-resv-" + date)
       .on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "waitlist" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "preorders" }, load)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [date]);
@@ -96,9 +101,10 @@ function ReservationsPage() {
         </div>
       </header>
 
-      <div className="mb-4 flex gap-2 border-b border-border">
+      <div className="mb-4 flex flex-wrap gap-2 border-b border-border">
         <Tab active={tab === "list"} onClick={() => setTab("list")}>Prenotazioni ({list.length})</Tab>
         <Tab active={tab === "waitlist"} onClick={() => setTab("waitlist")}>Lista d'attesa ({waitlist.length})</Tab>
+        <Tab active={tab === "preorders"} onClick={() => setTab("preorders")}>Pre-ordini ({preorders.length})</Tab>
       </div>
 
       {tab === "list" && (
