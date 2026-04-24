@@ -208,12 +208,13 @@ function BookingPage() {
     if (email.trim() && data?.id) {
       try {
         const manageUrl = `${window.location.origin}/manage/${data.manage_token}`;
-        await fetch('/lovable/email/transactional/send', {
+        await fetch('/api/public/email/booking-confirm', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             templateName: 'booking-confirmation',
             recipientEmail: email.trim(),
+            reservationId: data.id,
             idempotencyKey: `booking-confirm-${data.id}`,
             templateData: {
               customerName: firstName.trim(),

@@ -41,6 +41,7 @@ import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/em
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
+import { Route as ApiPublicEmailBookingConfirmRouteImport } from './routes/api/public/email/booking-confirm'
 
 const WaiterRoute = WaiterRouteImport.update({
   id: '/waiter',
@@ -205,6 +206,12 @@ const LovableEmailQueueProcessRoute =
     path: '/lovable/email/queue/process',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicEmailBookingConfirmRoute =
+  ApiPublicEmailBookingConfirmRouteImport.update({
+    id: '/api/public/email/booking-confirm',
+    path: '/api/public/email/booking-confirm',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -236,6 +243,7 @@ export interface FileRoutesByFullPath {
   '/r/$slug': typeof RSlugRoute
   '/owner/': typeof OwnerIndexRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/api/public/email/booking-confirm': typeof ApiPublicEmailBookingConfirmRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -269,6 +277,7 @@ export interface FileRoutesByTo {
   '/r/$slug': typeof RSlugRoute
   '/owner': typeof OwnerIndexRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/api/public/email/booking-confirm': typeof ApiPublicEmailBookingConfirmRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -304,6 +313,7 @@ export interface FileRoutesById {
   '/r/$slug': typeof RSlugRoute
   '/owner/': typeof OwnerIndexRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/api/public/email/booking-confirm': typeof ApiPublicEmailBookingConfirmRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -340,6 +350,7 @@ export interface FileRouteTypes {
     | '/r/$slug'
     | '/owner/'
     | '/lovable/email/suppression'
+    | '/api/public/email/booking-confirm'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -373,6 +384,7 @@ export interface FileRouteTypes {
     | '/r/$slug'
     | '/owner'
     | '/lovable/email/suppression'
+    | '/api/public/email/booking-confirm'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -407,6 +419,7 @@ export interface FileRouteTypes {
     | '/r/$slug'
     | '/owner/'
     | '/lovable/email/suppression'
+    | '/api/public/email/booking-confirm'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -427,6 +440,7 @@ export interface RootRouteChildren {
   MenuTableNumberRoute: typeof MenuTableNumberRoute
   RSlugRoute: typeof RSlugRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiPublicEmailBookingConfirmRoute: typeof ApiPublicEmailBookingConfirmRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
   LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
@@ -658,6 +672,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/email/booking-confirm': {
+      id: '/api/public/email/booking-confirm'
+      path: '/api/public/email/booking-confirm'
+      fullPath: '/api/public/email/booking-confirm'
+      preLoaderRoute: typeof ApiPublicEmailBookingConfirmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -714,6 +735,7 @@ const rootRouteChildren: RootRouteChildren = {
   MenuTableNumberRoute: MenuTableNumberRoute,
   RSlugRoute: RSlugRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiPublicEmailBookingConfirmRoute: ApiPublicEmailBookingConfirmRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
   LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
