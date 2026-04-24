@@ -183,6 +183,7 @@ function BookingPage() {
         restaurant_id: resolvedRestaurantId,
         customer_name: fullName,
         customer_phone: phone,
+        customer_email: email.trim() || null,
         party_size: partySize,
         date,
         time,
@@ -194,13 +195,39 @@ function BookingPage() {
         preferences: preferences.length ? preferences : null,
         allergies: hasAllergies && allergies ? allergies : null,
         notes: notes || null,
-      })
+      } as any)
       .select("id, manage_token")
       .single();
     if (error) {
       toast.error("Errore: " + error.message);
       setSubmitting(false);
       return;
+    }
+
+    // Invio email di conferma (best-effort, non blocca il flusso)
+    if (email.trim() && data?.id) {
+      try {
+        const manageUrl = `${window.location.origin}/manage/${data.manage_token}`;
+        await fetch('/lovable/email/transactional/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            templateName: 'booking-confirmation',
+            recipientEmail: email.trim(),
+            idempotencyKey: `booking-confirm-${data.id}`,
+            templateData: {
+              customerName: firstName.trim(),
+              restaurantName: settings?.name || undefined,
+              date: fmtDate(date),
+              time,
+              partySize,
+              manageUrl,
+            },
+          }),
+        });
+      } catch (e) {
+        console.warn('email send failed', e);
+      }
     }
 
     setConfirmedRes({ id: data!.id, manage_token: data!.manage_token as string });
