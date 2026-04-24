@@ -410,36 +410,38 @@ function BookingPage() {
 
             {time && (
               <>
-                <p className="mb-2 mt-7 text-sm text-muted-foreground">Dove preferisci sederti?</p>
-                <div className="grid gap-3">
-                  {zones.filter((z) => z.available).map((z) => {
-                    const sel = z.id === zoneId;
-                    return (
-                      <button
-                        key={z.id}
-                        onClick={() => setZoneId(z.id)}
-                        className={`flex gap-4 rounded-xl border p-4 text-left transition ${
-                          sel ? "border-terracotta bg-terracotta/5" : "border-border bg-card hover:border-terracotta"
-                        }`}
-                      >
-                        <div className="grid h-16 w-16 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-cream-dark to-gold/40 font-display text-2xl text-terracotta">
-                          {z.name.charAt(0)}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="font-display text-lg">{z.name}</div>
-                          <div className="truncate text-xs text-muted-foreground">{z.description}</div>
-                          <div className="mt-1 truncate text-xs text-olive">{z.features}</div>
-                          <div className="mt-1 text-xs font-medium text-terracotta">{z.capacity} posti disponibili</div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                {zones.filter((z) => z.available).length > 0 && (
+                  <>
+                    <p className="mb-2 mt-7 text-sm text-muted-foreground">Hai una zona preferita? <span className="text-xs opacity-60">(opzionale)</span></p>
+                    <div className="grid gap-3">
+                      {zones.filter((z) => z.available).map((z) => {
+                        const sel = z.id === zoneId;
+                        return (
+                          <button
+                            key={z.id}
+                            onClick={() => setZoneId(sel ? null : z.id)}
+                            className={`flex gap-4 rounded-xl border p-4 text-left transition ${
+                              sel ? "border-terracotta bg-terracotta/5" : "border-border bg-card hover:border-terracotta"
+                            }`}
+                          >
+                            <div className="grid h-16 w-16 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-cream-dark to-gold/40 font-display text-2xl text-terracotta">
+                              {z.name.charAt(0)}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="font-display text-lg">{z.name}</div>
+                              {z.description && <div className="truncate text-xs text-muted-foreground">{z.description}</div>}
+                              {z.features && <div className="mt-1 truncate text-xs text-olive">{z.features}</div>}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
 
                 <button
-                  onClick={() => zoneId && setStep(3)}
-                  disabled={!zoneId}
-                  className="mt-7 w-full rounded-md bg-terracotta py-3.5 font-medium text-paper transition hover:bg-terracotta-dark disabled:opacity-40"
+                  onClick={() => setStep(3)}
+                  className="mt-7 w-full rounded-md bg-terracotta py-3.5 font-medium text-paper transition hover:bg-terracotta-dark"
                 >
                   Continua
                 </button>
