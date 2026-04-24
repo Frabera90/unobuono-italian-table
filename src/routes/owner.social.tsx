@@ -118,12 +118,42 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
   function reset() {
     setStep("upload");
     setImageDataUrl(null);
+    setOriginalImage(null);
+    setEnhanced(false);
     setCaption("");
     setHashtags([]);
     setExtraContext("");
     setScheduleNow(true);
     setScheduledAt("");
     setPlatform("instagram");
+  }
+
+  async function enhance(style: "auto" | "bright" | "moody" | "clean") {
+    if (!imageDataUrl || enhancing) return;
+    setEnhancing(true);
+    try {
+      const base64 = imageDataUrl.split(",")[1] || "";
+      const r = await enhanceImage({ data: { imageBase64: base64, mimeType: imageMime, style } });
+      if (r.error === "rate_limit") { toast.error("Troppe richieste. Riprova tra poco."); return; }
+      if (r.error === "credits") { toast.error("Crediti AI esauriti."); return; }
+      if (r.error || !r.imageUrl) { toast.error("Ritocco non riuscito. Riprova."); return; }
+      if (!originalImage) setOriginalImage(imageDataUrl);
+      setImageDataUrl(r.imageUrl);
+      setImageMime("image/png");
+      setEnhanced(true);
+      toast.success("Foto ritoccata ✨");
+    } catch (e: any) {
+      toast.error(e.message || "Errore");
+    } finally {
+      setEnhancing(false);
+    }
+  }
+
+  function revertEnhance() {
+    if (!originalImage) return;
+    setImageDataUrl(originalImage);
+    setEnhanced(false);
+    setOriginalImage(null);
   }
 
   async function publish() {
