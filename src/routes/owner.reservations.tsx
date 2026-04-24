@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isoDate, fmtDate, type Reservation } from "@/lib/restaurant";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/owner/reservations")({
   head: () => ({ meta: [{ title: "Prenotazioni — Unobuono" }] }),
@@ -9,6 +10,7 @@ export const Route = createFileRoute("/owner/reservations")({
 });
 
 type Waitlist = { id: string; customer_name: string; customer_phone: string | null; party_size: number; date: string; preferred_time: string | null; status: string; created_at: string };
+type TableLite = { id: string; code: string; seats: number; zone_id: string | null };
 
 function ReservationsPage() {
   const [date, setDate] = useState(isoDate(new Date()));
