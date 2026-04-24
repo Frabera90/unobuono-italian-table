@@ -122,7 +122,7 @@ function CampaignsPage() {
     setGenerating(true);
     try {
       const r = await callAI({ data: { messages: [
-        { role: "system", content: "Scrivi messaggi SMS/WhatsApp brevi (max 280 caratteri), caldi, in italiano, per una pizzeria. Includi nome ristorante 'Carpediem' e chiamata all'azione chiara. Niente emoji eccessive (1-2 max). Niente link." },
+        { role: "system", content: "Scrivi messaggi SMS/WhatsApp brevi (max 280 caratteri), caldi, in italiano, per un ristorante. Tono diretto, chiamata all'azione chiara. Niente emoji eccessive (1-2 max). Niente link." },
         { role: "user", content: `Campagna: "${name}". Canale: ${channel}. Scrivi solo il testo del messaggio, niente altro.` },
       ] } });
       if (r.error || !r.content) { toast.error("Errore AI"); return; }
@@ -213,7 +213,7 @@ function CampaignsPage() {
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Es. 🌹 Buon 1° Maggio dai Carpediem! Per i lavoratori, oggi una pizza è offerta. Mostra questo messaggio in cassa. Ti aspettiamo!"
+              placeholder="Es. 🌹 Buon 1° Maggio! Per i lavoratori oggi un'offerta speciale. Mostra questo messaggio in cassa. Ti aspettiamo!"
               rows={6}
               maxLength={320}
               className="w-full rounded-lg border-2 border-ink bg-paper px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-yellow"
