@@ -246,7 +246,14 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
                 </div>
                 <span className="text-sm font-semibold">{handle}</span>
               </div>
-              <img src={imageDataUrl} alt="Post" className="aspect-square w-full rounded-md object-cover" />
+              <div className="relative">
+                <img src={imageDataUrl} alt="Post" className="aspect-square w-full rounded-md object-cover" />
+                {enhanced && (
+                  <span className="absolute left-2 top-2 rounded-full border border-ink bg-yellow px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                    ✨ Ritoccata AI
+                  </span>
+                )}
+              </div>
               <div className="mt-2 flex items-center gap-3 text-xl">
                 <span>♡</span>
                 <span>💬</span>
