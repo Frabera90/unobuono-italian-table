@@ -209,6 +209,7 @@ function MenuPage() {
           <button
             onClick={() => setPreorderOpen(true)}
             className="flex-1 rounded-xl border-2 border-ink bg-yellow py-3.5 text-sm font-bold uppercase tracking-wider text-ink shadow-brut-sm transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-brut"
+            title="Fai preparare i piatti in anticipo. Quando arrivi mangi subito — puoi sempre aggiungere altro al tavolo."
           >
             🛵 Pre-ordina
           </button>
