@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/owner/settings")({
-  head: () => ({ meta: [{ title: "Impostazioni — Unobuono" }] }),
+  head: () => ({ meta: [{ title: "Il mio locale — Unobuono" }] }),
   component: SettingsPage,
 });
 
