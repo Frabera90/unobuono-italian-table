@@ -390,7 +390,7 @@ function BookingPage() {
                       }`}
                     >
                       <div className="font-display text-lg">{s.slot}</div>
-                      <div className="text-[10px] opacity-70">{s.available} {s.available === 1 ? "posto" : "posti"}</div>
+                      <div className="text-[10px] opacity-70">{s.bookable ? `${s.freeTables} ${s.freeTables === 1 ? "tavolo" : "tavoli"}` : "Pieno"}</div>
                     </button>
                   ))}
                 </div>
