@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -9,6 +9,7 @@ import {
   type RoomZone,
   type MenuItem,
 } from "@/lib/restaurant";
+import { generateSlots, computeAvailability, pickTable, type TableRow, type ReservationLite } from "@/lib/availability";
 import { toast } from "sonner";
 
 const OCCASION_CHIPS = ["Compleanno", "Anniversario", "Cena romantica", "Business", "Famiglia", "Amici"];
@@ -31,9 +32,11 @@ type Step = 1 | 2 | 3 | 4 | "waitlist" | "done";
 
 function BookingPage() {
   const { restaurantId: param } = Route.useParams();
+  const navigate = useNavigate();
   const [resolvedRestaurantId, setResolvedRestaurantId] = useState<string | null>(null);
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
   const [zones, setZones] = useState<RoomZone[]>([]);
+  const [tables, setTables] = useState<TableRow[]>([]);
   const [step, setStep] = useState<Step>(1);
 
   const [date, setDate] = useState<string>(isoDate(new Date()));
@@ -52,13 +55,13 @@ function BookingPage() {
   const [preferences, setPreferences] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [confirmedRes, setConfirmedRes] = useState<{ id: string } | null>(null);
+  const [confirmedRes, setConfirmedRes] = useState<{ id: string; manage_token: string } | null>(null);
 
   const [wlName, setWlName] = useState("");
   const [wlPhone, setWlPhone] = useState("+39 ");
   const [wlPreferred, setWlPreferred] = useState("20:00");
 
-  const [reservations, setReservations] = useState<{ time: string; party_size: number }[]>([]);
+  const [reservations, setReservations] = useState<ReservationLite[]>([]);
   const [featured, setFeatured] = useState<MenuItem[]>([]);
 
   // Resolve param: it can be a UUID (restaurant.id) or a slug
@@ -76,9 +79,13 @@ function BookingPage() {
       if (!rid) return;
       const { data: s } = await supabase.from("restaurant_settings").select("*").eq("restaurant_id", rid).maybeSingle();
       setSettings(s as RestaurantSettings | null);
-      const { data: z } = await supabase.from("room_zones").select("*").eq("restaurant_id", rid).order("sort_order");
+      const [{ data: z }, { data: t }, { data: f }] = await Promise.all([
+        supabase.from("room_zones").select("*").eq("restaurant_id", rid).order("sort_order"),
+        supabase.from("tables").select("id,code,seats,zone_id").eq("restaurant_id", rid).order("seats"),
+        supabase.from("menu_items").select("*").eq("restaurant_id", rid).eq("available", true).eq("featured", true).order("sort_order").limit(6),
+      ]);
       setZones((z || []) as RoomZone[]);
-      const { data: f } = await supabase.from("menu_items").select("*").eq("restaurant_id", rid).eq("available", true).eq("featured", true).order("sort_order").limit(6);
+      setTables((t || []) as TableRow[]);
       setFeatured((f || []) as MenuItem[]);
     })();
   }, [param]);
@@ -87,60 +94,29 @@ function BookingPage() {
     if (!resolvedRestaurantId) return;
     supabase
       .from("reservations")
-      .select("time, party_size")
+      .select("id,time,party_size,table_id,status")
       .eq("restaurant_id", resolvedRestaurantId)
       .eq("date", date)
-      .then(({ data }) => setReservations((data || []) as any));
+      .neq("status", "cancelled")
+      .then(({ data }) => setReservations((data || []) as ReservationLite[]));
   }, [date, resolvedRestaurantId]);
 
-  // Slot reali a partire dagli opening_hours del ristorante (configurati dall'owner)
-  // Formato atteso per ogni giorno: "19:00-23:00" oppure "12:00-15:00,19:00-24:00" oppure "closed"
-  const allSlots = useMemo(() => {
-    if (!settings?.opening_hours) return [];
-    const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
-    const d = new Date(date + "T00:00:00");
-    const dayKey = days[d.getDay()];
-    const raw = settings.opening_hours?.[dayKey];
-    if (!raw || raw === "closed") return [];
-    const ranges = String(raw).split(",").map((s) => s.trim()).filter(Boolean);
-    const out: string[] = [];
-    for (const range of ranges) {
-      const [start, end] = range.split("-").map((s) => s.trim());
-      if (!start || !end) continue;
-      const [sh, sm] = start.split(":").map(Number);
-      const [eh, em] = end.split(":").map(Number);
-      if (Number.isNaN(sh) || Number.isNaN(eh)) continue;
-      let cur = sh * 60 + (sm || 0);
-      const stop = eh * 60 + (em || 0);
-      // Ultimo slot prenotabile = chiusura - durata media tavolo (default 90)
-      const durMin = settings?.avg_table_duration ?? 90;
-      const lastBookable = stop - durMin;
-      while (cur <= lastBookable) {
-        const h = Math.floor(cur / 60);
-        const m = cur % 60;
-        out.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
-        cur += 30;
-      }
-    }
-    return out;
-  }, [date, settings]);
+  const avgDuration = settings?.avg_table_duration ?? 90;
 
-  // Capienza reale = somma posti zone disponibili (NON un placeholder)
-  const totalCapacity = useMemo(() => {
-    return zones.filter((z) => z.available).reduce((s, z) => s + (z.capacity || 0), 0);
-  }, [zones]);
+  // Slot orari da opening_hours
+  const allSlots = useMemo(
+    () => generateSlots(settings?.opening_hours, date, avgDuration, 30),
+    [date, settings?.opening_hours, avgDuration],
+  );
 
-  const slots = useMemo(() => {
-    if (totalCapacity <= 0) return [];
-    return allSlots.map((slot) => {
-      const booked = reservations.filter((r) => r.time === slot).reduce((s, r) => s + r.party_size, 0);
-      const available = Math.max(0, totalCapacity - booked);
-      return { slot, available, bookable: available >= partySize };
-    });
-  }, [allSlots, reservations, partySize, totalCapacity]);
+  // Disponibilità reale: per ogni slot guarda se almeno un tavolo che ospita il party_size è libero
+  const slots = useMemo(
+    () => computeAvailability(allSlots, tables, reservations, partySize, avgDuration, zoneId),
+    [allSlots, tables, reservations, partySize, avgDuration, zoneId],
+  );
 
   const noAvailability = slots.length === 0 || slots.every((s) => !s.bookable);
-  const notConfigured = totalCapacity <= 0 || allSlots.length === 0;
+  const notConfigured = tables.length === 0 || allSlots.length === 0;
 
   // calendar for next 30 days
   const days = useMemo(() => {
@@ -156,7 +132,25 @@ function BookingPage() {
   async function submitBooking() {
     if (!firstName.trim() || !lastName.trim() || !phone.trim() || !time || !resolvedRestaurantId) return;
     setSubmitting(true);
-    const zone = zones.find((z) => z.id === zoneId);
+
+    // Re-fetch reservations per evitare race conditions sulla stessa fascia
+    const { data: latest } = await supabase
+      .from("reservations")
+      .select("id,time,party_size,table_id,status")
+      .eq("restaurant_id", resolvedRestaurantId)
+      .eq("date", date)
+      .neq("status", "cancelled");
+
+    const assignedTable = pickTable(tables, (latest || []) as ReservationLite[], time, partySize, avgDuration, zoneId);
+    if (!assignedTable) {
+      toast.error("Tavolo non più disponibile per quell'orario. Scegli un altro slot.");
+      setReservations((latest || []) as ReservationLite[]);
+      setTime(null);
+      setSubmitting(false);
+      return;
+    }
+
+    const zone = zones.find((z) => z.id === (zoneId || assignedTable.zone_id));
     const fullName = `${firstName.trim()} ${lastName.trim()}`;
     const { data, error } = await supabase
       .from("reservations")
@@ -167,15 +161,16 @@ function BookingPage() {
         party_size: partySize,
         date,
         time,
-        zone_id: zoneId,
-        zone_name: zone?.name,
+        zone_id: assignedTable.zone_id,
+        zone_name: zone?.name ?? null,
+        table_id: assignedTable.id,
         occasion: hasOccasion && occasion ? occasion : null,
         occasion_type: hasOccasion ? occasionType : null,
         preferences: preferences.length ? preferences : null,
         allergies: hasAllergies && allergies ? allergies : null,
         notes: notes || null,
       })
-      .select("id")
+      .select("id, manage_token")
       .single();
     if (error) {
       toast.error("Errore: " + error.message);
@@ -183,7 +178,7 @@ function BookingPage() {
       return;
     }
 
-    setConfirmedRes({ id: data!.id });
+    setConfirmedRes({ id: data!.id, manage_token: data!.manage_token as string });
     setStep("done");
     setSubmitting(false);
   }
@@ -395,7 +390,7 @@ function BookingPage() {
                       }`}
                     >
                       <div className="font-display text-lg">{s.slot}</div>
-                      <div className="text-[10px] opacity-70">{s.available} {s.available === 1 ? "posto" : "posti"}</div>
+                      <div className="text-[10px] opacity-70">{s.bookable ? `${s.freeTables} ${s.freeTables === 1 ? "tavolo" : "tavoli"}` : "Pieno"}</div>
                     </button>
                   ))}
                 </div>
@@ -415,36 +410,38 @@ function BookingPage() {
 
             {time && (
               <>
-                <p className="mb-2 mt-7 text-sm text-muted-foreground">Dove preferisci sederti?</p>
-                <div className="grid gap-3">
-                  {zones.filter((z) => z.available).map((z) => {
-                    const sel = z.id === zoneId;
-                    return (
-                      <button
-                        key={z.id}
-                        onClick={() => setZoneId(z.id)}
-                        className={`flex gap-4 rounded-xl border p-4 text-left transition ${
-                          sel ? "border-terracotta bg-terracotta/5" : "border-border bg-card hover:border-terracotta"
-                        }`}
-                      >
-                        <div className="grid h-16 w-16 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-cream-dark to-gold/40 font-display text-2xl text-terracotta">
-                          {z.name.charAt(0)}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="font-display text-lg">{z.name}</div>
-                          <div className="truncate text-xs text-muted-foreground">{z.description}</div>
-                          <div className="mt-1 truncate text-xs text-olive">{z.features}</div>
-                          <div className="mt-1 text-xs font-medium text-terracotta">{z.capacity} posti disponibili</div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                {zones.filter((z) => z.available).length > 0 && (
+                  <>
+                    <p className="mb-2 mt-7 text-sm text-muted-foreground">Hai una zona preferita? <span className="text-xs opacity-60">(opzionale)</span></p>
+                    <div className="grid gap-3">
+                      {zones.filter((z) => z.available).map((z) => {
+                        const sel = z.id === zoneId;
+                        return (
+                          <button
+                            key={z.id}
+                            onClick={() => setZoneId(sel ? null : z.id)}
+                            className={`flex gap-4 rounded-xl border p-4 text-left transition ${
+                              sel ? "border-terracotta bg-terracotta/5" : "border-border bg-card hover:border-terracotta"
+                            }`}
+                          >
+                            <div className="grid h-16 w-16 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-cream-dark to-gold/40 font-display text-2xl text-terracotta">
+                              {z.name.charAt(0)}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="font-display text-lg">{z.name}</div>
+                              {z.description && <div className="truncate text-xs text-muted-foreground">{z.description}</div>}
+                              {z.features && <div className="mt-1 truncate text-xs text-olive">{z.features}</div>}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
 
                 <button
-                  onClick={() => zoneId && setStep(3)}
-                  disabled={!zoneId}
-                  className="mt-7 w-full rounded-md bg-terracotta py-3.5 font-medium text-paper transition hover:bg-terracotta-dark disabled:opacity-40"
+                  onClick={() => setStep(3)}
+                  className="mt-7 w-full rounded-md bg-terracotta py-3.5 font-medium text-paper transition hover:bg-terracotta-dark"
                 >
                   Continua
                 </button>
@@ -584,25 +581,30 @@ function BookingPage() {
         )}
 
         {step === "done" && confirmedRes && (
-          <div className="rounded-2xl border border-border bg-card p-7 text-center">
-            <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-terracotta/10 text-3xl text-terracotta">✓</div>
-            <h2 className="mt-4 font-display text-3xl">Prenotazione confermata!</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Riceverai una conferma su WhatsApp.</p>
+          <div className="rounded-2xl border-2 border-ink bg-paper p-7 text-center shadow-[6px_6px_0_0_hsl(var(--ink))]">
+            <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-terracotta text-3xl text-paper">✓</div>
+            <h2 className="mt-4 font-display text-3xl uppercase">Prenotazione confermata!</h2>
+            <p className="mt-2 text-sm text-ink/70">Salva il link qui sotto: lo userai per modificare, pre-ordinare o disdire.</p>
 
-            <div className="mx-auto mt-6 max-w-sm rounded-2xl bg-[#dcf8c6] p-4 text-left text-ink shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wider opacity-60">{settings?.name}</p>
-              <p className="mt-1 text-sm">
-                Ciao {firstName}! 👋 La tua prenotazione è confermata:<br />
-                📅 {fmtDate(date)} · ore {time}<br />
-                👥 {partySize} {partySize === 1 ? "persona" : "persone"} · {zones.find((z) => z.id === zoneId)?.name}<br />
-                {hasOccasion && occasion ? `🎉 ${occasion}\n` : ""}
-                A presto!
-              </p>
+            <div className="mx-auto mt-5 max-w-sm rounded-xl bg-cream-dark/40 p-4 text-left">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-ink/60">📅 Quando</p>
+              <p className="mt-0.5 text-sm font-medium capitalize">{fmtDate(date)} · ore <span className="text-terracotta font-bold">{time}</span></p>
+              <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-ink/60">👥 Per</p>
+              <p className="mt-0.5 text-sm font-medium">{firstName} {lastName} · {partySize} {partySize === 1 ? "persona" : "persone"}</p>
             </div>
 
-            <Link to="/menu/$tableNumber" params={{ tableNumber: "7" }} className="mt-7 inline-flex rounded-md border border-terracotta px-5 py-2 text-sm font-medium text-terracotta hover:bg-terracotta hover:text-paper">
-              Vedi il menu
-            </Link>
+            <button
+              onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/manage/${confirmedRes.manage_token}`); toast.success("Link copiato"); }}
+              className="mt-5 w-full rounded-xl border-2 border-ink bg-yellow px-4 py-3 text-sm font-bold uppercase tracking-wider shadow-[3px_3px_0_0_hsl(var(--ink))] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
+            >
+              📋 Copia link gestione
+            </button>
+            <button
+              onClick={() => navigate({ to: "/manage/$token", params: { token: confirmedRes.manage_token } })}
+              className="mt-3 w-full rounded-xl border-2 border-ink bg-paper px-4 py-3 text-sm font-bold uppercase tracking-wider hover:bg-cream-dark"
+            >
+              Apri la mia prenotazione →
+            </button>
           </div>
         )}
       </div>
