@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/owner/")({
-  head: () => ({ meta: [{ title: "Accesso titolare" }] }),
+  head: () => ({ meta: [{ title: "Accesso titolare — Unobuono" }] }),
   component: PinPage,
 });
 
@@ -34,24 +34,27 @@ function PinPage() {
   function back() { setPin(pin.slice(0, -1)); }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-background px-5">
+    <main className="grid min-h-screen place-items-center bg-yellow px-5">
       <div className={`w-full max-w-xs text-center ${shake ? "shake" : ""}`}>
-        <p className="font-display text-sm uppercase tracking-[0.3em] text-terracotta">Carpediem</p>
-        <h1 className="mt-3 font-display text-3xl">Inserisci il PIN</h1>
-        <div className="my-7 flex justify-center gap-3">
+        <div className="mb-8 inline-flex items-center gap-2">
+          <span className="grid h-9 w-9 place-items-center rounded-full bg-ink font-display text-yellow">U</span>
+          <span className="font-display text-2xl uppercase tracking-tight">UNOBUONO</span>
+        </div>
+        <h1 className="font-display text-4xl uppercase leading-none">Inserisci<br />il PIN</h1>
+        <div className="my-8 flex justify-center gap-3">
           {[0,1,2,3].map((i) => (
-            <span key={i} className={`h-4 w-4 rounded-full border-2 transition ${pin.length > i ? "border-terracotta bg-terracotta" : "border-border"}`} />
+            <span key={i} className={`h-4 w-4 rounded-full border-2 border-ink transition ${pin.length > i ? "bg-ink" : "bg-paper"}`} />
           ))}
         </div>
         <div className="grid grid-cols-3 gap-3">
           {["1","2","3","4","5","6","7","8","9"].map((d) => (
-            <button key={d} onClick={() => press(d)} className="rounded-2xl bg-card py-5 font-display text-2xl shadow-sm hover:bg-cream-dark">{d}</button>
+            <button key={d} onClick={() => press(d)} className="rounded-2xl border-2 border-ink bg-paper py-5 font-display text-2xl shadow-brut-sm transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-brut active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">{d}</button>
           ))}
           <span />
-          <button onClick={() => press("0")} className="rounded-2xl bg-card py-5 font-display text-2xl shadow-sm hover:bg-cream-dark">0</button>
-          <button onClick={back} className="rounded-2xl bg-cream-dark py-5 text-xl">←</button>
+          <button onClick={() => press("0")} className="rounded-2xl border-2 border-ink bg-paper py-5 font-display text-2xl shadow-brut-sm transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-brut">0</button>
+          <button onClick={back} className="rounded-2xl border-2 border-ink bg-ink py-5 text-xl text-yellow shadow-brut-sm">←</button>
         </div>
-        <p className="mt-6 text-xs text-muted-foreground">Demo · PIN 1234</p>
+        <p className="mt-7 font-mono text-[10px] uppercase tracking-widest text-ink/70">Demo · PIN 1234</p>
       </div>
     </main>
   );

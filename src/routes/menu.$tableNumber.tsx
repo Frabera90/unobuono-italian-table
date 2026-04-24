@@ -67,16 +67,18 @@ function MenuPage() {
   }, [items]);
 
   return (
-    <main className="min-h-screen bg-background pb-32">
-      <header className="sticky top-0 z-20 border-b border-border bg-cream/95 px-5 py-4 backdrop-blur">
+    <main className="min-h-screen bg-paper pb-32">
+      <header className="sticky top-0 z-20 border-b-2 border-ink bg-yellow px-5 py-4">
         <div className="mx-auto flex max-w-3xl items-center justify-between">
-          <div>
-            <h1 className="font-display text-2xl italic text-terracotta">{settings?.name || "Carpediem"}</h1>
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Tavolo {tableNumber}</p>
+          <div className="flex items-center gap-3">
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-ink font-display text-yellow">U</span>
+            <div>
+              <h1 className="font-display text-2xl uppercase leading-none tracking-tight text-ink">{settings?.name || "Carpediem"}</h1>
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.25em] text-ink/70">Tavolo {tableNumber} · Menu live</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="live-dot" />
-            menu live
+          <div className="flex items-center gap-2 rounded-full border-2 border-ink bg-paper px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-ink">
+            <span className="live-dot" /> live
           </div>
         </div>
       </header>
@@ -84,36 +86,37 @@ function MenuPage() {
       <div className="mx-auto max-w-3xl px-5 py-8">
         {grouped.length === 0 && <p className="text-center text-muted-foreground">Caricamento...</p>}
         {grouped.map(([cat, list]) => (
-          <section key={cat} className="mb-10">
-            <h2 className="font-display text-3xl text-foreground">
-              <span className="italic text-terracotta">{cat}</span>
-            </h2>
-            <div className="mt-1 h-px w-12 bg-gold" />
-            <ul className="mt-5 space-y-5">
+          <section key={cat} className="mb-12">
+            <div className="flex items-baseline justify-between">
+              <h2 className="font-display text-4xl uppercase text-ink md:text-5xl">{cat}</h2>
+              <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink/50">{list.length} piatti</span>
+            </div>
+            <div className="mt-2 h-1 w-16 bg-yellow" />
+            <ul className="mt-6 space-y-3">
               {list.map((it) => {
                 const flash = recentlyChanged.has(it.id);
                 return (
                   <li
                     key={it.id}
-                    className={`flex gap-4 rounded-xl p-3 transition ${flash ? "ring-pulse-gold bg-gold/10" : ""} ${
+                    className={`flex gap-4 rounded-2xl border-2 border-ink bg-paper p-4 transition ${flash ? "ring-pulse-gold bg-yellow" : ""} ${
                       !it.available ? "opacity-50" : ""
                     }`}
                   >
                     {it.photo_url && (
-                      <img src={it.photo_url} alt={it.name} className="h-16 w-16 shrink-0 rounded-lg object-cover" />
+                      <img src={it.photo_url} alt={it.name} className="h-20 w-20 shrink-0 rounded-xl border-2 border-ink object-cover" />
                     )}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-3">
-                        <h3 className="font-display text-base">{it.name}</h3>
-                        <span className={`shrink-0 font-display text-base text-terracotta ${!it.available ? "line-through" : ""}`}>
+                        <h3 className="font-display text-lg uppercase">{it.name}</h3>
+                        <span className={`shrink-0 rounded-full bg-yellow px-2.5 py-0.5 font-display text-base text-ink ${!it.available ? "line-through" : ""}`}>
                           {it.price != null ? `€ ${Number(it.price).toFixed(2).replace(".", ",")}` : ""}
                         </span>
                       </div>
-                      {it.description && <p className="mt-0.5 text-xs text-muted-foreground">{it.description}</p>}
-                      <div className="mt-1 flex flex-wrap gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
-                        {it.allergens && <span>· {it.allergens}</span>}
-                        {!it.available && <span className="font-medium text-destructive">Non disponibile stasera</span>}
-                        {flash && <span className="font-medium text-gold">⚡ aggiornato</span>}
+                      {it.description && <p className="mt-1 text-sm text-ink/70">{it.description}</p>}
+                      <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-bold uppercase tracking-wider">
+                        {it.allergens && <span className="rounded-full bg-cream-dark px-2 py-0.5 text-ink/70">{it.allergens}</span>}
+                        {!it.available && <span className="rounded-full bg-destructive px-2 py-0.5 text-paper">Non disponibile stasera</span>}
+                        {flash && <span className="rounded-full bg-ink px-2 py-0.5 text-yellow">⚡ aggiornato</span>}
                       </div>
                     </div>
                   </li>
@@ -125,17 +128,17 @@ function MenuPage() {
       </div>
 
       {/* Sticky bottom bar */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-cream/95 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl gap-2">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-ink bg-paper px-4 py-3">
+        <div className="mx-auto flex max-w-3xl gap-3">
           <button
             onClick={() => setCallOpen(true)}
-            className="flex-1 rounded-xl bg-ink py-3 text-sm font-medium text-paper hover:opacity-90"
+            className="flex-1 rounded-xl border-2 border-ink bg-paper py-3.5 text-sm font-bold uppercase tracking-wider text-ink shadow-brut-sm transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-brut"
           >
-            🙋 Chiama il cameriere
+            🙋 Cameriere
           </button>
           <button
             onClick={() => setPreorderOpen(true)}
-            className="flex-1 rounded-xl bg-terracotta py-3 text-sm font-medium text-paper hover:bg-terracotta-dark"
+            className="flex-1 rounded-xl border-2 border-ink bg-yellow py-3.5 text-sm font-bold uppercase tracking-wider text-ink shadow-brut-sm transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-brut"
           >
             🛵 Pre-ordina
           </button>

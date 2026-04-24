@@ -21,7 +21,7 @@ export const Route = createRootRoute({
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "Unobuono — Gestione ristorante" },
       { name: "description", content: "Gestionale ristorante con AI: prenotazioni, menu live, sala, CRM e social." },
-      { name: "theme-color", content: "#c4592a" },
+      { name: "theme-color", content: "#FFD60A" },
       { property: "og:title", content: "Unobuono — Gestione ristorante" },
       { property: "og:description", content: "Gestionale ristorante con AI: prenotazioni, menu live, sala, CRM e social." },
       { property: "og:type", content: "website" },
@@ -38,7 +38,7 @@ export const Route = createRootRoute({
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&display=swap",
       },
     ],
   }),
