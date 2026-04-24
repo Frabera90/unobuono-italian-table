@@ -76,6 +76,7 @@ export type Reservation = {
   time: string;
   zone_id: string | null;
   zone_name: string | null;
+  table_id: string | null;
   occasion: string | null;
   allergies: string | null;
   notes: string | null;
