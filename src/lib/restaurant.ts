@@ -21,6 +21,13 @@ export type RestaurantSettings = {
   followup_enabled: boolean;
   cover_photo_url: string | null;
   logo_url: string | null;
+  pets_allowed?: boolean | null;
+  wheelchair_accessible?: boolean | null;
+  parking_available?: boolean | null;
+  kid_friendly?: boolean | null;
+  min_age?: number | null;
+  good_to_know?: string | null;
+  google_maps_url?: string | null;
 };
 
 export type RoomZone = {
@@ -45,6 +52,7 @@ export type MenuItem = {
   allergens: string | null;
   sort_order: number;
   updated_at: string;
+  featured?: boolean | null;
 };
 
 export type Reservation = {

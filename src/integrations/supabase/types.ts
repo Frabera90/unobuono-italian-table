@@ -104,6 +104,7 @@ export type Database = {
           available: boolean | null
           category: string | null
           description: string | null
+          featured: boolean | null
           id: string
           name: string
           photo_url: string | null
@@ -116,6 +117,7 @@ export type Database = {
           available?: boolean | null
           category?: string | null
           description?: string | null
+          featured?: boolean | null
           id?: string
           name: string
           photo_url?: string | null
@@ -128,6 +130,7 @@ export type Database = {
           available?: boolean | null
           category?: string | null
           description?: string | null
+          featured?: boolean | null
           id?: string
           name?: string
           photo_url?: string | null
@@ -186,7 +189,9 @@ export type Database = {
           id: string
           notes: string | null
           occasion: string | null
+          occasion_type: string | null
           party_size: number
+          preferences: string[] | null
           preorder_link_sent: boolean | null
           reminder_sent: boolean | null
           status: string | null
@@ -204,7 +209,9 @@ export type Database = {
           id?: string
           notes?: string | null
           occasion?: string | null
+          occasion_type?: string | null
           party_size: number
+          preferences?: string[] | null
           preorder_link_sent?: boolean | null
           reminder_sent?: boolean | null
           status?: string | null
@@ -222,7 +229,9 @@ export type Database = {
           id?: string
           notes?: string | null
           occasion?: string | null
+          occasion_type?: string | null
           party_size?: number
+          preferences?: string[] | null
           preorder_link_sent?: boolean | null
           reminder_sent?: boolean | null
           status?: string | null
@@ -250,12 +259,18 @@ export type Database = {
           cover_photo_url: string | null
           facebook_handle: string | null
           followup_enabled: boolean | null
+          good_to_know: string | null
+          google_maps_url: string | null
           id: string
           instagram_handle: string | null
+          kid_friendly: boolean | null
           logo_url: string | null
           max_covers: number | null
+          min_age: number | null
           name: string | null
           opening_hours: Json | null
+          parking_available: boolean | null
+          pets_allowed: boolean | null
           phone: string | null
           preorder_hours_before: number | null
           reminder_24h: boolean | null
@@ -263,6 +278,7 @@ export type Database = {
           tone: string | null
           updated_at: string | null
           waitlist_enabled: boolean | null
+          wheelchair_accessible: boolean | null
         }
         Insert: {
           address?: string | null
@@ -273,12 +289,18 @@ export type Database = {
           cover_photo_url?: string | null
           facebook_handle?: string | null
           followup_enabled?: boolean | null
+          good_to_know?: string | null
+          google_maps_url?: string | null
           id?: string
           instagram_handle?: string | null
+          kid_friendly?: boolean | null
           logo_url?: string | null
           max_covers?: number | null
+          min_age?: number | null
           name?: string | null
           opening_hours?: Json | null
+          parking_available?: boolean | null
+          pets_allowed?: boolean | null
           phone?: string | null
           preorder_hours_before?: number | null
           reminder_24h?: boolean | null
@@ -286,6 +308,7 @@ export type Database = {
           tone?: string | null
           updated_at?: string | null
           waitlist_enabled?: boolean | null
+          wheelchair_accessible?: boolean | null
         }
         Update: {
           address?: string | null
@@ -296,12 +319,18 @@ export type Database = {
           cover_photo_url?: string | null
           facebook_handle?: string | null
           followup_enabled?: boolean | null
+          good_to_know?: string | null
+          google_maps_url?: string | null
           id?: string
           instagram_handle?: string | null
+          kid_friendly?: boolean | null
           logo_url?: string | null
           max_covers?: number | null
+          min_age?: number | null
           name?: string | null
           opening_hours?: Json | null
+          parking_available?: boolean | null
+          pets_allowed?: boolean | null
           phone?: string | null
           preorder_hours_before?: number | null
           reminder_24h?: boolean | null
@@ -309,6 +338,7 @@ export type Database = {
           tone?: string | null
           updated_at?: string | null
           waitlist_enabled?: boolean | null
+          wheelchair_accessible?: boolean | null
         }
         Relationships: []
       }

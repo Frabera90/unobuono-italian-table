@@ -10,8 +10,13 @@ import {
   fmtDate,
   type RestaurantSettings,
   type RoomZone,
+  type MenuItem,
 } from "@/lib/restaurant";
 import { toast } from "sonner";
+
+const OCCASION_CHIPS = ["Compleanno", "Anniversario", "Cena romantica", "Business", "Famiglia", "Amici"];
+const PREFERENCE_CHIPS = ["Vicino alla finestra", "Zona tranquilla", "Vicino al bagno", "Lontano dalla cucina", "Tavolo alto", "Senza glutine", "Vegetariano"];
+const DAY_LABELS: Record<string, string> = { mon: "Lun", tue: "Mar", wed: "Mer", thu: "Gio", fri: "Ven", sat: "Sab", sun: "Dom" };
 
 export const Route = createFileRoute("/book/$restaurantId")({
   head: () => ({
@@ -41,9 +46,11 @@ function BookingPage() {
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("+39 ");
   const [hasOccasion, setHasOccasion] = useState(false);
+  const [occasionType, setOccasionType] = useState<string | null>(null);
   const [occasion, setOccasion] = useState("");
   const [hasAllergies, setHasAllergies] = useState(false);
   const [allergies, setAllergies] = useState("");
+  const [preferences, setPreferences] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [confirmedRes, setConfirmedRes] = useState<{ id: string } | null>(null);
@@ -54,10 +61,19 @@ function BookingPage() {
   const [wlPreferred, setWlPreferred] = useState("20:00");
 
   const [reservations, setReservations] = useState<{ time: string; party_size: number }[]>([]);
+  const [featured, setFeatured] = useState<MenuItem[]>([]);
 
   useEffect(() => {
     getSettings().then(setSettings);
     supabase.from("room_zones").select("*").order("sort_order").then(({ data }) => setZones((data || []) as RoomZone[]));
+    supabase
+      .from("menu_items")
+      .select("*")
+      .eq("available", true)
+      .eq("featured", true)
+      .order("sort_order")
+      .limit(6)
+      .then(({ data }) => setFeatured((data || []) as MenuItem[]));
   }, []);
 
   useEffect(() => {
@@ -114,6 +130,8 @@ function BookingPage() {
         zone_id: zoneId,
         zone_name: zone?.name,
         occasion: hasOccasion && occasion ? occasion : null,
+        occasion_type: hasOccasion ? occasionType : null,
+        preferences: preferences.length ? preferences : null,
         allergies: hasAllergies && allergies ? allergies : null,
         notes: notes || null,
       })
@@ -185,7 +203,60 @@ function BookingPage() {
             >
               📖 Vedi il menu
             </a>
+            {settings?.google_maps_url && (
+              <a
+                href={settings.google_maps_url}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border-2 border-ink bg-paper px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-ink hover:bg-cream-dark"
+              >
+                🗺 Indicazioni
+              </a>
+            )}
+            {settings?.phone && (
+              <a
+                href={`https://wa.me/${settings.phone.replace(/[^0-9]/g, "")}`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border-2 border-ink bg-paper px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-ink hover:bg-cream-dark"
+              >
+                💬 WhatsApp
+              </a>
+            )}
           </div>
+
+          {/* Quick info chips */}
+          {settings && (
+            <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px]">
+              {settings.wheelchair_accessible && <span className="rounded-full bg-paper/70 px-2.5 py-1">♿ Accessibile</span>}
+              {settings.pets_allowed && <span className="rounded-full bg-paper/70 px-2.5 py-1">🐶 Animali ammessi</span>}
+              {settings.parking_available && <span className="rounded-full bg-paper/70 px-2.5 py-1">🅿 Parcheggio</span>}
+              {settings.kid_friendly && <span className="rounded-full bg-paper/70 px-2.5 py-1">👶 Adatto bambini</span>}
+              {settings.min_age != null && settings.min_age > 0 && <span className="rounded-full bg-paper/70 px-2.5 py-1">🔞 +{settings.min_age}</span>}
+            </div>
+          )}
+
+          {/* Opening hours summary */}
+          {settings?.opening_hours && (
+            <details className="mt-3 text-xs text-ink/80">
+              <summary className="cursor-pointer font-mono uppercase tracking-wider">🕐 Orari</summary>
+              <ul className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-3">
+                {(["mon","tue","wed","thu","fri","sat","sun"] as const).map((k) => {
+                  const v = settings.opening_hours?.[k];
+                  return (
+                    <li key={k} className="flex justify-between font-mono text-[11px]">
+                      <span className="opacity-70">{DAY_LABELS[k]}</span>
+                      <span>{!v || v === "closed" ? "Chiuso" : v}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </details>
+          )}
+
+          {settings?.good_to_know && (
+            <p className="mt-3 rounded-lg bg-paper/60 px-3 py-2 text-xs text-ink/80">ℹ {settings.good_to_know}</p>
+          )}
         </div>
       </header>
 
@@ -237,6 +308,35 @@ function BookingPage() {
               Cerca disponibilità
             </button>
           </Section>
+        )}
+
+        {step === 1 && featured.length > 0 && (
+          <section className="mt-6 rounded-2xl border-2 border-ink bg-paper p-5">
+            <div className="mb-3 flex items-baseline justify-between">
+              <h3 className="font-display text-xl uppercase tracking-tight">⭐ I più ordinati</h3>
+              <a href="/r/ristorante" target="_blank" rel="noreferrer" className="font-mono text-[11px] uppercase tracking-wider text-terracotta hover:underline">
+                Tutto il menu →
+              </a>
+            </div>
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {featured.map((it) => (
+                <li key={it.id} className="flex gap-3 rounded-lg border border-ink/10 p-2.5">
+                  {it.photo_url ? (
+                    <img src={it.photo_url} alt={it.name} loading="lazy" className="h-14 w-14 shrink-0 rounded-md object-cover" />
+                  ) : (
+                    <div className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-cream-dark text-xl">🍽</div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="truncate font-display text-sm uppercase">{it.name}</p>
+                      {it.price != null && <span className="font-mono text-xs font-bold">€{Number(it.price).toFixed(2)}</span>}
+                    </div>
+                    {it.description && <p className="mt-0.5 line-clamp-2 text-xs text-ink/60">{it.description}</p>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
         {step === 2 && (
@@ -348,15 +448,52 @@ function BookingPage() {
             {settings?.ask_occasion && (
               <Toggle label="È un'occasione speciale?" value={hasOccasion} onChange={setHasOccasion}>
                 {hasOccasion && (
-                  <input
-                    placeholder="compleanno, anniversario, proposta di matrimonio..."
-                    className="input mt-2"
-                    value={occasion}
-                    onChange={(e) => setOccasion(e.target.value)}
-                  />
+                  <>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {OCCASION_CHIPS.map((c) => {
+                        const sel = occasionType === c;
+                        return (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => { setOccasionType(sel ? null : c); if (!sel && !occasion) setOccasion(c); }}
+                            className={`rounded-full border px-3 py-1 text-xs transition ${sel ? "border-terracotta bg-terracotta text-paper" : "border-border bg-card hover:border-terracotta"}`}
+                          >
+                            {c}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <input
+                      placeholder="Dettagli (opzionale): nome, dedica, sorpresa..."
+                      className="input mt-2"
+                      value={occasion}
+                      onChange={(e) => setOccasion(e.target.value)}
+                    />
+                  </>
                 )}
               </Toggle>
             )}
+
+            <div className="mt-3 rounded-lg border border-border bg-background/60 p-3">
+              <p className="text-sm">Hai una preferenza sul tavolo?</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {PREFERENCE_CHIPS.map((p) => {
+                  const sel = preferences.includes(p);
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPreferences((prev) => sel ? prev.filter((x) => x !== p) : [...prev, p])}
+                      className={`rounded-full border px-3 py-1 text-xs transition ${sel ? "border-terracotta bg-terracotta text-paper" : "border-border bg-card hover:border-terracotta"}`}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {settings?.ask_allergies && (
               <Toggle label="Hai allergie o preferenze alimentari?" value={hasAllergies} onChange={setHasAllergies}>
                 {hasAllergies && (
@@ -392,6 +529,7 @@ function BookingPage() {
               <SummaryRow label="WhatsApp" value={phone} />
               {hasOccasion && occasion && <SummaryRow label="Occasione" value={occasion} />}
               {hasAllergies && allergies && <SummaryRow label="Allergie" value={allergies} />}
+              {preferences.length > 0 && <SummaryRow label="Preferenze" value={preferences.join(", ")} />}
               {notes && <SummaryRow label="Note" value={notes} />}
             </div>
             <button
