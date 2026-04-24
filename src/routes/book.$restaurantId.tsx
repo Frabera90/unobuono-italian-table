@@ -47,6 +47,7 @@ function BookingPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("+39 ");
+  const [email, setEmail] = useState("");
   const [hasOccasion, setHasOccasion] = useState(false);
   const [occasionType, setOccasionType] = useState<string | null>(null);
   const [occasion, setOccasion] = useState("");
@@ -182,6 +183,7 @@ function BookingPage() {
         restaurant_id: resolvedRestaurantId,
         customer_name: fullName,
         customer_phone: phone,
+        customer_email: email.trim() || null,
         party_size: partySize,
         date,
         time,
@@ -193,13 +195,40 @@ function BookingPage() {
         preferences: preferences.length ? preferences : null,
         allergies: hasAllergies && allergies ? allergies : null,
         notes: notes || null,
-      })
+      } as any)
       .select("id, manage_token")
       .single();
     if (error) {
       toast.error("Errore: " + error.message);
       setSubmitting(false);
       return;
+    }
+
+    // Invio email di conferma (best-effort, non blocca il flusso)
+    if (email.trim() && data?.id) {
+      try {
+        const manageUrl = `${window.location.origin}/manage/${data.manage_token}`;
+        await fetch('/api/public/email/booking-confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            templateName: 'booking-confirmation',
+            recipientEmail: email.trim(),
+            reservationId: data.id,
+            idempotencyKey: `booking-confirm-${data.id}`,
+            templateData: {
+              customerName: firstName.trim(),
+              restaurantName: settings?.name || undefined,
+              date: fmtDate(date),
+              time,
+              partySize,
+              manageUrl,
+            },
+          }),
+        });
+      } catch (e) {
+        console.warn('email send failed', e);
+      }
     }
 
     setConfirmedRes({ id: data!.id, manage_token: data!.manage_token as string });
@@ -551,6 +580,9 @@ function BookingPage() {
             </div>
             <Field label="🇮🇹 Numero WhatsApp">
               <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            </Field>
+            <Field label="Email (per la conferma)">
+              <input className="input" type="email" placeholder="nome@esempio.it" value={email} onChange={(e) => setEmail(e.target.value)} />
             </Field>
             {settings?.ask_occasion && (
               <Toggle label="È un'occasione speciale?" value={hasOccasion} onChange={setHasOccasion}>
