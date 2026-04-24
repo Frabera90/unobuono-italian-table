@@ -42,9 +42,12 @@ function MenuPage() {
   async function toggle(it: MenuItem) {
     await supabase.from("menu_items").update({ available: !it.available, updated_at: new Date().toISOString() }).eq("id", it.id);
   }
+  async function toggleFeatured(it: MenuItem) {
+    await supabase.from("menu_items").update({ featured: !it.featured, updated_at: new Date().toISOString() }).eq("id", it.id);
+  }
   async function save() {
     if (!edit?.name) { toast.error("Nome obbligatorio"); return; }
-    const payload: any = { name: edit.name, description: edit.description, price: Number(edit.price) || null, category: edit.category, available: edit.available !== false, allergens: edit.allergens, updated_at: new Date().toISOString() };
+    const payload: any = { name: edit.name, description: edit.description, price: Number(edit.price) || null, category: edit.category, available: edit.available !== false, featured: !!edit.featured, allergens: edit.allergens, updated_at: new Date().toISOString() };
     if (edit.id) {
       const { error } = await supabase.from("menu_items").update(payload).eq("id", edit.id);
       if (error) return toast.error(error.message);
@@ -83,10 +86,14 @@ function MenuPage() {
               {list.map((it) => (
                 <li key={it.id} className="flex items-center gap-3 p-3">
                   <button onClick={() => setEdit(it)} className="min-w-0 flex-1 text-left">
-                    <div className={`text-sm font-medium ${!it.available ? "text-muted-foreground line-through" : ""}`}>{it.name}</div>
+                    <div className={`text-sm font-medium ${!it.available ? "text-muted-foreground line-through" : ""}`}>
+                      {it.featured && <span className="mr-1 text-amber-500">⭐</span>}
+                      {it.name}
+                    </div>
                     {it.description && <div className="truncate text-xs text-muted-foreground">{it.description}</div>}
                   </button>
                   <div className="text-sm text-terracotta">{it.price != null ? `€ ${Number(it.price).toFixed(2)}` : "—"}</div>
+                  <button onClick={() => toggleFeatured(it)} title="In evidenza" className={`text-base transition ${it.featured ? "text-amber-500" : "text-muted-foreground/40 hover:text-amber-500"}`}>★</button>
                   <button onClick={() => toggle(it)} className={`relative h-5 w-9 rounded-full transition ${it.available ? "bg-terracotta" : "bg-border"}`}>
                     <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-paper transition ${it.available ? "left-[18px]" : "left-0.5"}`} />
                   </button>
@@ -112,6 +119,10 @@ function MenuPage() {
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={edit.available !== false} onChange={(e) => setEdit({ ...edit, available: e.target.checked })} />
                 Disponibile
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={!!edit.featured} onChange={(e) => setEdit({ ...edit, featured: e.target.checked })} />
+                ⭐ In evidenza (mostrato nella pagina di prenotazione)
               </label>
             </div>
             <div className="mt-5 flex items-center justify-between gap-2">

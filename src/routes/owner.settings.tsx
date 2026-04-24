@@ -56,6 +56,16 @@ function SettingsPage() {
           <Field label="TikTok"><input className="set-in" value={s.tiktok_handle || ""} onChange={(e) => setS({ ...s, tiktok_handle: e.target.value })} /></Field>
         </Section>
 
+        <Section title="Info per i clienti">
+          <Field label="Link Google Maps"><input className="set-in" value={s.google_maps_url || ""} onChange={(e) => setS({ ...s, google_maps_url: e.target.value })} placeholder="https://maps.app.goo.gl/..." /></Field>
+          <Field label="Cosa sapere prima di venire"><textarea className="set-in" rows={2} value={s.good_to_know || ""} onChange={(e) => setS({ ...s, good_to_know: e.target.value })} placeholder="es. Si consiglia la prenotazione il weekend. Tavolo libero per max 2h." /></Field>
+          <Toggle label="♿ Accessibile a sedie a rotelle" v={!!s.wheelchair_accessible} onChange={(v) => setS({ ...s, wheelchair_accessible: v })} />
+          <Toggle label="🐶 Animali ammessi" v={!!s.pets_allowed} onChange={(v) => setS({ ...s, pets_allowed: v })} />
+          <Toggle label="🅿 Parcheggio disponibile" v={!!s.parking_available} onChange={(v) => setS({ ...s, parking_available: v })} />
+          <Toggle label="👶 Adatto ai bambini" v={!!s.kid_friendly} onChange={(v) => setS({ ...s, kid_friendly: v })} />
+          <Field label="Età minima (lascia vuoto se non c'è)"><input type="number" className="set-in" value={s.min_age ?? ""} onChange={(e) => setS({ ...s, min_age: e.target.value ? Number(e.target.value) : null })} /></Field>
+        </Section>
+
         <Section title="Prenotazioni">
           <Toggle label="Chiedi occasione speciale" v={s.ask_occasion} onChange={(v) => setS({ ...s, ask_occasion: v })} />
           <Toggle label="Chiedi allergie" v={s.ask_allergies} onChange={(v) => setS({ ...s, ask_allergies: v })} />
