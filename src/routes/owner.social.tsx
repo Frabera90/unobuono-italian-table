@@ -479,34 +479,46 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
                 </div>
               </div>
 
-              <div>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={scheduleNow} onChange={(e) => setScheduleNow(e.target.checked)} />
-                  Pubblica ora
-                </label>
-                {!scheduleNow && (
-                  <input
-                    type="datetime-local"
-                    value={scheduledAt}
-                    onChange={(e) => setScheduledAt(e.target.value)}
-                    className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                  />
+              <div className="rounded-lg border-2 border-ink bg-cream/60 p-3">
+                <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-ink/70">⏰ Quando pubblicare</label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {([
+                    { k: "now", label: "Subito" },
+                    { k: "today", label: "Oggi a…" },
+                    { k: "custom", label: "Altro giorno" },
+                  ] as const).map((m) => (
+                    <button key={m.k} onClick={() => setScheduleMode(m.k)}
+                      className={`rounded-md border px-2 py-1.5 text-xs font-medium ${scheduleMode === m.k ? "border-ink bg-ink text-paper" : "border-ink/40 bg-paper"}`}>
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+                {scheduleMode === "today" && (
+                  <input type="time" value={todayTime} onChange={(e) => setTodayTime(e.target.value)}
+                    className="mt-2 w-full rounded-md border border-ink bg-paper px-3 py-2 text-sm" />
+                )}
+                {scheduleMode === "custom" && (
+                  <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)}
+                    min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                    className="mt-2 w-full rounded-md border border-ink bg-paper px-3 py-2 text-sm" />
                 )}
               </div>
 
-              <div className="flex gap-2 pt-1">
-                <button
-                  onClick={reset}
-                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                >
-                  Annulla
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button onClick={() => fileRef.current?.click()}
+                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm" title="Sostituisci la foto">
+                  📷 Cambia foto
                 </button>
-                <button
-                  onClick={publish}
-                  disabled={step !== "review" || !caption.trim()}
-                  className="flex-1 rounded-lg bg-terracotta px-4 py-2 text-sm font-medium text-paper disabled:opacity-40"
-                >
-                  {step === "publishing" ? "Pubblicazione…" : scheduleNow ? "Approva e pubblica" : "Approva e programma"}
+                <button onClick={reset}
+                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                  ← Indietro
+                </button>
+                <button onClick={publish} disabled={step !== "review" || !caption.trim()}
+                  className="flex-1 rounded-lg bg-terracotta px-4 py-2 text-sm font-medium text-paper disabled:opacity-40">
+                  {step === "publishing"
+                    ? "Pubblicazione…"
+                    : scheduleMode === "now" ? "Approva e pubblica"
+                    : "Approva e programma"}
                 </button>
               </div>
 
