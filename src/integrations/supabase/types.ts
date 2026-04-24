@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      campaigns: {
+        Row: {
+          channel: string
+          created_at: string | null
+          failed_count: number | null
+          filter: Json | null
+          id: string
+          message: string
+          name: string
+          recipient_count: number | null
+          sent_at: string | null
+          sent_count: number | null
+          status: string | null
+        }
+        Insert: {
+          channel?: string
+          created_at?: string | null
+          failed_count?: number | null
+          filter?: Json | null
+          id?: string
+          message: string
+          name: string
+          recipient_count?: number | null
+          sent_at?: string | null
+          sent_count?: number | null
+          status?: string | null
+        }
+        Update: {
+          channel?: string
+          created_at?: string | null
+          failed_count?: number | null
+          filter?: Json | null
+          id?: string
+          message?: string
+          name?: string
+          recipient_count?: number | null
+          sent_at?: string | null
+          sent_count?: number | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           allergens: string | null

@@ -11,6 +11,7 @@ const NAV = [
   { to: "/owner/menu", label: "Menu", icon: "🍕" },
   { to: "/owner/agent", label: "Agente AI", icon: "🤖" },
   { to: "/owner/crm", label: "Clienti", icon: "👥" },
+  { to: "/owner/campaigns", label: "Campagne", icon: "📣" },
   { to: "/owner/reviews", label: "Recensioni", icon: "⭐" },
   { to: "/owner/social", label: "Social", icon: "📸" },
   { to: "/owner/stats", label: "Statistiche", icon: "📈" },

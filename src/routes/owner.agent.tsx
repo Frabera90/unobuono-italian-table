@@ -16,7 +16,7 @@ const SUGGESTIONS = [
   "Elimina la Diavola dal menu",
   "Cambia prezzo Margherita a 9€",
   "Quali piatti non sono disponibili stasera?",
-  "Ripristina tutti i piatti",
+  "Crea campagna 1° Maggio per i lavoratori",
   "Quanti coperti ho stasera?",
 ];
 
@@ -47,7 +47,13 @@ AZIONI MENU DISPONIBILI:
 6) query — risposte informative dal database.
    Formato: {"action":"query","question":"coperti_oggi" | "recensioni_nuove" | "piatti_non_disponibili"}
 
+7) campaign_draft — crea una BOZZA di campagna SMS/WhatsApp ai clienti. NON invia, salva la bozza nello storico campagne. L'owner deve aprire la pagina Campagne per filtrare destinatari e inviare.
+   Triggers: "manda offerta ai clienti", "campagna sms", "promo a tutti", "messaggio ai clienti", "festa del 1 maggio"
+   Formato: {"action":"campaign_draft","name":"Festa 1 Maggio","channel":"sms" | "whatsapp","message":"testo del messaggio già pronto"}
+
 REGOLA CRITICA: distingui SEMPRE tra TEMPORANEO (stasera/oggi/finita/esaurita → menu_toggle) e DEFINITIVO (definitivamente/per sempre/elimina/cancella → menu_remove). In caso di ambiguità preferisci menu_toggle (più sicuro, reversibile).
+
+REGOLA INVIO: NON puoi inviare SMS/email/WhatsApp direttamente. Per le offerte ai clienti usa SOLO campaign_draft (crea la bozza) e poi indica all'owner di aprire la pagina Campagne per inviare. NON dire mai che hai inviato qualcosa che non hai inviato.
 
 Per chat normale, rispondi in italiano max 2 frasi senza JSON.
 
@@ -63,7 +69,8 @@ ESEMPI:
 - "riscrivi la descrizione della diavola" → {"action":"menu_rewrite_description","item_name":"diavola"}
 - "quali piatti non sono disponibili stasera?" → {"action":"query","question":"piatti_non_disponibili"}
 - "quanti coperti stasera?" → {"action":"query","question":"coperti_oggi"}
-- "quante recensioni nuove?" → {"action":"query","question":"recensioni_nuove"}`;
+- "quante recensioni nuove?" → {"action":"query","question":"recensioni_nuove"}
+- "manda un messaggio per la festa del 1 maggio, pizza offerta ai lavoratori" → {"action":"campaign_draft","name":"Festa del 1° Maggio","channel":"sms","message":"🌹 Buon 1° Maggio dai Carpediem! Per i lavoratori oggi una pizza è offerta. Mostra questo messaggio in cassa. Ti aspettiamo!"}`;
 
 function AgentPage() {
   const [msgs, setMsgs] = useState<Msg[]>([
@@ -206,6 +213,22 @@ function AgentPage() {
       }
       return "Non ho capito la domanda.";
     }
+
+    if (json.action === "campaign_draft") {
+      const name = json.name || "Campagna senza nome";
+      const channel = json.channel === "whatsapp" ? "whatsapp" : "sms";
+      const message = json.message;
+      if (!message) return "Mi serve il testo del messaggio.";
+      const { count: clientCount } = await supabase.from("clients").select("id", { count: "exact", head: true }).not("phone", "is", null);
+      const { error } = await supabase.from("campaigns").insert({
+        name, channel, message,
+        recipient_count: clientCount || 0,
+        status: "draft",
+      });
+      if (error) return `Errore creazione bozza: ${error.message}`;
+      return `📣 Bozza creata: "${name}" (${channel.toUpperCase()}).\n\n"${message}"\n\n→ Apri **Campagne** dal menu per scegliere i destinatari (~${clientCount || 0} clienti con telefono) e inviare. L'invio reale richiede di collegare Twilio.`;
+    }
+
     return raw;
   }
 
