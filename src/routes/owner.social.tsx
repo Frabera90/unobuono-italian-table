@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { callAI, callAIVision } from "@/server/ai";
+import { callAI, callAIVision, enhanceImage } from "@/server/ai";
 import { getSettings, type RestaurantSettings } from "@/lib/restaurant";
 import { toast } from "sonner";
 
@@ -38,6 +38,9 @@ function SocialPage() {
   const [scheduleNow, setScheduleNow] = useState(true);
   const [scheduledAt, setScheduledAt] = useState<string>("");
   const [confetti, setConfetti] = useState(false);
+  const [enhancing, setEnhancing] = useState(false);
+  const [originalImage, setOriginalImage] = useState<string | null>(null);
+  const [enhanced, setEnhanced] = useState(false);
 
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -115,12 +118,42 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
   function reset() {
     setStep("upload");
     setImageDataUrl(null);
+    setOriginalImage(null);
+    setEnhanced(false);
     setCaption("");
     setHashtags([]);
     setExtraContext("");
     setScheduleNow(true);
     setScheduledAt("");
     setPlatform("instagram");
+  }
+
+  async function enhance(style: "auto" | "bright" | "moody" | "clean") {
+    if (!imageDataUrl || enhancing) return;
+    setEnhancing(true);
+    try {
+      const base64 = imageDataUrl.split(",")[1] || "";
+      const r = await enhanceImage({ data: { imageBase64: base64, mimeType: imageMime, style } });
+      if (r.error === "rate_limit") { toast.error("Troppe richieste. Riprova tra poco."); return; }
+      if (r.error === "credits") { toast.error("Crediti AI esauriti."); return; }
+      if (r.error || !r.imageUrl) { toast.error("Ritocco non riuscito. Riprova."); return; }
+      if (!originalImage) setOriginalImage(imageDataUrl);
+      setImageDataUrl(r.imageUrl);
+      setImageMime("image/png");
+      setEnhanced(true);
+      toast.success("Foto ritoccata ✨");
+    } catch (e: any) {
+      toast.error(e.message || "Errore");
+    } finally {
+      setEnhancing(false);
+    }
+  }
+
+  function revertEnhance() {
+    if (!originalImage) return;
+    setImageDataUrl(originalImage);
+    setEnhanced(false);
+    setOriginalImage(null);
   }
 
   async function publish() {
@@ -213,7 +246,14 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
                 </div>
                 <span className="text-sm font-semibold">{handle}</span>
               </div>
-              <img src={imageDataUrl} alt="Post" className="aspect-square w-full rounded-md object-cover" />
+              <div className="relative">
+                <img src={imageDataUrl} alt="Post" className="aspect-square w-full rounded-md object-cover" />
+                {enhanced && (
+                  <span className="absolute left-2 top-2 rounded-full border border-ink bg-yellow px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                    ✨ Ritoccata AI
+                  </span>
+                )}
+              </div>
               <div className="mt-2 flex items-center gap-3 text-xl">
                 <span>♡</span>
                 <span>💬</span>
@@ -275,6 +315,47 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
               >
                 🔄 Rigenera caption
               </button>
+
+              <div className="rounded-lg border-2 border-ink bg-yellow/40 p-3">
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider">✨ Ritocca foto con AI</span>
+                  {enhanced && (
+                    <button
+                      onClick={revertEnhance}
+                      disabled={enhancing}
+                      className="text-[11px] underline disabled:opacity-40"
+                    >
+                      ↩ originale
+                    </button>
+                  )}
+                </div>
+                <p className="mb-2 text-[11px] text-muted-foreground">
+                  Non sei un fotografo? Lascia che l'AI migliori luce, colori e nitidezza. Il piatto resta lo stesso.
+                </p>
+                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                  {([
+                    { k: "auto", label: "Auto" },
+                    { k: "bright", label: "Luminoso" },
+                    { k: "moody", label: "Caldo" },
+                    { k: "clean", label: "Pulito" },
+                  ] as const).map((s) => (
+                    <button
+                      key={s.k}
+                      onClick={() => enhance(s.k)}
+                      disabled={enhancing || step !== "review"}
+                      className="rounded-md border border-ink bg-paper px-2 py-1.5 text-xs font-medium hover:bg-yellow disabled:opacity-40"
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+                {enhancing && (
+                  <div className="mt-2 flex items-center gap-2 text-xs">
+                    <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-ink" />
+                    Ritocco in corso… (~10s)
+                  </div>
+                )}
+              </div>
 
               <div className="border-t border-border pt-3">
                 <label className="mb-1 block text-xs uppercase tracking-wider text-muted-foreground">Piattaforma</label>
