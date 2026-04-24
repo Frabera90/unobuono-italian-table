@@ -406,30 +406,54 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
                 </p>
 
                 <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">🌿 Naturale (realistico)</div>
-                <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                <div className="mb-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
                   {([
                     { k: "auto", label: "Auto" },
                     { k: "bright", label: "Luminoso" },
                     { k: "moody", label: "Caldo" },
                     { k: "clean", label: "Pulito" },
                   ] as const).map((s) => (
-                    <button
-                      key={s.k}
-                      onClick={() => enhance(s.k)}
-                      disabled={enhancing || step !== "review"}
-                      className="rounded-md border border-ink bg-paper px-2 py-1.5 text-xs font-medium hover:bg-yellow disabled:opacity-40"
-                    >
+                    <button key={s.k} onClick={() => enhance(s.k)} disabled={enhancing || step !== "review"}
+                      className="rounded-md border border-ink bg-paper px-2 py-1.5 text-xs font-medium hover:bg-yellow disabled:opacity-40">
                       {s.label}
                     </button>
                   ))}
                 </div>
 
-                <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">✨ Pro Magazine (stilizzato)</div>
-                <button
-                  onClick={() => enhance("pro_magazine")}
-                  disabled={enhancing || step !== "review"}
-                  className="w-full rounded-md border-2 border-ink bg-ink px-3 py-2 text-xs font-bold uppercase text-paper hover:bg-yellow hover:text-ink disabled:opacity-40"
-                >
+                <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">🎨 Mood &amp; stile</div>
+                <div className="mb-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                  {([
+                    { k: "minimal", label: "Minimal" },
+                    { k: "elegant", label: "Elegante" },
+                    { k: "bistrot", label: "Bistrot" },
+                    { k: "rustic", label: "Rustico" },
+                    { k: "vintage", label: "Vintage" },
+                    { k: "noir", label: "Noir" },
+                    { k: "pop", label: "Pop" },
+                    { k: "overhead", label: "Dall'alto" },
+                  ] as const).map((s) => (
+                    <button key={s.k} onClick={() => enhance(s.k)} disabled={enhancing || step !== "review"}
+                      className="rounded-md border border-ink bg-paper px-2 py-1.5 text-xs font-medium hover:bg-yellow disabled:opacity-40">
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">✋ Aggiunte (mani / contesto)</div>
+                <div className="mb-3 grid grid-cols-2 gap-1.5">
+                  <button onClick={() => enhance("hands")} disabled={enhancing || step !== "review"}
+                    className="rounded-md border border-ink bg-paper px-2 py-1.5 text-xs font-medium hover:bg-yellow disabled:opacity-40">
+                    🖐️ Mani sul piatto
+                  </button>
+                  <button onClick={() => enhance("context")} disabled={enhancing || step !== "review"}
+                    className="rounded-md border border-ink bg-paper px-2 py-1.5 text-xs font-medium hover:bg-yellow disabled:opacity-40">
+                    🍷 Contesto tavola
+                  </button>
+                </div>
+
+                <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">✨ Pro Magazine</div>
+                <button onClick={() => enhance("pro_magazine")} disabled={enhancing || step !== "review"}
+                  className="w-full rounded-md border-2 border-ink bg-ink px-3 py-2 text-xs font-bold uppercase text-paper hover:bg-yellow hover:text-ink disabled:opacity-40">
                   📸 Stile food magazine
                 </button>
                 {enhancing && (
