@@ -28,6 +28,8 @@ type Step = "upload" | "analyzing" | "review" | "publishing" | "done";
 function SocialPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
+  const [tab, setTab] = useState<"composer" | "calendar" | "plan">("composer");
+  const [monthOffset, setMonthOffset] = useState(0);
 
   // Composer state
   const [step, setStep] = useState<Step>("upload");
