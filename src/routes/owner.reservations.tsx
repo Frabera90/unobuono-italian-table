@@ -84,12 +84,10 @@ function ReservationsPage() {
     const { error } = await supabase.from("reservations").update({ status: "cancelled" }).eq("id", r.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Prenotazione disdetta");
-    // email al cliente (se ha lasciato l'email)
     const email = (r as any).customer_email as string | null;
-    if (email) {
+    if (email && restaurantId) {
       const { sendBookingEmail, buildBookingEmailData } = await import("@/lib/email/booking");
-      const restName = (await import("@/lib/restaurant")).getMySettings ? null : null;
-      const settingsRow = restaurantId ? (await supabase.from("restaurant_settings").select("name").eq("restaurant_id", restaurantId).maybeSingle()).data : null;
+      const settingsRow = (await supabase.from("restaurant_settings").select("name").eq("restaurant_id", restaurantId).maybeSingle()).data;
       void sendBookingEmail({
         templateName: "booking-cancellation",
         recipientEmail: email,
