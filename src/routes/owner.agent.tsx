@@ -213,6 +213,22 @@ function AgentPage() {
       }
       return "Non ho capito la domanda.";
     }
+
+    if (json.action === "campaign_draft") {
+      const name = json.name || "Campagna senza nome";
+      const channel = json.channel === "whatsapp" ? "whatsapp" : "sms";
+      const message = json.message;
+      if (!message) return "Mi serve il testo del messaggio.";
+      const { count: clientCount } = await supabase.from("clients").select("id", { count: "exact", head: true }).not("phone", "is", null);
+      const { error } = await supabase.from("campaigns").insert({
+        name, channel, message,
+        recipient_count: clientCount || 0,
+        status: "draft",
+      });
+      if (error) return `Errore creazione bozza: ${error.message}`;
+      return `📣 Bozza creata: "${name}" (${channel.toUpperCase()}).\n\n"${message}"\n\n→ Apri **Campagne** dal menu per scegliere i destinatari (~${clientCount || 0} clienti con telefono) e inviare. L'invio reale richiede di collegare Twilio.`;
+    }
+
     return raw;
   }
 
