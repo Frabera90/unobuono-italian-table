@@ -99,7 +99,11 @@ export const enhanceImage = createServerFn({ method: "POST" })
     };
     const stylePrompt = STYLES[data.style || "auto"] || STYLES.auto;
 
-    const prompt = `${stylePrompt} CRITICAL: Do NOT change the dish itself, the ingredients, the toppings, the plate or the composition. Only enhance photo quality and ambient styling. Output the enhanced image.`;
+    const allowsAddons = ["hands", "context", "overhead", "pop", "rustic", "bistrot"].includes(data.style || "");
+    const dishLock = allowsAddons
+      ? "CRITICAL: The DISH itself, the ingredients, the toppings and the plate MUST stay 100% identical and recognizable. You may only add tasteful surrounding props/styling/light as described above. Output the enhanced image."
+      : "CRITICAL: Do NOT change the dish itself, the ingredients, the toppings, the plate or the composition. Only enhance photo quality and ambient styling. Output the enhanced image.";
+    const prompt = `${stylePrompt} ${dishLock}`;
 
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
