@@ -68,6 +68,25 @@ function applyFilters(clients: Client[], f: Filters): Client[] {
   });
 }
 
+function exportCsv(rows: Client[]) {
+  const header = ["name", "phone", "visit_count", "total_spent", "last_visit", "tags"];
+  const esc = (v: any) => {
+    const s = v == null ? "" : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [header.join(",")];
+  for (const r of rows) {
+    lines.push([r.name, r.phone || "", r.visit_count || 0, r.total_spent || 0, r.last_visit || "", (r.tags || []).join("|")].map(esc).join(","));
+  }
+  const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `destinatari-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function CampaignsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
