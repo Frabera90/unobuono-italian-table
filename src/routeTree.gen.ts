@@ -35,6 +35,7 @@ import { Route as OwnerAgentRouteImport } from './routes/owner.agent'
 import { Route as MenuTableNumberRouteImport } from './routes/menu.$tableNumber'
 import { Route as ManageTokenRouteImport } from './routes/manage.$token'
 import { Route as BookRestaurantIdRouteImport } from './routes/book.$restaurantId'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 
 const WaiterRoute = WaiterRouteImport.update({
   id: '/waiter',
@@ -166,6 +167,12 @@ const BookRestaurantIdRoute = BookRestaurantIdRouteImport.update({
   path: '/book/$restaurantId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -194,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/owner/stats': typeof OwnerStatsRoute
   '/r/$slug': typeof RSlugRoute
   '/owner/': typeof OwnerIndexRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -221,6 +229,7 @@ export interface FileRoutesByTo {
   '/owner/stats': typeof OwnerStatsRoute
   '/r/$slug': typeof RSlugRoute
   '/owner': typeof OwnerIndexRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -250,6 +259,7 @@ export interface FileRoutesById {
   '/owner/stats': typeof OwnerStatsRoute
   '/r/$slug': typeof RSlugRoute
   '/owner/': typeof OwnerIndexRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -280,6 +290,7 @@ export interface FileRouteTypes {
     | '/owner/stats'
     | '/r/$slug'
     | '/owner/'
+    | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -307,6 +318,7 @@ export interface FileRouteTypes {
     | '/owner/stats'
     | '/r/$slug'
     | '/owner'
+    | '/lovable/email/queue/process'
   id:
     | '__root__'
     | '/'
@@ -335,6 +347,7 @@ export interface FileRouteTypes {
     | '/owner/stats'
     | '/r/$slug'
     | '/owner/'
+    | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -349,6 +362,7 @@ export interface RootRouteChildren {
   ManageTokenRoute: typeof ManageTokenRoute
   MenuTableNumberRoute: typeof MenuTableNumberRoute
   RSlugRoute: typeof RSlugRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -535,6 +549,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BookRestaurantIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -588,6 +609,7 @@ const rootRouteChildren: RootRouteChildren = {
   ManageTokenRoute: ManageTokenRoute,
   MenuTableNumberRoute: MenuTableNumberRoute,
   RSlugRoute: RSlugRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
