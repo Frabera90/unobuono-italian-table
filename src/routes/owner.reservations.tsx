@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { isoDate, fmtDate, type Reservation } from "@/lib/restaurant";
+import { isoDate, fmtDate, fmtDateShort, type Reservation } from "@/lib/restaurant";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/owner/reservations")({
@@ -160,7 +160,7 @@ function ReservationsPage() {
                     <div className="font-display text-2xl text-terracotta leading-none">{r.time}</div>
                     {!date && (
                       <div className="mt-0.5 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
-                        {new Date(r.date).toLocaleDateString("it-IT", { day: "2-digit", month: "short" })}
+                        {fmtDateShort(r.date)}
                       </div>
                     )}
                   </div>
@@ -189,7 +189,13 @@ function ReservationsPage() {
                   <button onClick={() => toggleArrived(r)} className={`rounded-md px-3 py-2 text-xs font-medium ${r.arrived ? "bg-emerald-600 text-white" : "border border-border"}`}>
                     {r.arrived ? "✓ Arrivato" : "Segna arrivato"}
                   </button>
-                  <button onClick={() => cancel(r.id)} className="text-xs text-muted-foreground hover:text-destructive" title="Disdici">×</button>
+                  <button
+                    onClick={() => cancel(r.id)}
+                    className="rounded-md border border-destructive/40 px-2.5 py-2 text-[11px] font-medium uppercase tracking-wider text-destructive hover:bg-destructive hover:text-paper"
+                    title="Disdici prenotazione"
+                  >
+                    Disdici
+                  </button>
                 </li>
               );
             })}
@@ -234,8 +240,8 @@ function ReservationsPage() {
               <li key={p.id} className="rounded-xl border border-border bg-card p-4">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <div>
-                    <div className="font-display text-base">{p.customer_name || "Cliente"}{linked ? ` · tavolo ${linked.time}` : ""}</div>
-                    <div className="text-xs text-muted-foreground">{new Date(p.created_at).toLocaleString("it-IT")}</div>
+                    <div className="font-display text-base">{p.customer_name || "Cliente"}{linked ? ` · ${fmtDateShort(linked.date)} ore ${linked.time}` : ""}</div>
+                    <div className="text-xs text-muted-foreground">Ordinato {new Date(p.created_at).toLocaleString("it-IT")}</div>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${p.status === "ready" ? "bg-emerald-500/15 text-emerald-700" : p.status === "preparing" ? "bg-amber-500/15 text-amber-700" : "bg-terracotta/15 text-terracotta"}`}>{p.status || "pending"}</span>

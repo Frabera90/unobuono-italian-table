@@ -117,7 +117,9 @@ function WaiterPage() {
   }
   async function setPreoStatus(p: Preo, status: string) {
     if (!pin) return;
-    const { data, error } = await supabase.rpc("staff_set_preorder_status", { _preorder_id: p.id, _status: status, _pin: pin });
+    // Toggle: se è già attivo lo stato cliccato, torna a "pending"
+    const next = p.status === status ? "pending" : status;
+    const { data, error } = await supabase.rpc("staff_set_preorder_status", { _preorder_id: p.id, _status: next, _pin: pin });
     if (error || !data) toast.error("Errore");
   }
   function logout() {
@@ -174,10 +176,13 @@ function WaiterPage() {
           <ResvList reservations={reservations} preorders={preorders} onToggle={toggleArrived} />
         )}
 
-        {tab === "preorders" && (
+        {tab === "preorders" && (() => {
+          const todayResvIds = new Set(reservations.map((r) => r.id));
+          const todayPre = preorders.filter((p) => !p.reservation_id || todayResvIds.has(p.reservation_id));
+          return (
           <ul className="space-y-3">
-            {preorders.length === 0 && <li className="rounded-2xl border border-white/10 p-8 text-center text-paper/60">Nessun pre-ordine.</li>}
-            {preorders.map((p) => {
+            {todayPre.length === 0 && <li className="rounded-2xl border border-white/10 p-8 text-center text-paper/60">Nessun pre-ordine per oggi.</li>}
+            {todayPre.map((p) => {
               const linked = reservations.find((r) => r.id === p.reservation_id);
               return (
                 <li key={p.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
@@ -197,11 +202,13 @@ function WaiterPage() {
                       <StatusBtn active={p.status === "ready"} onClick={() => setPreoStatus(p, "ready")}>Pronto</StatusBtn>
                     </div>
                   </div>
+                  <p className="mt-2 text-[10px] text-paper/40">Tocca di nuovo lo stato per annullare</p>
                 </li>
               );
             })}
           </ul>
-        )}
+          );
+        })()}
       </div>
     </main>
   );

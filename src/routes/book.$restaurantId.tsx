@@ -42,6 +42,7 @@ function BookingPage() {
   const [partySize, setPartySize] = useState(2);
   const [time, setTime] = useState<string | null>(null);
   const [zoneId, setZoneId] = useState<string | null>(null);
+  const [tableId, setTableId] = useState<string | null>(null); // null = qualsiasi
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -100,6 +101,9 @@ function BookingPage() {
       .then(({ data }) => setReservations((data || []) as ReservationLite[]));
   }, [date, resolvedRestaurantId]);
 
+  // Reset tavolo se cambiano slot/zona/coperti
+  useEffect(() => { setTableId(null); }, [time, zoneId, partySize, date]);
+
   const avgDuration = settings?.avg_table_duration ?? 90;
 
   // Slot orari da opening_hours
@@ -128,6 +132,11 @@ function BookingPage() {
     return out;
   }, [settings]);
 
+  function timeToMinLocal(t: string): number {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + (m || 0);
+  }
+
   async function submitBooking() {
     if (!firstName.trim() || !lastName.trim() || !phone.trim() || !time || !resolvedRestaurantId) return;
     setSubmitting(true);
@@ -140,7 +149,23 @@ function BookingPage() {
       .eq("date", date)
       .neq("status", "cancelled");
 
-    const assignedTable = pickTable(tables, (latest || []) as ReservationLite[], time, partySize, avgDuration, zoneId);
+    // Se l'utente ha scelto un tavolo specifico, verifica che sia ancora libero
+    let assignedTable: TableRow | null = null;
+    if (tableId) {
+      const chosen = tables.find((t) => t.id === tableId);
+      const occupied = (latest || []).some((r) => r.status !== "cancelled" && r.table_id === tableId && Math.abs(timeToMinLocal(r.time) - timeToMinLocal(time)) < avgDuration);
+      if (chosen && !occupied && chosen.seats >= partySize) {
+        assignedTable = chosen;
+      } else {
+        toast.error("Il tavolo scelto non è più disponibile. Scegline un altro.");
+        setReservations((latest || []) as ReservationLite[]);
+        setTableId(null);
+        setSubmitting(false);
+        return;
+      }
+    } else {
+      assignedTable = pickTable(tables, (latest || []) as ReservationLite[], time, partySize, avgDuration, zoneId);
+    }
     if (!assignedTable) {
       toast.error("Tavolo non più disponibile per quell'orario. Scegli un altro slot.");
       setReservations((latest || []) as ReservationLite[]);
@@ -438,6 +463,51 @@ function BookingPage() {
                   </>
                 )}
 
+                {/* Selezione tavolo specifico (opzionale) */}
+                {(() => {
+                  const candidates = tables
+                    .filter((t) => t.seats >= partySize && (zoneId == null || t.zone_id === zoneId))
+                    .filter((t) => !reservations.some((r) => r.status !== "cancelled" && r.table_id === t.id && Math.abs(timeToMinLocal(r.time) - timeToMinLocal(time)) < avgDuration))
+                    .sort((a, b) => a.seats - b.seats);
+                  if (candidates.length === 0) return null;
+                  return (
+                    <>
+                      <p className="mb-2 mt-7 text-sm text-muted-foreground">Vuoi un tavolo specifico? <span className="text-xs opacity-60">(opzionale)</span></p>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        <button
+                          type="button"
+                          onClick={() => setTableId(null)}
+                          className={`rounded-lg border p-3 text-left transition ${
+                            tableId == null ? "border-terracotta bg-terracotta/5" : "border-border bg-card hover:border-terracotta"
+                          }`}
+                        >
+                          <div className="font-display text-sm uppercase">Qualsiasi</div>
+                          <div className="text-[11px] text-muted-foreground">Decidiamo noi</div>
+                        </button>
+                        {candidates.map((t) => {
+                          const sel = tableId === t.id;
+                          const zone = zones.find((z) => z.id === t.zone_id);
+                          return (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => setTableId(sel ? null : t.id)}
+                              className={`rounded-lg border p-3 text-left transition ${
+                                sel ? "border-terracotta bg-terracotta/5" : "border-border bg-card hover:border-terracotta"
+                              }`}
+                            >
+                              <div className="font-display text-sm uppercase">Tavolo {t.code}</div>
+                              <div className="text-[11px] text-muted-foreground">
+                                {t.seats} posti{zone ? ` · ${zone.name}` : ""}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  );
+                })()}
+
                 <button
                   onClick={() => setStep(3)}
                   className="mt-7 w-full rounded-md bg-terracotta py-3.5 font-medium text-paper transition hover:bg-terracotta-dark"
@@ -571,6 +641,7 @@ function BookingPage() {
               <SummaryRow label="Quando" value={`${fmtDate(date)} · ore ${time}`} />
               <SummaryRow label="Persone" value={`${partySize}`} />
               <SummaryRow label="Zona" value={zones.find((z) => z.id === zoneId)?.name || "—"} />
+              <SummaryRow label="Tavolo" value={tableId ? `Tavolo ${tables.find((t) => t.id === tableId)?.code ?? ""}` : "Assegnato dal locale"} />
               <SummaryRow label="Nome" value={`${firstName} ${lastName}`} />
               <SummaryRow label="WhatsApp" value={phone} />
               {hasOccasion && occasion && <SummaryRow label="Occasione" value={occasion} />}

@@ -137,13 +137,26 @@ export async function getSettings(): Promise<RestaurantSettings | null> {
   return getMySettings();
 }
 
+/** Data ISO (YYYY-MM-DD) calcolata sul fuso LOCALE — evita shift UTC. */
 export function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
+
+/** Parse "YYYY-MM-DD" come Date locale a mezzanotte (no UTC shift). */
+export function parseLocalDate(s: string): Date {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
 }
 
 export function fmtDate(s: string): string {
-  const d = new Date(s + "T00:00:00");
-  return d.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
+  return parseLocalDate(s).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
+}
+
+export function fmtDateShort(s: string): string {
+  return parseLocalDate(s).toLocaleDateString("it-IT", { day: "2-digit", month: "short" });
 }
 
 export function relTime(iso: string): string {
