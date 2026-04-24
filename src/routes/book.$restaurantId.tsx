@@ -46,9 +46,11 @@ function BookingPage() {
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("+39 ");
   const [hasOccasion, setHasOccasion] = useState(false);
+  const [occasionType, setOccasionType] = useState<string | null>(null);
   const [occasion, setOccasion] = useState("");
   const [hasAllergies, setHasAllergies] = useState(false);
   const [allergies, setAllergies] = useState("");
+  const [preferences, setPreferences] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [confirmedRes, setConfirmedRes] = useState<{ id: string } | null>(null);
@@ -59,6 +61,7 @@ function BookingPage() {
   const [wlPreferred, setWlPreferred] = useState("20:00");
 
   const [reservations, setReservations] = useState<{ time: string; party_size: number }[]>([]);
+  const [featured, setFeatured] = useState<MenuItem[]>([]);
 
   useEffect(() => {
     getSettings().then(setSettings);
