@@ -155,12 +155,18 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
     setCaption("");
     setHashtags([]);
     setExtraContext("");
-    setScheduleNow(true);
+    setScheduleMode("now");
     setScheduledAt("");
     setPlatform("instagram");
   }
 
-  async function enhance(style: "auto" | "bright" | "moody" | "clean" | "pro_magazine") {
+  type EnhanceStyle =
+    | "auto" | "bright" | "moody" | "clean"
+    | "pro_magazine" | "minimal" | "elegant" | "bistrot"
+    | "rustic" | "hands" | "context" | "overhead"
+    | "pop" | "vintage" | "noir";
+
+  async function enhance(style: EnhanceStyle) {
     if (!imageDataUrl || enhancing) return;
     setEnhancing(true);
     try {
