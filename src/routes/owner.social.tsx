@@ -309,6 +309,47 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
                 🔄 Rigenera caption
               </button>
 
+              <div className="rounded-lg border-2 border-ink bg-yellow/40 p-3">
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider">✨ Ritocca foto con AI</span>
+                  {enhanced && (
+                    <button
+                      onClick={revertEnhance}
+                      disabled={enhancing}
+                      className="text-[11px] underline disabled:opacity-40"
+                    >
+                      ↩ originale
+                    </button>
+                  )}
+                </div>
+                <p className="mb-2 text-[11px] text-muted-foreground">
+                  Non sei un fotografo? Lascia che l'AI migliori luce, colori e nitidezza. Il piatto resta lo stesso.
+                </p>
+                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                  {([
+                    { k: "auto", label: "Auto" },
+                    { k: "bright", label: "Luminoso" },
+                    { k: "moody", label: "Caldo" },
+                    { k: "clean", label: "Pulito" },
+                  ] as const).map((s) => (
+                    <button
+                      key={s.k}
+                      onClick={() => enhance(s.k)}
+                      disabled={enhancing || step !== "review"}
+                      className="rounded-md border border-ink bg-paper px-2 py-1.5 text-xs font-medium hover:bg-yellow disabled:opacity-40"
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+                {enhancing && (
+                  <div className="mt-2 flex items-center gap-2 text-xs">
+                    <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-ink" />
+                    Ritocco in corso… (~10s)
+                  </div>
+                )}
+              </div>
+
               <div className="border-t border-border pt-3">
                 <label className="mb-1 block text-xs uppercase tracking-wider text-muted-foreground">Piattaforma</label>
                 <div className="grid grid-cols-3 gap-1.5">
