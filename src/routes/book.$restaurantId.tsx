@@ -581,25 +581,30 @@ function BookingPage() {
         )}
 
         {step === "done" && confirmedRes && (
-          <div className="rounded-2xl border border-border bg-card p-7 text-center">
-            <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-terracotta/10 text-3xl text-terracotta">✓</div>
-            <h2 className="mt-4 font-display text-3xl">Prenotazione confermata!</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Riceverai una conferma su WhatsApp.</p>
+          <div className="rounded-2xl border-2 border-ink bg-paper p-7 text-center shadow-[6px_6px_0_0_hsl(var(--ink))]">
+            <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-terracotta text-3xl text-paper">✓</div>
+            <h2 className="mt-4 font-display text-3xl uppercase">Prenotazione confermata!</h2>
+            <p className="mt-2 text-sm text-ink/70">Salva il link qui sotto: lo userai per modificare, pre-ordinare o disdire.</p>
 
-            <div className="mx-auto mt-6 max-w-sm rounded-2xl bg-[#dcf8c6] p-4 text-left text-ink shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wider opacity-60">{settings?.name}</p>
-              <p className="mt-1 text-sm">
-                Ciao {firstName}! 👋 La tua prenotazione è confermata:<br />
-                📅 {fmtDate(date)} · ore {time}<br />
-                👥 {partySize} {partySize === 1 ? "persona" : "persone"} · {zones.find((z) => z.id === zoneId)?.name}<br />
-                {hasOccasion && occasion ? `🎉 ${occasion}\n` : ""}
-                A presto!
-              </p>
+            <div className="mx-auto mt-5 max-w-sm rounded-xl bg-cream-dark/40 p-4 text-left">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-ink/60">📅 Quando</p>
+              <p className="mt-0.5 text-sm font-medium capitalize">{fmtDate(date)} · ore <span className="text-terracotta font-bold">{time}</span></p>
+              <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-ink/60">👥 Per</p>
+              <p className="mt-0.5 text-sm font-medium">{firstName} {lastName} · {partySize} {partySize === 1 ? "persona" : "persone"}</p>
             </div>
 
-            <Link to="/menu/$tableNumber" params={{ tableNumber: "7" }} className="mt-7 inline-flex rounded-md border border-terracotta px-5 py-2 text-sm font-medium text-terracotta hover:bg-terracotta hover:text-paper">
-              Vedi il menu
-            </Link>
+            <button
+              onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/manage/${confirmedRes.manage_token}`); toast.success("Link copiato"); }}
+              className="mt-5 w-full rounded-xl border-2 border-ink bg-yellow px-4 py-3 text-sm font-bold uppercase tracking-wider shadow-[3px_3px_0_0_hsl(var(--ink))] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
+            >
+              📋 Copia link gestione
+            </button>
+            <button
+              onClick={() => navigate({ to: "/manage/$token", params: { token: confirmedRes.manage_token } })}
+              className="mt-3 w-full rounded-xl border-2 border-ink bg-paper px-4 py-3 text-sm font-bold uppercase tracking-wider hover:bg-cream-dark"
+            >
+              Apri la mia prenotazione →
+            </button>
           </div>
         )}
       </div>
