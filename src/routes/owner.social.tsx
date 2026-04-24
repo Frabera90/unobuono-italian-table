@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { callAI, callAIVision, enhanceImage } from "@/server/ai";
-import { getSettings, type RestaurantSettings } from "@/lib/restaurant";
+import { callAIVision, enhanceImage } from "@/server/ai";
+import { getMySettings, getMyRestaurant, type RestaurantSettings, type Restaurant } from "@/lib/restaurant";
 import { CalendarGrid } from "@/components/social/CalendarGrid";
 import { PlanGenerator } from "@/components/social/PlanGenerator";
 import { toast } from "sonner";
@@ -28,8 +28,9 @@ type Step = "upload" | "analyzing" | "review" | "publishing" | "done";
 function SocialPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
-  const [tab, setTab] = useState<"composer" | "calendar" | "plan">("composer");
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [monthOffset, setMonthOffset] = useState(0);
+  const [showPlan, setShowPlan] = useState(false);
 
   // Composer state
   const [step, setStep] = useState<Step>("upload");
@@ -48,18 +49,40 @@ function SocialPage() {
 
   const fileRef = useRef<HTMLInputElement>(null);
 
-  async function loadPosts() {
+  async function loadPosts(restaurantId?: string) {
+    const rid = restaurantId ?? restaurant?.id;
+    if (!rid) return;
     const { data } = await supabase
       .from("social_posts")
       .select("*")
+      .eq("restaurant_id", rid)
       .order("created_at", { ascending: false });
     setPosts((data || []) as Post[]);
   }
 
   useEffect(() => {
-    getSettings().then(setSettings);
-    loadPosts();
+    let mounted = true;
+    void Promise.all([getMySettings(), getMyRestaurant()]).then(([s, r]) => {
+      if (!mounted) return;
+      setSettings(s);
+      setRestaurant(r);
+      if (r) void loadPosts(r.id);
+    });
+    return () => { mounted = false; };
   }, []);
+
+  // Realtime: aggiorna calendario/lista quando cambiano i social_posts
+  useEffect(() => {
+    if (!restaurant?.id) return;
+    const ch = supabase
+      .channel(`social_posts_${restaurant.id}`)
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "social_posts", filter: `restaurant_id=eq.${restaurant.id}` },
+        () => { void loadPosts(restaurant.id); })
+      .subscribe();
+    return () => { void supabase.removeChannel(ch); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restaurant?.id]);
 
   function handleFile(file: File) {
     if (!file.type.startsWith("image/")) {
@@ -84,12 +107,12 @@ function SocialPage() {
     setStep("analyzing");
     try {
       const base64 = dataUrl.split(",")[1] || "";
-      const prompt = `Sei il social media manager di ${settings?.name || "Carpediem Pizzeria"}, Pescara.
+      const prompt = `Sei il social media manager di ${settings?.name || "questo ristorante"}.
 Bio: ${settings?.bio || ""}
 Tono: ${settings?.tone || "autentico e caldo"}
 
-Guarda questa foto di un piatto del nostro ristorante e scrivi una caption per Instagram.
-MAI commerciale, MAI generica. Autentica, calda, come parlerebbe un pizzaiolo appassionato.
+Guarda questa foto di un piatto del ristorante e scrivi una caption per Instagram.
+MAI commerciale, MAI generica. Autentica, calda, come parlerebbe un cuoco appassionato.
 Racconta qualcosa del piatto, degli ingredienti, o dell'emozione.
 Max 150 caratteri per la caption principale.
 Poi 8 hashtag rilevanti (mix italiano/inglese, locali e di settore).
@@ -166,79 +189,44 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
 
   async function publish() {
     if (!imageDataUrl || !caption.trim()) return;
+    if (!restaurant?.id) { toast.error("Ristorante non trovato."); return; }
     setStep("publishing");
-    await new Promise((r) => setTimeout(r, 1800));
 
     const platformValue = platform === "both" ? "instagram,facebook" : platform;
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("social_posts")
       .insert({
+        restaurant_id: restaurant.id,
         caption,
         hashtags: hashtags.join(" "),
         platform: platformValue,
         image_url: imageDataUrl,
         status: scheduleNow ? "published" : "scheduled",
-        scheduled_at: scheduleNow ? null : scheduledAt || null,
-      })
-      .select()
-      .single();
+        scheduled_at: scheduleNow ? null : (scheduledAt ? new Date(scheduledAt).toISOString() : null),
+      });
 
     if (error) {
       toast.error(error.message);
       setStep("review");
       return;
     }
-    if (data) setPosts((p) => [data as Post, ...p]);
     setConfetti(true);
     setStep("done");
     setTimeout(() => setConfetti(false), 2500);
+    // Realtime ricaricherà la lista
   }
 
-  const handle = (settings?.instagram_handle || "@carpediempescara").replace(/^@/, "");
+  const handle = (settings?.instagram_handle || "@iltuoristorante").replace(/^@/, "");
 
   return (
-    <div className="mx-auto max-w-3xl px-5 py-7">
+    <div className="mx-auto max-w-3xl px-4 py-6 md:px-5 md:py-7">
       <header className="mb-5">
-        <h1 className="font-display text-3xl uppercase">Social</h1>
-        <p className="text-sm text-muted-foreground">Foto → AI ritocca → AI scrive → tu approvi → pubblica.</p>
+        <h1 className="font-display text-2xl uppercase md:text-3xl">Social</h1>
+        <p className="text-sm text-muted-foreground">Foto → l'AI ritocca e scrive → tu approvi → pubblica.</p>
       </header>
 
-      {/* Tabs */}
-      <div className="mb-5 flex gap-1 rounded-xl border-2 border-ink bg-paper p-1">
-        {([
-          { k: "composer", label: "✏️ Crea" },
-          { k: "calendar", label: "📅 Calendario" },
-          { k: "plan", label: "✨ Piano AI" },
-        ] as const).map((t) => (
-          <button
-            key={t.k}
-            onClick={() => setTab(t.k)}
-            className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold uppercase transition ${tab === t.k ? "bg-ink text-paper" : "text-ink hover:bg-yellow/40"}`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {tab === "calendar" && (
-        <div className="rounded-2xl border-2 border-ink bg-paper p-5 shadow-brut">
-          <CalendarGrid
-            posts={posts}
-            monthOffset={monthOffset}
-            onChangeMonth={(d) => setMonthOffset((m) => m + d)}
-            onPick={(p) => {
-              toast(p.caption || "Post", { description: p.scheduled_at ? `Programmato: ${new Date(p.scheduled_at).toLocaleString("it-IT")}` : `Pubblicato: ${new Date(p.created_at).toLocaleString("it-IT")}` });
-            }}
-          />
-        </div>
-      )}
-
-      {tab === "plan" && (
-        <PlanGenerator settings={settings} onAfterSave={loadPosts} />
-      )}
-
-      {tab === "composer" && (
-      <div className="rounded-2xl border border-border bg-card p-5">
+      {/* COMPOSER */}
+      <div className="rounded-2xl border-2 border-ink bg-paper p-4 shadow-brut md:p-5">
         {step === "upload" && (
           <div>
             <input
@@ -256,24 +244,46 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
                 const f = e.dataTransfer.files?.[0];
                 if (f) handleFile(f);
               }}
-              className="flex w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-background py-14 text-center transition hover:border-terracotta hover:bg-cream-dark/30"
+              className="flex w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-ink bg-cream py-10 text-center transition hover:bg-yellow/30 md:py-14"
             >
               <span className="text-4xl">📸</span>
-              <span className="text-lg font-medium">Carica la foto del piatto</span>
-              <span className="text-sm text-muted-foreground">
-                Scatta una foto con il telefono o carica dal computer
+              <span className="text-base font-bold uppercase tracking-wide md:text-lg">Carica una foto</span>
+              <span className="text-xs text-muted-foreground md:text-sm">
+                Scatta dal telefono o trascina qui
               </span>
-              <span className="mt-1 text-xs text-muted-foreground">JPG · PNG · WEBP · max 8MB</span>
+              <span className="mt-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">JPG · PNG · WEBP · max 8MB</span>
             </button>
+
+            <div className="my-4 flex items-center gap-3 text-[10px] uppercase tracking-widest text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              oppure
+              <span className="h-px flex-1 bg-border" />
+            </div>
+
+            <button
+              onClick={() => setShowPlan((v) => !v)}
+              className="w-full rounded-xl border-2 border-ink bg-yellow px-4 py-3 text-xs font-bold uppercase tracking-wider shadow-brut hover:translate-y-[1px] hover:shadow-none md:text-sm"
+            >
+              ✨ {showPlan ? "Nascondi" : "Genera"} un piano AI (settimana o mese)
+            </button>
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">
+              Idee basate su nome, bio e tono del tuo ristorante. Aggiungi le foto dopo.
+            </p>
+
+            {showPlan && (
+              <div className="mt-4">
+                <PlanGenerator settings={settings} onAfterSave={() => loadPosts()} />
+              </div>
+            )}
           </div>
         )}
 
         {step === "analyzing" && imageDataUrl && (
           <div className="flex flex-col items-center gap-4 py-8">
-            <img src={imageDataUrl} alt="Anteprima" className="h-48 w-48 rounded-xl object-cover shadow-md" />
+            <img src={imageDataUrl} alt="Anteprima" className="h-40 w-40 rounded-xl object-cover shadow-md md:h-48 md:w-48" />
             <div className="flex items-center gap-2 text-sm">
               <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-terracotta" />
-              <span>✨ L'AI sta analizzando la foto...</span>
+              <span>✨ L'AI sta analizzando la foto…</span>
             </div>
           </div>
         )}
@@ -305,7 +315,7 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
               <p className="mt-2 line-clamp-2 text-sm">
                 <span className="font-semibold">{handle}</span>{" "}
                 {caption || "—"}
-                <span className="text-muted-foreground"> ... altro</span>
+                <span className="text-muted-foreground"> … altro</span>
               </p>
               {hashtags.length > 0 && (
                 <p className="mt-1 text-sm text-blue-600 dark:text-blue-400">{hashtags.join(" ")}</p>
@@ -400,7 +410,7 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
                   disabled={enhancing || step !== "review"}
                   className="w-full rounded-md border-2 border-ink bg-ink px-3 py-2 text-xs font-bold uppercase text-paper hover:bg-yellow hover:text-ink disabled:opacity-40"
                 >
-                  📸 Stile food magazine (bokeh + vapore + styling pro)
+                  📸 Stile food magazine
                 </button>
                 {enhancing && (
                   <div className="mt-2 flex items-center gap-2 text-xs">
@@ -452,7 +462,7 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
                   disabled={step !== "review" || !caption.trim()}
                   className="flex-1 rounded-lg bg-terracotta px-4 py-2 text-sm font-medium text-paper disabled:opacity-40"
                 >
-                  {step === "publishing" ? "Pubblicazione..." : scheduleNow ? "Approva e pubblica" : "Approva e programma"}
+                  {step === "publishing" ? "Pubblicazione…" : scheduleNow ? "Approva e pubblica" : "Approva e programma"}
                 </button>
               </div>
 
@@ -469,20 +479,36 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
           </div>
         )}
       </div>
-      )}
+
+      {/* CALENDARIO */}
+      <section className="mt-6 rounded-2xl border-2 border-ink bg-paper p-4 shadow-brut md:p-5">
+        <h2 className="mb-3 font-display text-xl uppercase">📅 Calendario</h2>
+        <CalendarGrid
+          posts={posts}
+          monthOffset={monthOffset}
+          onChangeMonth={(d) => setMonthOffset((m) => m + d)}
+          onPick={(p) => {
+            toast(p.caption || "Post", {
+              description: p.scheduled_at
+                ? `Programmato: ${new Date(p.scheduled_at).toLocaleString("it-IT")}`
+                : `Pubblicato: ${new Date(p.created_at).toLocaleString("it-IT")}`,
+            });
+          }}
+        />
+      </section>
 
       {/* History */}
       <ul className="mt-6 space-y-3">
         {posts.map((p) => (
           <li key={p.id} className="flex gap-3 rounded-xl border border-border bg-card p-3">
             {p.image_url ? (
-              <img src={p.image_url} alt="" className="h-20 w-20 flex-shrink-0 rounded-lg object-cover" />
+              <img src={p.image_url} alt="" className="h-16 w-16 flex-shrink-0 rounded-lg object-cover md:h-20 md:w-20" />
             ) : (
-              <div className="h-20 w-20 flex-shrink-0 rounded-lg bg-cream-dark/40" />
+              <div className="grid h-16 w-16 flex-shrink-0 place-items-center rounded-lg bg-yellow/40 text-xl md:h-20 md:w-20">📝</div>
             )}
             <div className="min-w-0 flex-1">
               <div className="mb-1 flex items-center justify-between">
-                <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground md:text-xs">
                   {p.platform} · {p.status}
                 </span>
               </div>
@@ -492,7 +518,7 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
           </li>
         ))}
         {posts.length === 0 && (
-          <li className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+          <li className="rounded-xl border border-border bg-card p-6 text-center text-sm text-muted-foreground md:p-8">
             Nessun post ancora.
           </li>
         )}
