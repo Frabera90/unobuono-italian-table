@@ -74,17 +74,12 @@ function OnboardingPage() {
   }
 
   async function finish() {
-    if (!restaurant || !zoneName.trim()) { toast.error("Inserisci il nome della sala"); return; }
+    if (!restaurant) return;
     setBusy(true);
-    const { error } = await supabase.from("room_zones").insert({
-      restaurant_id: restaurant.id, name: zoneName, capacity, table_count: tableCount, sort_order: 0,
-    });
-    const { error: e2 } = await supabase.from("restaurant_settings").update({ max_covers: capacity }).eq("restaurant_id", restaurant.id);
-    if (error || e2) { toast.error((error || e2)?.message); setBusy(false); return; }
     await supabase.from("restaurants").update({ onboarding_complete: true }).eq("id", restaurant.id);
     setBusy(false);
-    toast.success("Setup completato! Ora aggiungi il tuo menu →");
-    nav({ to: "/owner/menu" });
+    toast.success("Setup completato! Ora crea le tue aree e i tavoli →");
+    nav({ to: "/owner/sala" });
   }
 
   return (

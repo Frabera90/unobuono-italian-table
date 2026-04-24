@@ -22,9 +22,11 @@ import { Route as OwnerStatsRouteImport } from './routes/owner.stats'
 import { Route as OwnerStaffRouteImport } from './routes/owner.staff'
 import { Route as OwnerSocialRouteImport } from './routes/owner.social'
 import { Route as OwnerSettingsRouteImport } from './routes/owner.settings'
+import { Route as OwnerSalaRouteImport } from './routes/owner.sala'
 import { Route as OwnerReviewsRouteImport } from './routes/owner.reviews'
 import { Route as OwnerReservationsRouteImport } from './routes/owner.reservations'
 import { Route as OwnerQrRouteImport } from './routes/owner.qr'
+import { Route as OwnerProRouteImport } from './routes/owner.pro'
 import { Route as OwnerMenuRouteImport } from './routes/owner.menu'
 import { Route as OwnerDashboardRouteImport } from './routes/owner.dashboard'
 import { Route as OwnerCrmRouteImport } from './routes/owner.crm'
@@ -98,6 +100,11 @@ const OwnerSettingsRoute = OwnerSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => OwnerRoute,
 } as any)
+const OwnerSalaRoute = OwnerSalaRouteImport.update({
+  id: '/sala',
+  path: '/sala',
+  getParentRoute: () => OwnerRoute,
+} as any)
 const OwnerReviewsRoute = OwnerReviewsRouteImport.update({
   id: '/reviews',
   path: '/reviews',
@@ -111,6 +118,11 @@ const OwnerReservationsRoute = OwnerReservationsRouteImport.update({
 const OwnerQrRoute = OwnerQrRouteImport.update({
   id: '/qr',
   path: '/qr',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerProRoute = OwnerProRouteImport.update({
+  id: '/pro',
+  path: '/pro',
   getParentRoute: () => OwnerRoute,
 } as any)
 const OwnerMenuRoute = OwnerMenuRouteImport.update({
@@ -164,9 +176,11 @@ export interface FileRoutesByFullPath {
   '/owner/crm': typeof OwnerCrmRoute
   '/owner/dashboard': typeof OwnerDashboardRoute
   '/owner/menu': typeof OwnerMenuRoute
+  '/owner/pro': typeof OwnerProRoute
   '/owner/qr': typeof OwnerQrRoute
   '/owner/reservations': typeof OwnerReservationsRoute
   '/owner/reviews': typeof OwnerReviewsRoute
+  '/owner/sala': typeof OwnerSalaRoute
   '/owner/settings': typeof OwnerSettingsRoute
   '/owner/social': typeof OwnerSocialRoute
   '/owner/staff': typeof OwnerStaffRoute
@@ -188,9 +202,11 @@ export interface FileRoutesByTo {
   '/owner/crm': typeof OwnerCrmRoute
   '/owner/dashboard': typeof OwnerDashboardRoute
   '/owner/menu': typeof OwnerMenuRoute
+  '/owner/pro': typeof OwnerProRoute
   '/owner/qr': typeof OwnerQrRoute
   '/owner/reservations': typeof OwnerReservationsRoute
   '/owner/reviews': typeof OwnerReviewsRoute
+  '/owner/sala': typeof OwnerSalaRoute
   '/owner/settings': typeof OwnerSettingsRoute
   '/owner/social': typeof OwnerSocialRoute
   '/owner/staff': typeof OwnerStaffRoute
@@ -214,9 +230,11 @@ export interface FileRoutesById {
   '/owner/crm': typeof OwnerCrmRoute
   '/owner/dashboard': typeof OwnerDashboardRoute
   '/owner/menu': typeof OwnerMenuRoute
+  '/owner/pro': typeof OwnerProRoute
   '/owner/qr': typeof OwnerQrRoute
   '/owner/reservations': typeof OwnerReservationsRoute
   '/owner/reviews': typeof OwnerReviewsRoute
+  '/owner/sala': typeof OwnerSalaRoute
   '/owner/settings': typeof OwnerSettingsRoute
   '/owner/social': typeof OwnerSocialRoute
   '/owner/staff': typeof OwnerStaffRoute
@@ -241,9 +259,11 @@ export interface FileRouteTypes {
     | '/owner/crm'
     | '/owner/dashboard'
     | '/owner/menu'
+    | '/owner/pro'
     | '/owner/qr'
     | '/owner/reservations'
     | '/owner/reviews'
+    | '/owner/sala'
     | '/owner/settings'
     | '/owner/social'
     | '/owner/staff'
@@ -265,9 +285,11 @@ export interface FileRouteTypes {
     | '/owner/crm'
     | '/owner/dashboard'
     | '/owner/menu'
+    | '/owner/pro'
     | '/owner/qr'
     | '/owner/reservations'
     | '/owner/reviews'
+    | '/owner/sala'
     | '/owner/settings'
     | '/owner/social'
     | '/owner/staff'
@@ -290,9 +312,11 @@ export interface FileRouteTypes {
     | '/owner/crm'
     | '/owner/dashboard'
     | '/owner/menu'
+    | '/owner/pro'
     | '/owner/qr'
     | '/owner/reservations'
     | '/owner/reviews'
+    | '/owner/sala'
     | '/owner/settings'
     | '/owner/social'
     | '/owner/staff'
@@ -407,6 +431,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OwnerSettingsRouteImport
       parentRoute: typeof OwnerRoute
     }
+    '/owner/sala': {
+      id: '/owner/sala'
+      path: '/sala'
+      fullPath: '/owner/sala'
+      preLoaderRoute: typeof OwnerSalaRouteImport
+      parentRoute: typeof OwnerRoute
+    }
     '/owner/reviews': {
       id: '/owner/reviews'
       path: '/reviews'
@@ -426,6 +457,13 @@ declare module '@tanstack/react-router' {
       path: '/qr'
       fullPath: '/owner/qr'
       preLoaderRoute: typeof OwnerQrRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/pro': {
+      id: '/owner/pro'
+      path: '/pro'
+      fullPath: '/owner/pro'
+      preLoaderRoute: typeof OwnerProRouteImport
       parentRoute: typeof OwnerRoute
     }
     '/owner/menu': {
@@ -486,9 +524,11 @@ interface OwnerRouteChildren {
   OwnerCrmRoute: typeof OwnerCrmRoute
   OwnerDashboardRoute: typeof OwnerDashboardRoute
   OwnerMenuRoute: typeof OwnerMenuRoute
+  OwnerProRoute: typeof OwnerProRoute
   OwnerQrRoute: typeof OwnerQrRoute
   OwnerReservationsRoute: typeof OwnerReservationsRoute
   OwnerReviewsRoute: typeof OwnerReviewsRoute
+  OwnerSalaRoute: typeof OwnerSalaRoute
   OwnerSettingsRoute: typeof OwnerSettingsRoute
   OwnerSocialRoute: typeof OwnerSocialRoute
   OwnerStaffRoute: typeof OwnerStaffRoute
@@ -502,9 +542,11 @@ const OwnerRouteChildren: OwnerRouteChildren = {
   OwnerCrmRoute: OwnerCrmRoute,
   OwnerDashboardRoute: OwnerDashboardRoute,
   OwnerMenuRoute: OwnerMenuRoute,
+  OwnerProRoute: OwnerProRoute,
   OwnerQrRoute: OwnerQrRoute,
   OwnerReservationsRoute: OwnerReservationsRoute,
   OwnerReviewsRoute: OwnerReviewsRoute,
+  OwnerSalaRoute: OwnerSalaRoute,
   OwnerSettingsRoute: OwnerSettingsRoute,
   OwnerSocialRoute: OwnerSocialRoute,
   OwnerStaffRoute: OwnerStaffRoute,
