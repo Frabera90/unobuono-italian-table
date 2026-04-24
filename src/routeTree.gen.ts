@@ -14,6 +14,7 @@ import { Route as OwnerRouteImport } from './routes/owner'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OwnerIndexRouteImport } from './routes/owner.index'
+import { Route as RSlugRouteImport } from './routes/r.$slug'
 import { Route as OwnerStatsRouteImport } from './routes/owner.stats'
 import { Route as OwnerSocialRouteImport } from './routes/owner.social'
 import { Route as OwnerSettingsRouteImport } from './routes/owner.settings'
@@ -51,6 +52,11 @@ const OwnerIndexRoute = OwnerIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => OwnerRoute,
+} as any)
+const RSlugRoute = RSlugRouteImport.update({
+  id: '/r/$slug',
+  path: '/r/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const OwnerStatsRoute = OwnerStatsRouteImport.update({
   id: '/stats',
@@ -130,6 +136,7 @@ export interface FileRoutesByFullPath {
   '/owner/settings': typeof OwnerSettingsRoute
   '/owner/social': typeof OwnerSocialRoute
   '/owner/stats': typeof OwnerStatsRoute
+  '/r/$slug': typeof RSlugRoute
   '/owner/': typeof OwnerIndexRoute
 }
 export interface FileRoutesByTo {
@@ -148,6 +155,7 @@ export interface FileRoutesByTo {
   '/owner/settings': typeof OwnerSettingsRoute
   '/owner/social': typeof OwnerSocialRoute
   '/owner/stats': typeof OwnerStatsRoute
+  '/r/$slug': typeof RSlugRoute
   '/owner': typeof OwnerIndexRoute
 }
 export interface FileRoutesById {
@@ -168,6 +176,7 @@ export interface FileRoutesById {
   '/owner/settings': typeof OwnerSettingsRoute
   '/owner/social': typeof OwnerSocialRoute
   '/owner/stats': typeof OwnerStatsRoute
+  '/r/$slug': typeof RSlugRoute
   '/owner/': typeof OwnerIndexRoute
 }
 export interface FileRouteTypes {
@@ -189,6 +198,7 @@ export interface FileRouteTypes {
     | '/owner/settings'
     | '/owner/social'
     | '/owner/stats'
+    | '/r/$slug'
     | '/owner/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -207,6 +217,7 @@ export interface FileRouteTypes {
     | '/owner/settings'
     | '/owner/social'
     | '/owner/stats'
+    | '/r/$slug'
     | '/owner'
   id:
     | '__root__'
@@ -226,6 +237,7 @@ export interface FileRouteTypes {
     | '/owner/settings'
     | '/owner/social'
     | '/owner/stats'
+    | '/r/$slug'
     | '/owner/'
   fileRoutesById: FileRoutesById
 }
@@ -236,6 +248,7 @@ export interface RootRouteChildren {
   WaiterRoute: typeof WaiterRoute
   BookRestaurantIdRoute: typeof BookRestaurantIdRoute
   MenuTableNumberRoute: typeof MenuTableNumberRoute
+  RSlugRoute: typeof RSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -274,6 +287,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/owner/'
       preLoaderRoute: typeof OwnerIndexRouteImport
       parentRoute: typeof OwnerRoute
+    }
+    '/r/$slug': {
+      id: '/r/$slug'
+      path: '/r/$slug'
+      fullPath: '/r/$slug'
+      preLoaderRoute: typeof RSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/owner/stats': {
       id: '/owner/stats'
@@ -399,6 +419,7 @@ const rootRouteChildren: RootRouteChildren = {
   WaiterRoute: WaiterRoute,
   BookRestaurantIdRoute: BookRestaurantIdRoute,
   MenuTableNumberRoute: MenuTableNumberRoute,
+  RSlugRoute: RSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
