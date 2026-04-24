@@ -529,6 +529,7 @@ function BookingPage() {
               <SummaryRow label="WhatsApp" value={phone} />
               {hasOccasion && occasion && <SummaryRow label="Occasione" value={occasion} />}
               {hasAllergies && allergies && <SummaryRow label="Allergie" value={allergies} />}
+              {preferences.length > 0 && <SummaryRow label="Preferenze" value={preferences.join(", ")} />}
               {notes && <SummaryRow label="Note" value={notes} />}
             </div>
             <button
