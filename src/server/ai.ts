@@ -78,16 +78,26 @@ export const enhanceImage = createServerFn({ method: "POST" })
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
 
-    const stylePrompt =
-      data.style === "bright"
-        ? "Make it brighter, more vibrant, with natural warm lighting like sunlight. Boost colors slightly. Subtle realistic enhancement only."
-        : data.style === "moody"
-          ? "Add moody warm restaurant lighting, deeper shadows, cinematic and intimate atmosphere. Realistic, no added elements."
-          : data.style === "clean"
-            ? "Clean white background, professional studio food photography lighting, minimal and elegant. Realistic only."
-            : data.style === "pro_magazine"
-              ? "Transform into a professional FOOD MAGAZINE photo: cinematic depth of field with creamy bokeh background, perfectly balanced soft warm lighting, crisp focus on the dish, vibrant appetizing colors, subtle steam if hot food, tiny natural garnish details (drops, herbs, crumbs) styled like a Michelin photographer, social-media ready vertical-friendly composition. The dish itself, ingredients and toppings MUST stay 100% identical."
-              : "Professional food photography enhancement: improve lighting, sharpness, color balance and appetizing look. Keep the dish authentic and recognizable. Realistic, no added elements.";
+    const STYLES: Record<string, string> = {
+      // Naturali (realistici)
+      auto: "Professional food photography enhancement: improve lighting, sharpness, color balance and appetizing look. Keep the dish authentic and recognizable. Realistic, no added elements.",
+      bright: "Make it brighter, more vibrant, with natural warm lighting like sunlight from a window. Boost colors slightly. Subtle realistic enhancement only.",
+      moody: "Add moody warm restaurant lighting, deeper shadows, cinematic and intimate atmosphere like a candlelit trattoria. Realistic, no added elements.",
+      clean: "Clean white background, professional studio food photography lighting, minimal and elegant. Realistic only.",
+      // Stilizzati (food magazine quality)
+      pro_magazine: "Transform into a professional FOOD MAGAZINE photo: cinematic depth of field with creamy bokeh background, perfectly balanced soft warm lighting, crisp focus on the dish, vibrant appetizing colors, subtle steam if hot food, tiny natural garnish details (drops, herbs, crumbs) styled like a Michelin photographer, social-media ready composition.",
+      minimal: "Minimal Scandinavian editorial style: lots of negative space, neutral beige/off-white surface, soft diffused daylight from one side, perfectly clean composition, muted natural tones, single subject hero. Refined and quiet.",
+      elegant: "High-end fine dining photograph: dark elegant surface (slate or wood), dramatic single light source, deep rich shadows, gold/amber highlights on the dish, luxury restaurant mood, slight overhead 3/4 angle.",
+      bistrot: "Authentic Italian bistrot vibe: rustic wooden table, checkered linen napkin or aged ceramic, warm golden hour light from a side window, glass of wine softly out of focus in background, lived-in cosy atmosphere.",
+      rustic: "Warm rustic farm-to-table style: aged wooden cutting board, raw natural ingredients scattered around (herbs, garlic, olive oil drips), terracotta plate, warm earthy tones, slightly textured background.",
+      hands: "Add natural human hands gently interacting with the dish (pouring sauce from above, sprinkling herbs, holding a fork) — hands must look real, casual, hyperrealistic, slightly out of focus. The dish stays the hero, sharp and centered.",
+      context: "Add tasteful restaurant context around the plate: a glass of red wine, fresh bread, cutlery on linen napkin, soft blurred trattoria background with warm bokeh lights. The main dish stays sharply in focus.",
+      overhead: "Top-down flat lay food photography: perfectly overhead 90° angle, symmetrical composition, complementary props (bread, wine, herbs) arranged geometrically around the dish, soft even shadows, instagram-ready square framing.",
+      pop: "Bold modern pop-food editorial: clean colored background (warm terracotta or mustard yellow), high contrast, vivid saturated colors, slight tilt-shift, playful composition, contemporary cool restaurant brand vibe.",
+      vintage: "Vintage 70s Italian cookbook aesthetic: warm faded film tones, slight grain, soft matte highlights, nostalgic colors (mustard, ochre, olive, brick), checkered tablecloth optional, analog film look.",
+      noir: "Dark moody chef-table style: nearly black background, single rim light from behind making steam glow, deep contrast, dramatic shadows, single highlight on the dish, refined and intense.",
+    };
+    const stylePrompt = STYLES[data.style || "auto"] || STYLES.auto;
 
     const prompt = `${stylePrompt} CRITICAL: Do NOT change the dish itself, the ingredients, the toppings, the plate or the composition. Only enhance photo quality and ambient styling. Output the enhanced image.`;
 
