@@ -199,6 +199,20 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
     if (!restaurant?.id) { toast.error("Ristorante non trovato."); return; }
     setStep("publishing");
 
+    // Calcola scheduled_at in base al modo
+    let scheduledISO: string | null = null;
+    if (scheduleMode === "today") {
+      const [hh, mm] = todayTime.split(":");
+      const d = new Date();
+      d.setHours(Number(hh) || 19, Number(mm) || 30, 0, 0);
+      // se l'orario è già passato → +1 giorno
+      if (d.getTime() < Date.now()) d.setDate(d.getDate() + 1);
+      scheduledISO = d.toISOString();
+    } else if (scheduleMode === "custom") {
+      if (!scheduledAt) { toast.error("Scegli data e ora."); setStep("review"); return; }
+      scheduledISO = new Date(scheduledAt).toISOString();
+    }
+
     const platformValue = platform === "both" ? "instagram,facebook" : platform;
     const { error } = await supabase
       .from("social_posts")
@@ -208,8 +222,8 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
         hashtags: hashtags.join(" "),
         platform: platformValue,
         image_url: imageDataUrl,
-        status: scheduleNow ? "published" : "scheduled",
-        scheduled_at: scheduleNow ? null : (scheduledAt ? new Date(scheduledAt).toISOString() : null),
+        status: scheduleMode === "now" ? "published" : "scheduled",
+        scheduled_at: scheduledISO,
       });
 
     if (error) {
@@ -220,7 +234,6 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
     setConfetti(true);
     setStep("done");
     setTimeout(() => setConfetti(false), 2500);
-    // Realtime ricaricherà la lista
   }
 
   const handle = (settings?.instagram_handle || "@iltuoristorante").replace(/^@/, "");
