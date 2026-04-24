@@ -367,36 +367,53 @@ function BookingPage() {
 
         {step === 2 && (
           <Section title={fmtDate(date)} onBack={() => setStep(1)}>
-            <p className="mb-2 text-sm text-muted-foreground">Orario</p>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {slots.map((s) => (
-                <button
-                  key={s.slot}
-                  disabled={!s.bookable}
-                  onClick={() => setTime(s.slot)}
-                  className={`rounded-lg border p-3 text-center transition ${
-                    !s.bookable
-                      ? "cursor-not-allowed border-border bg-muted/30 text-muted-foreground/40"
-                      : time === s.slot
-                      ? "border-terracotta bg-terracotta text-paper"
-                      : "border-border bg-card hover:border-terracotta"
-                  }`}
-                >
-                  <div className="font-display text-lg">{s.slot}</div>
-                  <div className="text-[10px] opacity-70">{s.available} posti</div>
-                </button>
-              ))}
-            </div>
-
-            {noAvailability && settings?.waitlist_enabled && (
-              <div className="mt-6 rounded-xl border border-dashed border-terracotta bg-terracotta/5 p-5">
-                <p className="font-display text-lg">Siamo al completo per questa data</p>
-                <p className="mt-1 text-sm text-muted-foreground">Vuoi entrare in lista d'attesa? Ti avvisiamo su WhatsApp appena si libera un posto.</p>
-                <button onClick={() => setStep("waitlist")} className="mt-4 rounded-md border border-terracotta px-4 py-2 text-sm font-medium text-terracotta hover:bg-terracotta hover:text-paper">
-                  Entra in lista d'attesa
-                </button>
+            {notConfigured ? (
+              <div className="rounded-xl border-2 border-dashed border-ink/30 bg-paper p-6 text-center">
+                <p className="font-display text-xl uppercase">Prenotazioni non ancora attive</p>
+                <p className="mt-2 text-sm text-ink/70">
+                  Il ristorante non ha ancora configurato orari di apertura o sale per questa data. Riprova più tardi o contatta direttamente il locale.
+                </p>
+                {settings?.phone && (
+                  <a href={`tel:${settings.phone}`} className="mt-4 inline-flex rounded-md border-2 border-ink bg-yellow px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink">
+                    📞 {settings.phone}
+                  </a>
+                )}
               </div>
+            ) : (
+              <>
+                <p className="mb-2 text-sm text-muted-foreground">Orario</p>
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  {slots.map((s) => (
+                    <button
+                      key={s.slot}
+                      disabled={!s.bookable}
+                      onClick={() => setTime(s.slot)}
+                      className={`rounded-lg border p-3 text-center transition ${
+                        !s.bookable
+                          ? "cursor-not-allowed border-border bg-muted/30 text-muted-foreground/40"
+                          : time === s.slot
+                          ? "border-terracotta bg-terracotta text-paper"
+                          : "border-border bg-card hover:border-terracotta"
+                      }`}
+                    >
+                      <div className="font-display text-lg">{s.slot}</div>
+                      <div className="text-[10px] opacity-70">{s.available} {s.available === 1 ? "posto" : "posti"}</div>
+                    </button>
+                  ))}
+                </div>
+
+                {noAvailability && settings?.waitlist_enabled && (
+                  <div className="mt-6 rounded-xl border border-dashed border-terracotta bg-terracotta/5 p-5">
+                    <p className="font-display text-lg">Siamo al completo per questa data</p>
+                    <p className="mt-1 text-sm text-muted-foreground">Vuoi entrare in lista d'attesa? Ti avvisiamo su WhatsApp appena si libera un posto.</p>
+                    <button onClick={() => setStep("waitlist")} className="mt-4 rounded-md border border-terracotta px-4 py-2 text-sm font-medium text-terracotta hover:bg-terracotta hover:text-paper">
+                      Entra in lista d'attesa
+                    </button>
+                  </div>
+                )}
+              </>
             )}
+
 
             {time && (
               <>
