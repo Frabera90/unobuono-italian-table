@@ -12,6 +12,7 @@ const NAV = [
   { to: "/owner/reservations", label: "Prenotazioni", icon: "📅" },
   { to: "/owner/menu", label: "Menu", icon: "🍕" },
   { to: "/owner/qr", label: "QR Code", icon: "📱" },
+  { to: "/owner/staff", label: "Staff", icon: "👨‍🍳" },
   { to: "/owner/agent", label: "Agente AI", icon: "🤖" },
   { to: "/owner/crm", label: "Clienti", icon: "👥" },
   { to: "/owner/campaigns", label: "Campagne", icon: "📣" },

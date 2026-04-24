@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { relTime, isoDate } from "@/lib/restaurant";
@@ -6,20 +6,24 @@ import { playDing } from "@/lib/sounds";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/waiter")({
-  head: () => ({ meta: [{ title: "Sala — Carpediem" }] }),
+  head: () => ({ meta: [{ title: "Sala — Unobuono" }] }),
   component: WaiterPage,
 });
 
 type Tab = "calls" | "reservations" | "preorders";
 
-type Call = { id: string; table_number: string; customer_name: string | null; message: string | null; status: string; created_at: string };
+type Call = { id: string; table_number: string; customer_name: string | null; message: string | null; status: string; created_at: string; restaurant_id: string };
 type Resv = {
   id: string; customer_name: string; party_size: number; date: string; time: string; zone_name: string | null;
-  occasion: string | null; allergies: string | null; arrived: boolean;
+  occasion: string | null; allergies: string | null; arrived: boolean; restaurant_id: string;
 };
-type Preo = { id: string; reservation_id: string | null; customer_name: string | null; items: any; total: number | null; status: string; created_at: string };
+type Preo = { id: string; reservation_id: string | null; customer_name: string | null; items: any; total: number | null; status: string; created_at: string; restaurant_id: string };
 
 function WaiterPage() {
+  const nav = useNavigate();
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
+  const [pin, setPin] = useState<string | null>(null);
+  const [staffName, setStaffName] = useState<string>("");
   const [tab, setTab] = useState<Tab>("calls");
   const [calls, setCalls] = useState<Call[]>([]);
   const [reservations, setReservations] = useState<Resv[]>([]);
@@ -30,24 +34,32 @@ function WaiterPage() {
 
   const today = isoDate(new Date());
 
+  // gate: must have PIN/restaurant in localStorage, else redirect to /staff
   useEffect(() => {
-    if (typeof window !== "undefined" && !localStorage.getItem("waiter-install-dismissed")) {
-      setShowInstall(true);
-    }
-  }, []);
+    if (typeof window === "undefined") return;
+    const rid = localStorage.getItem("staff.restaurant_id");
+    const p = localStorage.getItem("staff.pin");
+    const n = localStorage.getItem("staff.name") || "";
+    if (!rid || !p) { nav({ to: "/staff" }); return; }
+    setRestaurantId(rid);
+    setPin(p);
+    setStaffName(n);
+    if (!localStorage.getItem("waiter-install-dismissed")) setShowInstall(true);
+  }, [nav]);
 
   useEffect(() => {
-    supabase.from("waiter_calls").select("*").eq("status", "pending").order("created_at", { ascending: false }).then(({ data }) => {
+    if (!restaurantId) return;
+    void supabase.from("waiter_calls").select("*").eq("restaurant_id", restaurantId).eq("status", "pending").order("created_at", { ascending: false }).then(({ data }) => {
       setCalls((data || []) as Call[]);
       setReadCalls((data || []).length);
     });
-    supabase.from("reservations").select("*").eq("date", today).order("time").then(({ data }) => setReservations((data || []) as Resv[]));
-    supabase.from("preorders").select("*").order("created_at", { ascending: false }).then(({ data }) => {
+    void supabase.from("reservations").select("*").eq("restaurant_id", restaurantId).eq("date", today).order("time").then(({ data }) => setReservations((data || []) as Resv[]));
+    void supabase.from("preorders").select("*").eq("restaurant_id", restaurantId).order("created_at", { ascending: false }).then(({ data }) => {
       setPreorders((data || []) as Preo[]);
       setReadPre((data || []).length);
     });
 
-    const c1 = supabase.channel("w-calls").on("postgres_changes", { event: "*", schema: "public", table: "waiter_calls" }, (p) => {
+    const c1 = supabase.channel(`w-calls-${restaurantId}`).on("postgres_changes", { event: "*", schema: "public", table: "waiter_calls", filter: `restaurant_id=eq.${restaurantId}` }, (p) => {
       if (p.eventType === "INSERT") {
         setCalls((prev) => [p.new as Call, ...prev]);
         try { playDing(); } catch {}
@@ -57,7 +69,7 @@ function WaiterPage() {
       }
     }).subscribe();
 
-    const c2 = supabase.channel("w-resv").on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, (p) => {
+    const c2 = supabase.channel(`w-resv-${restaurantId}`).on("postgres_changes", { event: "*", schema: "public", table: "reservations", filter: `restaurant_id=eq.${restaurantId}` }, (p) => {
       const row = (p.new || p.old) as Resv;
       if (row.date !== today) return;
       if (p.eventType === "DELETE") setReservations((prev) => prev.filter((r) => r.id !== row.id));
@@ -68,7 +80,7 @@ function WaiterPage() {
       });
     }).subscribe();
 
-    const c3 = supabase.channel("w-pre").on("postgres_changes", { event: "*", schema: "public", table: "preorders" }, (p) => {
+    const c3 = supabase.channel(`w-pre-${restaurantId}`).on("postgres_changes", { event: "*", schema: "public", table: "preorders", filter: `restaurant_id=eq.${restaurantId}` }, (p) => {
       const row = (p.new || p.old) as Preo;
       if (p.eventType === "DELETE") setPreorders((prev) => prev.filter((r) => r.id !== row.id));
       else setPreorders((prev) => {
@@ -78,18 +90,33 @@ function WaiterPage() {
       });
     }).subscribe();
 
-    return () => { supabase.removeChannel(c1); supabase.removeChannel(c2); supabase.removeChannel(c3); };
-  }, [today]);
+    return () => { void supabase.removeChannel(c1); void supabase.removeChannel(c2); void supabase.removeChannel(c3); };
+  }, [restaurantId, today]);
 
   async function markCallSeen(id: string) {
-    await supabase.from("waiter_calls").update({ status: "seen" }).eq("id", id);
+    if (!pin) return;
+    const { data, error } = await supabase.rpc("staff_mark_call_seen", { _call_id: id, _pin: pin });
+    if (error || !data) toast.error("Errore");
+    else setCalls((prev) => prev.filter((x) => x.id !== id));
   }
   async function toggleArrived(r: Resv) {
-    await supabase.from("reservations").update({ arrived: !r.arrived }).eq("id", r.id);
+    if (!pin) return;
+    const { data, error } = await supabase.rpc("staff_toggle_arrived", { _reservation_id: r.id, _pin: pin });
+    if (error || !data) toast.error("Errore");
   }
   async function setPreoStatus(p: Preo, status: string) {
-    await supabase.from("preorders").update({ status }).eq("id", p.id);
+    if (!pin) return;
+    const { data, error } = await supabase.rpc("staff_set_preorder_status", { _preorder_id: p.id, _status: status, _pin: pin });
+    if (error || !data) toast.error("Errore");
   }
+  function logout() {
+    localStorage.removeItem("staff.restaurant_id");
+    localStorage.removeItem("staff.pin");
+    localStorage.removeItem("staff.name");
+    nav({ to: "/staff" });
+  }
+
+  if (!restaurantId) return <div className="grid min-h-screen place-items-center bg-ink text-paper/60 text-sm">Caricamento...</div>;
 
   const callsBadge = calls.length;
   const preBadge = Math.max(0, preorders.filter((p) => p.status !== "served").length - readPre);
@@ -102,6 +129,10 @@ function WaiterPage() {
           <button className="ml-3 text-ink/60" onClick={() => { localStorage.setItem("waiter-install-dismissed", "1"); setShowInstall(false); }}>×</button>
         </div>
       )}
+      <div className="flex items-center justify-between border-b border-white/10 px-4 py-2 text-xs">
+        <span className="text-paper/60">👤 {staffName || "Staff"}</span>
+        <button onClick={logout} className="text-paper/50 underline hover:text-paper">Esci</button>
+      </div>
       <div className="sticky top-0 z-10 grid grid-cols-3 border-b-2 border-yellow bg-ink">
         <TabBtn active={tab === "calls"} onClick={() => { setTab("calls"); setReadCalls(calls.length); }} badge={callsBadge}>🔔 Chiamate</TabBtn>
         <TabBtn active={tab === "reservations"} onClick={() => setTab("reservations")}>📋 Oggi</TabBtn>
@@ -116,7 +147,7 @@ function WaiterPage() {
               <li key={c.id} className="slide-in-right rounded-2xl border border-white/10 bg-white/5 p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <div className="font-display text-5xl text-gold">Tav. {c.table_number}</div>
+                    <div className="font-display text-5xl text-yellow">Tav. {c.table_number}</div>
                     {c.customer_name && <div className="mt-1 text-sm text-paper/70">{c.customer_name}</div>}
                     <div className="mt-2 text-base">{c.message}</div>
                     <div className="mt-1 text-xs text-paper/50">{relTime(c.created_at)}</div>
@@ -141,7 +172,7 @@ function WaiterPage() {
                 <li key={p.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
                   <div className="flex items-baseline justify-between">
                     <div className="font-display text-xl">{p.customer_name}</div>
-                    {linked && <div className="font-display text-xl text-gold">{linked.time}</div>}
+                    {linked && <div className="font-display text-xl text-yellow">{linked.time}</div>}
                   </div>
                   <ul className="mt-3 space-y-1 text-sm">
                     {(Array.isArray(p.items) ? p.items : []).map((it: any, i: number) => (
@@ -167,17 +198,17 @@ function WaiterPage() {
 
 function TabBtn({ active, onClick, children, badge }: { active: boolean; onClick: () => void; children: React.ReactNode; badge?: number }) {
   return (
-    <button onClick={onClick} className={`relative px-2 py-4 text-sm font-medium transition ${active ? "text-gold" : "text-paper/60"}`}>
+    <button onClick={onClick} className={`relative px-2 py-4 text-sm font-medium transition ${active ? "text-yellow" : "text-paper/60"}`}>
       {children}
-      {badge ? <span className="absolute right-2 top-2 inline-flex min-w-5 items-center justify-center rounded-full bg-terracotta px-1.5 py-0.5 text-[10px] font-bold text-paper">{badge}</span> : null}
-      {active && <span className="absolute inset-x-2 bottom-0 h-0.5 bg-gold" />}
+      {badge ? <span className="absolute right-2 top-2 inline-flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-paper">{badge}</span> : null}
+      {active && <span className="absolute inset-x-2 bottom-0 h-0.5 bg-yellow" />}
     </button>
   );
 }
 
 function StatusBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick} className={`rounded-md px-3 py-1.5 text-xs ${active ? "bg-gold text-ink" : "border border-white/15 text-paper/80"}`}>{children}</button>
+    <button onClick={onClick} className={`rounded-md px-3 py-1.5 text-xs ${active ? "bg-yellow text-ink" : "border border-white/15 text-paper/80"}`}>{children}</button>
   );
 }
 
@@ -199,7 +230,7 @@ function ResvList({ reservations, preorders, onToggle }: { reservations: Resv[];
         return (
           <li key={r.id} className="rounded-2xl border border-white/10 bg-white/5">
             <button onClick={() => setOpen(exp ? null : r.id)} className="flex w-full items-center gap-4 p-4 text-left">
-              <div className="font-display text-3xl text-gold">{r.time}</div>
+              <div className="font-display text-3xl text-yellow">{r.time}</div>
               <div className="min-w-0 flex-1">
                 <div className="font-display text-base">{r.customer_name} · {r.party_size} pers</div>
                 <div className="truncate text-xs text-paper/60">{r.zone_name}</div>
@@ -238,5 +269,5 @@ function ResvList({ reservations, preorders, onToggle }: { reservations: Resv[];
 }
 
 function Badge({ children, tone }: { children: React.ReactNode; tone?: "warn" }) {
-  return <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${tone === "warn" ? "bg-amber-500/20 text-amber-300" : "bg-gold/20 text-gold"}`}>{children}</span>;
+  return <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${tone === "warn" ? "bg-amber-500/20 text-amber-300" : "bg-yellow/20 text-yellow"}`}>{children}</span>;
 }

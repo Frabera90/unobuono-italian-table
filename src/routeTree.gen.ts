@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WaiterRouteImport } from './routes/waiter'
+import { Route as StaffRouteImport } from './routes/staff'
 import { Route as OwnerRouteImport } from './routes/owner'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as DemoRouteImport } from './routes/demo'
@@ -18,6 +19,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as OwnerIndexRouteImport } from './routes/owner.index'
 import { Route as RSlugRouteImport } from './routes/r.$slug'
 import { Route as OwnerStatsRouteImport } from './routes/owner.stats'
+import { Route as OwnerStaffRouteImport } from './routes/owner.staff'
 import { Route as OwnerSocialRouteImport } from './routes/owner.social'
 import { Route as OwnerSettingsRouteImport } from './routes/owner.settings'
 import { Route as OwnerReviewsRouteImport } from './routes/owner.reviews'
@@ -34,6 +36,11 @@ import { Route as BookRestaurantIdRouteImport } from './routes/book.$restaurantI
 const WaiterRoute = WaiterRouteImport.update({
   id: '/waiter',
   path: '/waiter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffRoute = StaffRouteImport.update({
+  id: '/staff',
+  path: '/staff',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OwnerRoute = OwnerRouteImport.update({
@@ -74,6 +81,11 @@ const RSlugRoute = RSlugRouteImport.update({
 const OwnerStatsRoute = OwnerStatsRouteImport.update({
   id: '/stats',
   path: '/stats',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerStaffRoute = OwnerStaffRouteImport.update({
+  id: '/staff',
+  path: '/staff',
   getParentRoute: () => OwnerRoute,
 } as any)
 const OwnerSocialRoute = OwnerSocialRouteImport.update({
@@ -143,6 +155,7 @@ export interface FileRoutesByFullPath {
   '/demo': typeof DemoRoute
   '/onboarding': typeof OnboardingRoute
   '/owner': typeof OwnerRouteWithChildren
+  '/staff': typeof StaffRoute
   '/waiter': typeof WaiterRoute
   '/book/$restaurantId': typeof BookRestaurantIdRoute
   '/menu/$tableNumber': typeof MenuTableNumberRoute
@@ -156,6 +169,7 @@ export interface FileRoutesByFullPath {
   '/owner/reviews': typeof OwnerReviewsRoute
   '/owner/settings': typeof OwnerSettingsRoute
   '/owner/social': typeof OwnerSocialRoute
+  '/owner/staff': typeof OwnerStaffRoute
   '/owner/stats': typeof OwnerStatsRoute
   '/r/$slug': typeof RSlugRoute
   '/owner/': typeof OwnerIndexRoute
@@ -165,6 +179,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/demo': typeof DemoRoute
   '/onboarding': typeof OnboardingRoute
+  '/staff': typeof StaffRoute
   '/waiter': typeof WaiterRoute
   '/book/$restaurantId': typeof BookRestaurantIdRoute
   '/menu/$tableNumber': typeof MenuTableNumberRoute
@@ -178,6 +193,7 @@ export interface FileRoutesByTo {
   '/owner/reviews': typeof OwnerReviewsRoute
   '/owner/settings': typeof OwnerSettingsRoute
   '/owner/social': typeof OwnerSocialRoute
+  '/owner/staff': typeof OwnerStaffRoute
   '/owner/stats': typeof OwnerStatsRoute
   '/r/$slug': typeof RSlugRoute
   '/owner': typeof OwnerIndexRoute
@@ -189,6 +205,7 @@ export interface FileRoutesById {
   '/demo': typeof DemoRoute
   '/onboarding': typeof OnboardingRoute
   '/owner': typeof OwnerRouteWithChildren
+  '/staff': typeof StaffRoute
   '/waiter': typeof WaiterRoute
   '/book/$restaurantId': typeof BookRestaurantIdRoute
   '/menu/$tableNumber': typeof MenuTableNumberRoute
@@ -202,6 +219,7 @@ export interface FileRoutesById {
   '/owner/reviews': typeof OwnerReviewsRoute
   '/owner/settings': typeof OwnerSettingsRoute
   '/owner/social': typeof OwnerSocialRoute
+  '/owner/staff': typeof OwnerStaffRoute
   '/owner/stats': typeof OwnerStatsRoute
   '/r/$slug': typeof RSlugRoute
   '/owner/': typeof OwnerIndexRoute
@@ -214,6 +232,7 @@ export interface FileRouteTypes {
     | '/demo'
     | '/onboarding'
     | '/owner'
+    | '/staff'
     | '/waiter'
     | '/book/$restaurantId'
     | '/menu/$tableNumber'
@@ -227,6 +246,7 @@ export interface FileRouteTypes {
     | '/owner/reviews'
     | '/owner/settings'
     | '/owner/social'
+    | '/owner/staff'
     | '/owner/stats'
     | '/r/$slug'
     | '/owner/'
@@ -236,6 +256,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/demo'
     | '/onboarding'
+    | '/staff'
     | '/waiter'
     | '/book/$restaurantId'
     | '/menu/$tableNumber'
@@ -249,6 +270,7 @@ export interface FileRouteTypes {
     | '/owner/reviews'
     | '/owner/settings'
     | '/owner/social'
+    | '/owner/staff'
     | '/owner/stats'
     | '/r/$slug'
     | '/owner'
@@ -259,6 +281,7 @@ export interface FileRouteTypes {
     | '/demo'
     | '/onboarding'
     | '/owner'
+    | '/staff'
     | '/waiter'
     | '/book/$restaurantId'
     | '/menu/$tableNumber'
@@ -272,6 +295,7 @@ export interface FileRouteTypes {
     | '/owner/reviews'
     | '/owner/settings'
     | '/owner/social'
+    | '/owner/staff'
     | '/owner/stats'
     | '/r/$slug'
     | '/owner/'
@@ -283,6 +307,7 @@ export interface RootRouteChildren {
   DemoRoute: typeof DemoRoute
   OnboardingRoute: typeof OnboardingRoute
   OwnerRoute: typeof OwnerRouteWithChildren
+  StaffRoute: typeof StaffRoute
   WaiterRoute: typeof WaiterRoute
   BookRestaurantIdRoute: typeof BookRestaurantIdRoute
   MenuTableNumberRoute: typeof MenuTableNumberRoute
@@ -296,6 +321,13 @@ declare module '@tanstack/react-router' {
       path: '/waiter'
       fullPath: '/waiter'
       preLoaderRoute: typeof WaiterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff': {
+      id: '/staff'
+      path: '/staff'
+      fullPath: '/staff'
+      preLoaderRoute: typeof StaffRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/owner': {
@@ -352,6 +384,13 @@ declare module '@tanstack/react-router' {
       path: '/stats'
       fullPath: '/owner/stats'
       preLoaderRoute: typeof OwnerStatsRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/staff': {
+      id: '/owner/staff'
+      path: '/staff'
+      fullPath: '/owner/staff'
+      preLoaderRoute: typeof OwnerStaffRouteImport
       parentRoute: typeof OwnerRoute
     }
     '/owner/social': {
@@ -452,6 +491,7 @@ interface OwnerRouteChildren {
   OwnerReviewsRoute: typeof OwnerReviewsRoute
   OwnerSettingsRoute: typeof OwnerSettingsRoute
   OwnerSocialRoute: typeof OwnerSocialRoute
+  OwnerStaffRoute: typeof OwnerStaffRoute
   OwnerStatsRoute: typeof OwnerStatsRoute
   OwnerIndexRoute: typeof OwnerIndexRoute
 }
@@ -467,6 +507,7 @@ const OwnerRouteChildren: OwnerRouteChildren = {
   OwnerReviewsRoute: OwnerReviewsRoute,
   OwnerSettingsRoute: OwnerSettingsRoute,
   OwnerSocialRoute: OwnerSocialRoute,
+  OwnerStaffRoute: OwnerStaffRoute,
   OwnerStatsRoute: OwnerStatsRoute,
   OwnerIndexRoute: OwnerIndexRoute,
 }
@@ -479,6 +520,7 @@ const rootRouteChildren: RootRouteChildren = {
   DemoRoute: DemoRoute,
   OnboardingRoute: OnboardingRoute,
   OwnerRoute: OwnerRouteWithChildren,
+  StaffRoute: StaffRoute,
   WaiterRoute: WaiterRoute,
   BookRestaurantIdRoute: BookRestaurantIdRoute,
   MenuTableNumberRoute: MenuTableNumberRoute,
