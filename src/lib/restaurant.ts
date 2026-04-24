@@ -1,7 +1,16 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export type Restaurant = {
+  id: string;
+  owner_id: string;
+  name: string;
+  slug: string;
+  onboarding_complete: boolean;
+};
+
 export type RestaurantSettings = {
   id: string;
+  restaurant_id: string;
   name: string;
   address: string;
   phone: string;
@@ -32,6 +41,7 @@ export type RestaurantSettings = {
 
 export type RoomZone = {
   id: string;
+  restaurant_id: string;
   name: string;
   description: string | null;
   features: string | null;
@@ -43,6 +53,7 @@ export type RoomZone = {
 
 export type MenuItem = {
   id: string;
+  restaurant_id: string;
   name: string;
   description: string | null;
   price: number | null;
@@ -57,6 +68,7 @@ export type MenuItem = {
 
 export type Reservation = {
   id: string;
+  restaurant_id: string;
   customer_name: string;
   customer_phone: string | null;
   party_size: number;
@@ -88,9 +100,39 @@ export function isClosed(settings: RestaurantSettings | null, d: Date): boolean 
   return !v || v === "closed";
 }
 
-export async function getSettings(): Promise<RestaurantSettings | null> {
-  const { data } = await supabase.from("restaurant_settings").select("*").limit(1).maybeSingle();
+/** Restaurant of the currently logged-in owner */
+export async function getMyRestaurant(): Promise<Restaurant | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data } = await supabase.from("restaurants").select("*").eq("owner_id", user.id).maybeSingle();
+  return data as Restaurant | null;
+}
+
+/** Settings of the currently logged-in owner's restaurant */
+export async function getMySettings(): Promise<RestaurantSettings | null> {
+  const r = await getMyRestaurant();
+  if (!r) return null;
+  const { data } = await supabase.from("restaurant_settings").select("*").eq("restaurant_id", r.id).maybeSingle();
   return data as RestaurantSettings | null;
+}
+
+/** Public: settings by slug */
+export async function getSettingsBySlug(slug: string): Promise<{ restaurant: Restaurant; settings: RestaurantSettings | null } | null> {
+  const { data: r } = await supabase.from("restaurants").select("*").eq("slug", slug).maybeSingle();
+  if (!r) return null;
+  const { data: s } = await supabase.from("restaurant_settings").select("*").eq("restaurant_id", r.id).maybeSingle();
+  return { restaurant: r as Restaurant, settings: (s as RestaurantSettings | null) };
+}
+
+/** Public: settings by restaurant id (used in booking page) */
+export async function getSettingsByRestaurantId(restaurantId: string): Promise<RestaurantSettings | null> {
+  const { data } = await supabase.from("restaurant_settings").select("*").eq("restaurant_id", restaurantId).maybeSingle();
+  return data as RestaurantSettings | null;
+}
+
+/** @deprecated kept for compatibility — returns owner's settings */
+export async function getSettings(): Promise<RestaurantSettings | null> {
+  return getMySettings();
 }
 
 export function isoDate(d: Date): string {

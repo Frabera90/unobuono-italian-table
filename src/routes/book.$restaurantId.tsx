@@ -5,7 +5,6 @@ import {
   TIME_SLOTS,
   LUNCH_SLOTS,
   isClosed,
-  getSettings,
   isoDate,
   fmtDate,
   type RestaurantSettings,
@@ -33,6 +32,8 @@ export const Route = createFileRoute("/book/$restaurantId")({
 type Step = 1 | 2 | 3 | 4 | "waitlist" | "done";
 
 function BookingPage() {
+  const { restaurantId: param } = Route.useParams();
+  const [resolvedRestaurantId, setResolvedRestaurantId] = useState<string | null>(null);
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
   const [zones, setZones] = useState<RoomZone[]>([]);
   const [step, setStep] = useState<Step>(1);
@@ -55,7 +56,6 @@ function BookingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmedRes, setConfirmedRes] = useState<{ id: string } | null>(null);
 
-  // Waitlist fields
   const [wlName, setWlName] = useState("");
   const [wlPhone, setWlPhone] = useState("+39 ");
   const [wlPreferred, setWlPreferred] = useState("20:00");
@@ -63,26 +63,37 @@ function BookingPage() {
   const [reservations, setReservations] = useState<{ time: string; party_size: number }[]>([]);
   const [featured, setFeatured] = useState<MenuItem[]>([]);
 
+  // Resolve param: it can be a UUID (restaurant.id) or a slug
   useEffect(() => {
-    getSettings().then(setSettings);
-    supabase.from("room_zones").select("*").order("sort_order").then(({ data }) => setZones((data || []) as RoomZone[]));
-    supabase
-      .from("menu_items")
-      .select("*")
-      .eq("available", true)
-      .eq("featured", true)
-      .order("sort_order")
-      .limit(6)
-      .then(({ data }) => setFeatured((data || []) as MenuItem[]));
-  }, []);
+    void (async () => {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(param);
+      let rid: string | null = null;
+      if (isUuid) {
+        rid = param;
+      } else {
+        const { data } = await supabase.from("restaurants").select("id").eq("slug", param).maybeSingle();
+        rid = data?.id ?? null;
+      }
+      setResolvedRestaurantId(rid);
+      if (!rid) return;
+      const { data: s } = await supabase.from("restaurant_settings").select("*").eq("restaurant_id", rid).maybeSingle();
+      setSettings(s as RestaurantSettings | null);
+      const { data: z } = await supabase.from("room_zones").select("*").eq("restaurant_id", rid).order("sort_order");
+      setZones((z || []) as RoomZone[]);
+      const { data: f } = await supabase.from("menu_items").select("*").eq("restaurant_id", rid).eq("available", true).eq("featured", true).order("sort_order").limit(6);
+      setFeatured((f || []) as MenuItem[]);
+    })();
+  }, [param]);
 
   useEffect(() => {
+    if (!resolvedRestaurantId) return;
     supabase
       .from("reservations")
       .select("time, party_size")
+      .eq("restaurant_id", resolvedRestaurantId)
       .eq("date", date)
       .then(({ data }) => setReservations((data || []) as any));
-  }, [date]);
+  }, [date, resolvedRestaurantId]);
 
   const allSlots = useMemo(() => {
     const d = new Date(date + "T00:00:00");
@@ -115,13 +126,14 @@ function BookingPage() {
   }, [settings]);
 
   async function submitBooking() {
-    if (!firstName.trim() || !lastName.trim() || !phone.trim() || !time) return;
+    if (!firstName.trim() || !lastName.trim() || !phone.trim() || !time || !resolvedRestaurantId) return;
     setSubmitting(true);
     const zone = zones.find((z) => z.id === zoneId);
     const fullName = `${firstName.trim()} ${lastName.trim()}`;
     const { data, error } = await supabase
       .from("reservations")
       .insert({
+        restaurant_id: resolvedRestaurantId,
         customer_name: fullName,
         customer_phone: phone,
         party_size: partySize,
@@ -143,31 +155,15 @@ function BookingPage() {
       return;
     }
 
-    // upsert client by phone
-    const { data: existing } = await supabase.from("clients").select("id, visit_count").eq("phone", phone).maybeSingle();
-    if (existing) {
-      await supabase
-        .from("clients")
-        .update({ visit_count: (existing.visit_count || 0) + 1, last_visit: date })
-        .eq("id", existing.id);
-    } else {
-      await supabase.from("clients").insert({
-        name: fullName,
-        phone,
-        visit_count: 1,
-        last_visit: date,
-        allergens: hasAllergies && allergies ? allergies : null,
-      });
-    }
-
     setConfirmedRes({ id: data!.id });
     setStep("done");
     setSubmitting(false);
   }
 
   async function submitWaitlist() {
-    if (!wlName.trim() || !wlPhone.trim()) return;
+    if (!wlName.trim() || !wlPhone.trim() || !resolvedRestaurantId) return;
     const { error } = await supabase.from("waitlist").insert({
+      restaurant_id: resolvedRestaurantId,
       customer_name: wlName,
       customer_phone: wlPhone,
       party_size: partySize,
