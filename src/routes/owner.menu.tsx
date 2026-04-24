@@ -86,10 +86,14 @@ function MenuPage() {
               {list.map((it) => (
                 <li key={it.id} className="flex items-center gap-3 p-3">
                   <button onClick={() => setEdit(it)} className="min-w-0 flex-1 text-left">
-                    <div className={`text-sm font-medium ${!it.available ? "text-muted-foreground line-through" : ""}`}>{it.name}</div>
+                    <div className={`text-sm font-medium ${!it.available ? "text-muted-foreground line-through" : ""}`}>
+                      {it.featured && <span className="mr-1 text-amber-500">⭐</span>}
+                      {it.name}
+                    </div>
                     {it.description && <div className="truncate text-xs text-muted-foreground">{it.description}</div>}
                   </button>
                   <div className="text-sm text-terracotta">{it.price != null ? `€ ${Number(it.price).toFixed(2)}` : "—"}</div>
+                  <button onClick={() => toggleFeatured(it)} title="In evidenza" className={`text-base transition ${it.featured ? "text-amber-500" : "text-muted-foreground/40 hover:text-amber-500"}`}>★</button>
                   <button onClick={() => toggle(it)} className={`relative h-5 w-9 rounded-full transition ${it.available ? "bg-terracotta" : "bg-border"}`}>
                     <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-paper transition ${it.available ? "left-[18px]" : "left-0.5"}`} />
                   </button>
