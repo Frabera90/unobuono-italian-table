@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { getMyRestaurant, type Restaurant } from "@/lib/restaurant";
 
 export const Route = createFileRoute("/owner")({
+  head: () => ({
+    links: [{ rel: "manifest", href: "/manifest.webmanifest" }],
+  }),
   component: OwnerLayout,
 });
 
