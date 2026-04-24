@@ -240,8 +240,8 @@ function ReservationsPage() {
               <li key={p.id} className="rounded-xl border border-border bg-card p-4">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <div>
-                    <div className="font-display text-base">{p.customer_name || "Cliente"}{linked ? ` · tavolo ${linked.time}` : ""}</div>
-                    <div className="text-xs text-muted-foreground">{new Date(p.created_at).toLocaleString("it-IT")}</div>
+                    <div className="font-display text-base">{p.customer_name || "Cliente"}{linked ? ` · ${fmtDateShort(linked.date)} ore ${linked.time}` : ""}</div>
+                    <div className="text-xs text-muted-foreground">Ordinato {new Date(p.created_at).toLocaleString("it-IT")}</div>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${p.status === "ready" ? "bg-emerald-500/15 text-emerald-700" : p.status === "preparing" ? "bg-amber-500/15 text-amber-700" : "bg-terracotta/15 text-terracotta"}`}>{p.status || "pending"}</span>
