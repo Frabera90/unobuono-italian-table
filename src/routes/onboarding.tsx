@@ -133,19 +133,14 @@ function OnboardingPage() {
 
           {step === 3 && (
             <div className="space-y-4">
-              <h2 className="font-display text-xl text-terracotta">Sala e capienza</h2>
-              <p className="text-sm text-muted-foreground">Crea la prima sala. Potrai aggiungerne altre dopo.</p>
-              <Field label="Nome sala *"><input className="ob-in" value={zoneName} onChange={(e) => setZoneName(e.target.value)} placeholder="Sala interna, Terrazza..." /></Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Capienza coperti"><input type="number" className="ob-in" value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} /></Field>
-                <Field label="Numero tavoli"><input type="number" className="ob-in" value={tableCount} onChange={(e) => setTableCount(Number(e.target.value))} /></Field>
-              </div>
+              <h2 className="font-display text-xl text-terracotta">Quasi pronto!</h2>
+              <p className="text-sm text-ink/70">Subito dopo configurerai <strong>aree e tavoli</strong> del tuo locale (puoi creare più aree, ognuna con i suoi tavoli e QR code stampabili).</p>
               <div className="rounded-lg border border-terracotta/30 bg-terracotta/5 p-3 text-xs text-ink/80">
-                📋 Subito dopo potrai caricare il menu — anche solo con una foto, l'AI lo trascrive per te.
+                📋 Poi caricherai il menu — anche solo con una foto, l'AI lo trascrive per te.
               </div>
               <div className="flex gap-2">
                 <SecondaryBtn onClick={() => setStep(2)}>← Indietro</SecondaryBtn>
-                <PrimaryBtn onClick={finish} busy={busy}>Fine setup ✓</PrimaryBtn>
+                <PrimaryBtn onClick={finish} busy={busy}>Vai a Sala & Tavoli →</PrimaryBtn>
               </div>
             </div>
           )}
