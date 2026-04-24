@@ -249,17 +249,21 @@ export type Database = {
         Row: {
           allergies: string | null
           arrived: boolean | null
+          cancelled_at: string | null
+          confirmation_sent: boolean | null
           created_at: string | null
           customer_name: string
           customer_phone: string | null
           date: string
           id: string
+          manage_token: string | null
           notes: string | null
           occasion: string | null
           occasion_type: string | null
           party_size: number
           preferences: string[] | null
           preorder_link_sent: boolean | null
+          reminder_email_sent: boolean | null
           reminder_sent: boolean | null
           restaurant_id: string | null
           status: string | null
@@ -271,17 +275,21 @@ export type Database = {
         Insert: {
           allergies?: string | null
           arrived?: boolean | null
+          cancelled_at?: string | null
+          confirmation_sent?: boolean | null
           created_at?: string | null
           customer_name: string
           customer_phone?: string | null
           date: string
           id?: string
+          manage_token?: string | null
           notes?: string | null
           occasion?: string | null
           occasion_type?: string | null
           party_size: number
           preferences?: string[] | null
           preorder_link_sent?: boolean | null
+          reminder_email_sent?: boolean | null
           reminder_sent?: boolean | null
           restaurant_id?: string | null
           status?: string | null
@@ -293,17 +301,21 @@ export type Database = {
         Update: {
           allergies?: string | null
           arrived?: boolean | null
+          cancelled_at?: string | null
+          confirmation_sent?: boolean | null
           created_at?: string | null
           customer_name?: string
           customer_phone?: string | null
           date?: string
           id?: string
+          manage_token?: string | null
           notes?: string | null
           occasion?: string | null
           occasion_type?: string | null
           party_size?: number
           preferences?: string[] | null
           preorder_link_sent?: boolean | null
+          reminder_email_sent?: boolean | null
           reminder_sent?: boolean | null
           restaurant_id?: string | null
           status?: string | null
