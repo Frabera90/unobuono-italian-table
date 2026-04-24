@@ -47,6 +47,7 @@ function BookingPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("+39 ");
+  const [email, setEmail] = useState("");
   const [hasOccasion, setHasOccasion] = useState(false);
   const [occasionType, setOccasionType] = useState<string | null>(null);
   const [occasion, setOccasion] = useState("");
