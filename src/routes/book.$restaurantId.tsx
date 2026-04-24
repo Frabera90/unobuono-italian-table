@@ -101,6 +101,9 @@ function BookingPage() {
       .then(({ data }) => setReservations((data || []) as ReservationLite[]));
   }, [date, resolvedRestaurantId]);
 
+  // Reset tavolo se cambiano slot/zona/coperti
+  useEffect(() => { setTableId(null); }, [time, zoneId, partySize, date]);
+
   const avgDuration = settings?.avg_table_duration ?? 90;
 
   // Slot orari da opening_hours
