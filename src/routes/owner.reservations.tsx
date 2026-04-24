@@ -189,7 +189,13 @@ function ReservationsPage() {
                   <button onClick={() => toggleArrived(r)} className={`rounded-md px-3 py-2 text-xs font-medium ${r.arrived ? "bg-emerald-600 text-white" : "border border-border"}`}>
                     {r.arrived ? "✓ Arrivato" : "Segna arrivato"}
                   </button>
-                  <button onClick={() => cancel(r.id)} className="text-xs text-muted-foreground hover:text-destructive" title="Disdici">×</button>
+                  <button
+                    onClick={() => cancel(r.id)}
+                    className="rounded-md border border-destructive/40 px-2.5 py-2 text-[11px] font-medium uppercase tracking-wider text-destructive hover:bg-destructive hover:text-paper"
+                    title="Disdici prenotazione"
+                  >
+                    Disdici
+                  </button>
                 </li>
               );
             })}
