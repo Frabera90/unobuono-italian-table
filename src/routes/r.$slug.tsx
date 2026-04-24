@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { getSettings, type RestaurantSettings, type MenuItem } from "@/lib/restaurant";
+import { getSettingsBySlug, type RestaurantSettings, type MenuItem, type Restaurant } from "@/lib/restaurant";
 
 export const Route = createFileRoute("/r/$slug")({
   head: ({ loaderData }) => {
-    const s = loaderData as { settings: RestaurantSettings | null } | undefined;
-    const name = s?.settings?.name || "Ristorante";
+    const s = loaderData as { settings: RestaurantSettings | null; restaurant: Restaurant | null } | undefined;
+    const name = s?.settings?.name || s?.restaurant?.name || "Ristorante";
     const desc = s?.settings?.bio || "Prenota un tavolo, sfoglia il menu, scopri il ristorante.";
     const img = s?.settings?.cover_photo_url || s?.settings?.logo_url || undefined;
     return {
@@ -19,28 +19,35 @@ export const Route = createFileRoute("/r/$slug")({
       ],
     };
   },
-  loader: async () => ({ settings: await getSettings() }),
+  loader: async ({ params }) => {
+    const r = await getSettingsBySlug(params.slug);
+    return { settings: r?.settings ?? null, restaurant: r?.restaurant ?? null };
+  },
   component: PublicPage,
 });
 
 type Review = { id: string; author: string | null; rating: number | null; text: string | null; date: string | null };
 
 function PublicPage() {
-  const { settings } = Route.useLoaderData();
-  const { slug } = Route.useParams();
+  const { settings, restaurant } = Route.useLoaderData();
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
 
   useEffect(() => {
+    if (!restaurant) return;
     void (async () => {
       const [m, r] = await Promise.all([
-        supabase.from("menu_items").select("*").eq("available", true).order("sort_order"),
-        supabase.from("reviews").select("id,author,rating,text,date").gte("rating", 4).order("date", { ascending: false }).limit(6),
+        supabase.from("menu_items").select("*").eq("restaurant_id", restaurant.id).eq("available", true).order("sort_order"),
+        supabase.from("reviews").select("id,author,rating,text,date").eq("restaurant_id", restaurant.id).gte("rating", 4).order("date", { ascending: false }).limit(6),
       ]);
       setMenu((m.data || []) as MenuItem[]);
       setReviews((r.data || []) as Review[]);
     })();
-  }, []);
+  }, [restaurant]);
+
+  if (!restaurant) {
+    return <div className="grid min-h-screen place-items-center bg-cream px-5 text-center"><div><h1 className="font-display text-3xl">Ristorante non trovato</h1><Link to="/" className="mt-4 inline-block underline">Torna alla home</Link></div></div>;
+  }
 
   const byCategory = useMemo(() => {
     const m = new Map<string, MenuItem[]>();
@@ -55,8 +62,8 @@ function PublicPage() {
   const avgRating = reviews.length ? (reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length).toFixed(1) : null;
   const cover = settings?.cover_photo_url;
 
-  // restaurantId for booking link — slug is informative; settings.id is the canonical key
-  const bookId = settings?.id || slug;
+  // booking uses restaurant id (or slug as fallback in case the booking page resolves it)
+  const bookId = restaurant.id;
 
   return (
     <div className="min-h-screen bg-cream text-ink">
