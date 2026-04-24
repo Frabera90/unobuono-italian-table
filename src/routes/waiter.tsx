@@ -117,7 +117,9 @@ function WaiterPage() {
   }
   async function setPreoStatus(p: Preo, status: string) {
     if (!pin) return;
-    const { data, error } = await supabase.rpc("staff_set_preorder_status", { _preorder_id: p.id, _status: status, _pin: pin });
+    // Toggle: se è già attivo lo stato cliccato, torna a "pending"
+    const next = p.status === status ? "pending" : status;
+    const { data, error } = await supabase.rpc("staff_set_preorder_status", { _preorder_id: p.id, _status: next, _pin: pin });
     if (error || !data) toast.error("Errore");
   }
   function logout() {
