@@ -5,7 +5,6 @@ import {
   TIME_SLOTS,
   LUNCH_SLOTS,
   isClosed,
-  getSettings,
   isoDate,
   fmtDate,
   type RestaurantSettings,
@@ -127,13 +126,14 @@ function BookingPage() {
   }, [settings]);
 
   async function submitBooking() {
-    if (!firstName.trim() || !lastName.trim() || !phone.trim() || !time) return;
+    if (!firstName.trim() || !lastName.trim() || !phone.trim() || !time || !resolvedRestaurantId) return;
     setSubmitting(true);
     const zone = zones.find((z) => z.id === zoneId);
     const fullName = `${firstName.trim()} ${lastName.trim()}`;
     const { data, error } = await supabase
       .from("reservations")
       .insert({
+        restaurant_id: resolvedRestaurantId,
         customer_name: fullName,
         customer_phone: phone,
         party_size: partySize,
@@ -155,31 +155,15 @@ function BookingPage() {
       return;
     }
 
-    // upsert client by phone
-    const { data: existing } = await supabase.from("clients").select("id, visit_count").eq("phone", phone).maybeSingle();
-    if (existing) {
-      await supabase
-        .from("clients")
-        .update({ visit_count: (existing.visit_count || 0) + 1, last_visit: date })
-        .eq("id", existing.id);
-    } else {
-      await supabase.from("clients").insert({
-        name: fullName,
-        phone,
-        visit_count: 1,
-        last_visit: date,
-        allergens: hasAllergies && allergies ? allergies : null,
-      });
-    }
-
     setConfirmedRes({ id: data!.id });
     setStep("done");
     setSubmitting(false);
   }
 
   async function submitWaitlist() {
-    if (!wlName.trim() || !wlPhone.trim()) return;
+    if (!wlName.trim() || !wlPhone.trim() || !resolvedRestaurantId) return;
     const { error } = await supabase.from("waitlist").insert({
+      restaurant_id: resolvedRestaurantId,
       customer_name: wlName,
       customer_phone: wlPhone,
       party_size: partySize,
