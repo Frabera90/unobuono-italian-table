@@ -120,6 +120,10 @@ function MenuPage() {
                 <input type="checkbox" checked={edit.available !== false} onChange={(e) => setEdit({ ...edit, available: e.target.checked })} />
                 Disponibile
               </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={!!edit.featured} onChange={(e) => setEdit({ ...edit, featured: e.target.checked })} />
+                ⭐ In evidenza (mostrato nella pagina di prenotazione)
+              </label>
             </div>
             <div className="mt-5 flex items-center justify-between gap-2">
               {edit.id ? <button onClick={() => remove(edit.id!)} className="text-sm text-destructive">Elimina</button> : <span />}
