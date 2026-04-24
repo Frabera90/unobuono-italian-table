@@ -1,0 +1,1 @@
+ALTER TABLE public.room_zones ADD COLUMN IF NOT EXISTS preferences text;

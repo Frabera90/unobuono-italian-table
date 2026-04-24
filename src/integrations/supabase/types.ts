@@ -540,6 +540,7 @@ export type Database = {
           features: string | null
           id: string
           name: string
+          preferences: string | null
           restaurant_id: string | null
           sort_order: number | null
           table_count: number | null
@@ -551,6 +552,7 @@ export type Database = {
           features?: string | null
           id?: string
           name: string
+          preferences?: string | null
           restaurant_id?: string | null
           sort_order?: number | null
           table_count?: number | null
@@ -562,6 +564,7 @@ export type Database = {
           features?: string | null
           id?: string
           name?: string
+          preferences?: string | null
           restaurant_id?: string | null
           sort_order?: number | null
           table_count?: number | null
