@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { callAI, callAIVision, enhanceImage } from "@/server/ai";
 import { getSettings, type RestaurantSettings } from "@/lib/restaurant";
+import { CalendarGrid } from "@/components/social/CalendarGrid";
+import { PlanGenerator } from "@/components/social/PlanGenerator";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/owner/social")({
