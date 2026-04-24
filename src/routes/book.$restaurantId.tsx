@@ -174,9 +174,17 @@ function BookingPage() {
           <Link to="/demo" className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink/70 hover:text-ink">← Demo</Link>
           <h1 className="mt-4 font-display text-5xl uppercase leading-[0.9] text-ink md:text-7xl">{settings?.name || "Carpediem"}</h1>
           <p className="mt-4 max-w-xl text-balance font-medium text-ink/80">{settings?.bio}</p>
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="mt-5 flex flex-wrap items-center gap-2">
             {settings?.address && <span className="chip-ink">📍 {settings.address}</span>}
             {settings?.phone && <span className="chip-ink">📞 {settings.phone}</span>}
+            <a
+              href="/r/ristorante"
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-full border-2 border-ink bg-paper px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-ink hover:bg-cream-dark"
+            >
+              📖 Vedi il menu
+            </a>
           </div>
         </div>
       </header>
