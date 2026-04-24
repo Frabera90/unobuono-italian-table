@@ -80,14 +80,16 @@ export const enhanceImage = createServerFn({ method: "POST" })
 
     const stylePrompt =
       data.style === "bright"
-        ? "Make it brighter, more vibrant, with natural warm lighting like sunlight. Boost colors slightly."
+        ? "Make it brighter, more vibrant, with natural warm lighting like sunlight. Boost colors slightly. Subtle realistic enhancement only."
         : data.style === "moody"
-          ? "Add moody warm restaurant lighting, deeper shadows, cinematic and intimate atmosphere."
+          ? "Add moody warm restaurant lighting, deeper shadows, cinematic and intimate atmosphere. Realistic, no added elements."
           : data.style === "clean"
-            ? "Clean white background, professional studio food photography lighting, minimal and elegant."
-            : "Professional food photography enhancement: improve lighting, sharpness, color balance and appetizing look. Keep the dish authentic and recognizable.";
+            ? "Clean white background, professional studio food photography lighting, minimal and elegant. Realistic only."
+            : data.style === "pro_magazine"
+              ? "Transform into a professional FOOD MAGAZINE photo: cinematic depth of field with creamy bokeh background, perfectly balanced soft warm lighting, crisp focus on the dish, vibrant appetizing colors, subtle steam if hot food, tiny natural garnish details (drops, herbs, crumbs) styled like a Michelin photographer, social-media ready vertical-friendly composition. The dish itself, ingredients and toppings MUST stay 100% identical."
+              : "Professional food photography enhancement: improve lighting, sharpness, color balance and appetizing look. Keep the dish authentic and recognizable. Realistic, no added elements.";
 
-    const prompt = `${stylePrompt} Do NOT change the dish itself, the ingredients, or the composition. Only enhance the photo quality so it looks like a professional restaurant photo. Output the enhanced image.`;
+    const prompt = `${stylePrompt} CRITICAL: Do NOT change the dish itself, the ingredients, the toppings, the plate or the composition. Only enhance photo quality and ambient styling. Output the enhanced image.`;
 
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
