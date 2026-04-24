@@ -310,6 +310,35 @@ function BookingPage() {
           </Section>
         )}
 
+        {step === 1 && featured.length > 0 && (
+          <section className="mt-6 rounded-2xl border-2 border-ink bg-paper p-5">
+            <div className="mb-3 flex items-baseline justify-between">
+              <h3 className="font-display text-xl uppercase tracking-tight">⭐ I più ordinati</h3>
+              <a href="/r/ristorante" target="_blank" rel="noreferrer" className="font-mono text-[11px] uppercase tracking-wider text-terracotta hover:underline">
+                Tutto il menu →
+              </a>
+            </div>
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {featured.map((it) => (
+                <li key={it.id} className="flex gap-3 rounded-lg border border-ink/10 p-2.5">
+                  {it.photo_url ? (
+                    <img src={it.photo_url} alt={it.name} loading="lazy" className="h-14 w-14 shrink-0 rounded-md object-cover" />
+                  ) : (
+                    <div className="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-cream-dark text-xl">🍽</div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="truncate font-display text-sm uppercase">{it.name}</p>
+                      {it.price != null && <span className="font-mono text-xs font-bold">€{Number(it.price).toFixed(2)}</span>}
+                    </div>
+                    {it.description && <p className="mt-0.5 line-clamp-2 text-xs text-ink/60">{it.description}</p>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {step === 2 && (
           <Section title={fmtDate(date)} onBack={() => setStep(1)}>
             <p className="mb-2 text-sm text-muted-foreground">Orario</p>
