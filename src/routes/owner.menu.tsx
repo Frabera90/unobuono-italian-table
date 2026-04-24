@@ -42,9 +42,12 @@ function MenuPage() {
   async function toggle(it: MenuItem) {
     await supabase.from("menu_items").update({ available: !it.available, updated_at: new Date().toISOString() }).eq("id", it.id);
   }
+  async function toggleFeatured(it: MenuItem) {
+    await supabase.from("menu_items").update({ featured: !it.featured, updated_at: new Date().toISOString() }).eq("id", it.id);
+  }
   async function save() {
     if (!edit?.name) { toast.error("Nome obbligatorio"); return; }
-    const payload: any = { name: edit.name, description: edit.description, price: Number(edit.price) || null, category: edit.category, available: edit.available !== false, allergens: edit.allergens, updated_at: new Date().toISOString() };
+    const payload: any = { name: edit.name, description: edit.description, price: Number(edit.price) || null, category: edit.category, available: edit.available !== false, featured: !!edit.featured, allergens: edit.allergens, updated_at: new Date().toISOString() };
     if (edit.id) {
       const { error } = await supabase.from("menu_items").update(payload).eq("id", edit.id);
       if (error) return toast.error(error.message);
