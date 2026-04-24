@@ -553,6 +553,9 @@ function BookingPage() {
             <Field label="🇮🇹 Numero WhatsApp">
               <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} />
             </Field>
+            <Field label="Email (per la conferma)">
+              <input className="input" type="email" placeholder="nome@esempio.it" value={email} onChange={(e) => setEmail(e.target.value)} />
+            </Field>
             {settings?.ask_occasion && (
               <Toggle label="È un'occasione speciale?" value={hasOccasion} onChange={setHasOccasion}>
                 {hasOccasion && (
