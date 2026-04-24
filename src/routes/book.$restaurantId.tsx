@@ -129,6 +129,11 @@ function BookingPage() {
     return out;
   }, [settings]);
 
+  function timeToMinLocal(t: string): number {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + (m || 0);
+  }
+
   async function submitBooking() {
     if (!firstName.trim() || !lastName.trim() || !phone.trim() || !time || !resolvedRestaurantId) return;
     setSubmitting(true);
