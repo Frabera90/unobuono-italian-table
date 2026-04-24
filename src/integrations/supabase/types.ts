@@ -263,6 +263,7 @@ export type Database = {
           reminder_sent: boolean | null
           restaurant_id: string | null
           status: string | null
+          table_id: string | null
           time: string
           zone_id: string | null
           zone_name: string | null
@@ -284,6 +285,7 @@ export type Database = {
           reminder_sent?: boolean | null
           restaurant_id?: string | null
           status?: string | null
+          table_id?: string | null
           time: string
           zone_id?: string | null
           zone_name?: string | null
@@ -305,6 +307,7 @@ export type Database = {
           reminder_sent?: boolean | null
           restaurant_id?: string | null
           status?: string | null
+          table_id?: string | null
           time?: string
           zone_id?: string | null
           zone_name?: string | null
@@ -315,6 +318,13 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "tables"
             referencedColumns: ["id"]
           },
           {
@@ -594,6 +604,54 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tables: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          notes: string | null
+          restaurant_id: string
+          seats: number
+          sort_order: number | null
+          zone_id: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          restaurant_id: string
+          seats?: number
+          sort_order?: number | null
+          zone_id?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          restaurant_id?: string
+          seats?: number
+          sort_order?: number | null
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tables_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tables_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "room_zones"
             referencedColumns: ["id"]
           },
         ]
