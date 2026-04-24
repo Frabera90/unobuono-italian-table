@@ -29,7 +29,8 @@ export const Route = createFileRoute("/r/$slug")({
 type Review = { id: string; author: string | null; rating: number | null; text: string | null; date: string | null };
 
 function PublicPage() {
-  const { settings, restaurant } = Route.useLoaderData();
+  const data = Route.useLoaderData() as { settings: RestaurantSettings | null; restaurant: Restaurant | null };
+  const { settings, restaurant } = data;
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
 
