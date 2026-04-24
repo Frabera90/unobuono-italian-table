@@ -79,9 +79,13 @@ function BookingPage() {
       if (!rid) return;
       const { data: s } = await supabase.from("restaurant_settings").select("*").eq("restaurant_id", rid).maybeSingle();
       setSettings(s as RestaurantSettings | null);
-      const { data: z } = await supabase.from("room_zones").select("*").eq("restaurant_id", rid).order("sort_order");
+      const [{ data: z }, { data: t }, { data: f }] = await Promise.all([
+        supabase.from("room_zones").select("*").eq("restaurant_id", rid).order("sort_order"),
+        supabase.from("tables").select("id,code,seats,zone_id").eq("restaurant_id", rid).order("seats"),
+        supabase.from("menu_items").select("*").eq("restaurant_id", rid).eq("available", true).eq("featured", true).order("sort_order").limit(6),
+      ]);
       setZones((z || []) as RoomZone[]);
-      const { data: f } = await supabase.from("menu_items").select("*").eq("restaurant_id", rid).eq("available", true).eq("featured", true).order("sort_order").limit(6);
+      setTables((t || []) as TableRow[]);
       setFeatured((f || []) as MenuItem[]);
     })();
   }, [param]);
@@ -90,10 +94,11 @@ function BookingPage() {
     if (!resolvedRestaurantId) return;
     supabase
       .from("reservations")
-      .select("time, party_size")
+      .select("id,time,party_size,table_id,status")
       .eq("restaurant_id", resolvedRestaurantId)
       .eq("date", date)
-      .then(({ data }) => setReservations((data || []) as any));
+      .neq("status", "cancelled")
+      .then(({ data }) => setReservations((data || []) as ReservationLite[]));
   }, [date, resolvedRestaurantId]);
 
   // Slot reali a partire dagli opening_hours del ristorante (configurati dall'owner)
