@@ -38,6 +38,9 @@ function SocialPage() {
   const [scheduleNow, setScheduleNow] = useState(true);
   const [scheduledAt, setScheduledAt] = useState<string>("");
   const [confetti, setConfetti] = useState(false);
+  const [enhancing, setEnhancing] = useState(false);
+  const [originalImage, setOriginalImage] = useState<string | null>(null);
+  const [enhanced, setEnhanced] = useState(false);
 
   const fileRef = useRef<HTMLInputElement>(null);
 
