@@ -95,24 +95,54 @@ function BookingPage() {
       .then(({ data }) => setReservations((data || []) as any));
   }, [date, resolvedRestaurantId]);
 
+  // Slot reali a partire dagli opening_hours del ristorante (configurati dall'owner)
+  // Formato atteso per ogni giorno: "19:00-23:00" oppure "12:00-15:00,19:00-24:00" oppure "closed"
   const allSlots = useMemo(() => {
+    if (!settings?.opening_hours) return [];
+    const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
     const d = new Date(date + "T00:00:00");
-    const day = d.getDay();
-    if (day === 0) return LUNCH_SLOTS; // Sun lunch only per opening_hours
-    if (day === 6) return [...LUNCH_SLOTS, ...TIME_SLOTS]; // Sat both
-    return TIME_SLOTS;
-  }, [date]);
+    const dayKey = days[d.getDay()];
+    const raw = settings.opening_hours?.[dayKey];
+    if (!raw || raw === "closed") return [];
+    const ranges = String(raw).split(",").map((s) => s.trim()).filter(Boolean);
+    const out: string[] = [];
+    for (const range of ranges) {
+      const [start, end] = range.split("-").map((s) => s.trim());
+      if (!start || !end) continue;
+      const [sh, sm] = start.split(":").map(Number);
+      const [eh, em] = end.split(":").map(Number);
+      if (Number.isNaN(sh) || Number.isNaN(eh)) continue;
+      let cur = sh * 60 + (sm || 0);
+      const stop = eh * 60 + (em || 0);
+      // Ultimo slot prenotabile = chiusura - durata media tavolo (default 90)
+      const durMin = settings?.avg_table_duration ?? 90;
+      const lastBookable = stop - durMin;
+      while (cur <= lastBookable) {
+        const h = Math.floor(cur / 60);
+        const m = cur % 60;
+        out.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+        cur += 30;
+      }
+    }
+    return out;
+  }, [date, settings]);
+
+  // Capienza reale = somma posti zone disponibili (NON un placeholder)
+  const totalCapacity = useMemo(() => {
+    return zones.filter((z) => z.available).reduce((s, z) => s + (z.capacity || 0), 0);
+  }, [zones]);
 
   const slots = useMemo(() => {
-    const max = settings?.max_covers ?? 60;
+    if (totalCapacity <= 0) return [];
     return allSlots.map((slot) => {
       const booked = reservations.filter((r) => r.time === slot).reduce((s, r) => s + r.party_size, 0);
-      const available = max - booked;
+      const available = Math.max(0, totalCapacity - booked);
       return { slot, available, bookable: available >= partySize };
     });
-  }, [allSlots, reservations, partySize, settings]);
+  }, [allSlots, reservations, partySize, totalCapacity]);
 
-  const noAvailability = slots.every((s) => !s.bookable);
+  const noAvailability = slots.length === 0 || slots.every((s) => !s.bookable);
+  const notConfigured = totalCapacity <= 0 || allSlots.length === 0;
 
   // calendar for next 30 days
   const days = useMemo(() => {
