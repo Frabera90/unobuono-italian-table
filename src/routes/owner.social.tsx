@@ -136,7 +136,7 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
     setPlatform("instagram");
   }
 
-  async function enhance(style: "auto" | "bright" | "moody" | "clean") {
+  async function enhance(style: "auto" | "bright" | "moody" | "clean" | "pro_magazine") {
     if (!imageDataUrl || enhancing) return;
     setEnhancing(true);
     try {
