@@ -20,7 +20,7 @@ const NAV = [
   { to: "/owner/staff", label: "Staff", icon: "👨‍🍳" },
   { to: "/owner/crm", label: "Clienti", icon: "👥" },
   { to: "/owner/social", label: "Social", icon: "📸" },
-  { to: "/owner/settings", label: "Impostazioni", icon: "⚙️" },
+  { to: "/owner/settings", label: "Il mio locale", icon: "🏠" },
   { to: "/owner/pro", label: "Pro / Prossimamente", icon: "✨" },
 ] as const;
 

@@ -14,7 +14,8 @@ type TableLite = { id: string; code: string; seats: number; zone_id: string | nu
 type Preorder = { id: string; customer_name: string | null; reservation_id: string | null; total: number | null; status: string | null; items: Array<{ name: string; qty: number; price: number }> | null; created_at: string };
 
 function ReservationsPage() {
-  const [date, setDate] = useState(isoDate(new Date()));
+  const today = isoDate(new Date());
+  const [date, setDate] = useState<string | null>(null); // null = "tutte le prossime"
   const [list, setList] = useState<Reservation[]>([]);
   const [waitlist, setWaitlist] = useState<Waitlist[]>([]);
   const [tables, setTables] = useState<TableLite[]>([]);
@@ -28,9 +29,25 @@ function ReservationsPage() {
     const { data: rest } = await supabase.from("restaurants").select("id").eq("owner_id", user.id).maybeSingle();
     if (!rest) return;
     setRestaurantId(rest.id);
+
+    let resvQuery = supabase.from("reservations").select("*").eq("restaurant_id", rest.id);
+    let waitQuery = supabase.from("waitlist").select("*").eq("restaurant_id", rest.id).eq("status", "waiting");
+    if (date) {
+      resvQuery = resvQuery.eq("date", date);
+      waitQuery = waitQuery.eq("date", date);
+    } else {
+      // Tutte le prossime (da oggi in poi), max 200
+      resvQuery = resvQuery.gte("date", today).order("date").order("time").limit(200);
+      waitQuery = waitQuery.gte("date", today).order("date").limit(100);
+    }
+    if (date) {
+      resvQuery = resvQuery.order("time");
+      waitQuery = waitQuery.order("created_at");
+    }
+
     const [{ data: r }, { data: w }, { data: t }, { data: p }] = await Promise.all([
-      supabase.from("reservations").select("*").eq("restaurant_id", rest.id).eq("date", date).order("time"),
-      supabase.from("waitlist").select("*").eq("restaurant_id", rest.id).eq("date", date).eq("status", "waiting").order("created_at"),
+      resvQuery,
+      waitQuery,
       supabase.from("tables").select("id,code,seats,zone_id").eq("restaurant_id", rest.id).order("code"),
       supabase.from("preorders").select("id,customer_name,reservation_id,total,status,items,created_at").eq("restaurant_id", rest.id).order("created_at", { ascending: false }).limit(50),
     ]);
@@ -42,12 +59,13 @@ function ReservationsPage() {
 
   useEffect(() => {
     load();
-    const ch = supabase.channel("o-resv-" + date)
+    const ch = supabase.channel("o-resv-" + (date ?? "all"))
       .on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "waitlist" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "preorders" }, load)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date]);
 
   const active = useMemo(() => list.filter((r) => r.status !== "cancelled"), [list]);
@@ -88,10 +106,33 @@ function ReservationsPage() {
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl">Prenotazioni</h1>
-          <p className="text-sm text-muted-foreground capitalize">{fmtDate(date)}</p>
+          <p className="text-sm text-muted-foreground capitalize">
+            {date ? fmtDate(date) : "Tutte le prossime prenotazioni"}
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="rounded-lg border border-border bg-card px-3 py-2 text-sm" />
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="rounded-lg border-2 border-ink bg-yellow/40 px-2 py-1.5">
+            <label className="mb-0.5 block text-[9px] font-bold uppercase tracking-widest text-ink/70">
+              📅 Filtra per giorno (opzionale)
+            </label>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="date"
+                value={date ?? ""}
+                onChange={(e) => setDate(e.target.value || null)}
+                className="rounded-md border border-ink bg-paper px-2 py-1 text-sm"
+              />
+              {date && (
+                <button
+                  onClick={() => setDate(null)}
+                  className="rounded-md border border-ink bg-paper px-2 py-1 text-[10px] font-bold uppercase tracking-wider hover:bg-ink hover:text-paper"
+                  title="Mostra tutte"
+                >
+                  ✕ tutte
+                </button>
+              )}
+            </div>
+          </div>
           <div className="rounded-lg border border-border bg-card px-3 py-2 text-xs">
             <span className="font-display text-base">{totals.covers}</span>
             <span className="text-muted-foreground"> coperti · </span>
@@ -115,7 +156,14 @@ function ReservationsPage() {
               const compatible = tables.filter((t) => t.seats >= r.party_size);
               return (
                 <li key={r.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
-                  <div className="font-display text-2xl text-terracotta">{r.time}</div>
+                  <div className="flex flex-col items-center">
+                    <div className="font-display text-2xl text-terracotta leading-none">{r.time}</div>
+                    {!date && (
+                      <div className="mt-0.5 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+                        {new Date(r.date).toLocaleDateString("it-IT", { day: "2-digit", month: "short" })}
+                      </div>
+                    )}
+                  </div>
                   <div className="min-w-0 flex-1">
                     <div className="font-display text-base">{r.customer_name} · {r.party_size} pers</div>
                     <div className="truncate text-xs text-muted-foreground">

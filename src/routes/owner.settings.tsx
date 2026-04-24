@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/owner/settings")({
-  head: () => ({ meta: [{ title: "Impostazioni — Unobuono" }] }),
+  head: () => ({ meta: [{ title: "Il mio locale — Unobuono" }] }),
   component: SettingsPage,
 });
 
@@ -30,8 +30,8 @@ function SettingsPage() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-7">
       <header className="mb-5">
-        <h1 className="font-display text-3xl">Impostazioni</h1>
-        <p className="text-sm text-muted-foreground">Profilo del ristorante e preferenze.</p>
+        <h1 className="font-display text-3xl">Il mio locale</h1>
+        <p className="text-sm text-muted-foreground">Dati, identità e preferenze del ristorante.</p>
       </header>
 
       <div className="space-y-5 rounded-2xl border border-border bg-card p-5">

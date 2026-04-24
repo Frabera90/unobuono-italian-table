@@ -40,8 +40,9 @@ function SocialPage() {
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [extraContext, setExtraContext] = useState("");
   const [platform, setPlatform] = useState<"instagram" | "facebook" | "both">("instagram");
-  const [scheduleNow, setScheduleNow] = useState(true);
+  const [scheduleMode, setScheduleMode] = useState<"now" | "today" | "custom">("now");
   const [scheduledAt, setScheduledAt] = useState<string>("");
+  const [todayTime, setTodayTime] = useState<string>("19:30");
   const [confetti, setConfetti] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
   const [originalImage, setOriginalImage] = useState<string | null>(null);
@@ -154,12 +155,18 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
     setCaption("");
     setHashtags([]);
     setExtraContext("");
-    setScheduleNow(true);
+    setScheduleMode("now");
     setScheduledAt("");
     setPlatform("instagram");
   }
 
-  async function enhance(style: "auto" | "bright" | "moody" | "clean" | "pro_magazine") {
+  type EnhanceStyle =
+    | "auto" | "bright" | "moody" | "clean"
+    | "pro_magazine" | "minimal" | "elegant" | "bistrot"
+    | "rustic" | "hands" | "context" | "overhead"
+    | "pop" | "vintage" | "noir";
+
+  async function enhance(style: EnhanceStyle) {
     if (!imageDataUrl || enhancing) return;
     setEnhancing(true);
     try {
@@ -192,6 +199,20 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
     if (!restaurant?.id) { toast.error("Ristorante non trovato."); return; }
     setStep("publishing");
 
+    // Calcola scheduled_at in base al modo
+    let scheduledISO: string | null = null;
+    if (scheduleMode === "today") {
+      const [hh, mm] = todayTime.split(":");
+      const d = new Date();
+      d.setHours(Number(hh) || 19, Number(mm) || 30, 0, 0);
+      // se l'orario è già passato → +1 giorno
+      if (d.getTime() < Date.now()) d.setDate(d.getDate() + 1);
+      scheduledISO = d.toISOString();
+    } else if (scheduleMode === "custom") {
+      if (!scheduledAt) { toast.error("Scegli data e ora."); setStep("review"); return; }
+      scheduledISO = new Date(scheduledAt).toISOString();
+    }
+
     const platformValue = platform === "both" ? "instagram,facebook" : platform;
     const { error } = await supabase
       .from("social_posts")
@@ -201,8 +222,8 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
         hashtags: hashtags.join(" "),
         platform: platformValue,
         image_url: imageDataUrl,
-        status: scheduleNow ? "published" : "scheduled",
-        scheduled_at: scheduleNow ? null : (scheduledAt ? new Date(scheduledAt).toISOString() : null),
+        status: scheduleMode === "now" ? "published" : "scheduled",
+        scheduled_at: scheduledISO,
       });
 
     if (error) {
@@ -213,7 +234,6 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
     setConfetti(true);
     setStep("done");
     setTimeout(() => setConfetti(false), 2500);
-    // Realtime ricaricherà la lista
   }
 
   const handle = (settings?.instagram_handle || "@iltuoristorante").replace(/^@/, "");
@@ -386,30 +406,54 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
                 </p>
 
                 <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">🌿 Naturale (realistico)</div>
-                <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                <div className="mb-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
                   {([
                     { k: "auto", label: "Auto" },
                     { k: "bright", label: "Luminoso" },
                     { k: "moody", label: "Caldo" },
                     { k: "clean", label: "Pulito" },
                   ] as const).map((s) => (
-                    <button
-                      key={s.k}
-                      onClick={() => enhance(s.k)}
-                      disabled={enhancing || step !== "review"}
-                      className="rounded-md border border-ink bg-paper px-2 py-1.5 text-xs font-medium hover:bg-yellow disabled:opacity-40"
-                    >
+                    <button key={s.k} onClick={() => enhance(s.k)} disabled={enhancing || step !== "review"}
+                      className="rounded-md border border-ink bg-paper px-2 py-1.5 text-xs font-medium hover:bg-yellow disabled:opacity-40">
                       {s.label}
                     </button>
                   ))}
                 </div>
 
-                <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">✨ Pro Magazine (stilizzato)</div>
-                <button
-                  onClick={() => enhance("pro_magazine")}
-                  disabled={enhancing || step !== "review"}
-                  className="w-full rounded-md border-2 border-ink bg-ink px-3 py-2 text-xs font-bold uppercase text-paper hover:bg-yellow hover:text-ink disabled:opacity-40"
-                >
+                <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">🎨 Mood &amp; stile</div>
+                <div className="mb-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                  {([
+                    { k: "minimal", label: "Minimal" },
+                    { k: "elegant", label: "Elegante" },
+                    { k: "bistrot", label: "Bistrot" },
+                    { k: "rustic", label: "Rustico" },
+                    { k: "vintage", label: "Vintage" },
+                    { k: "noir", label: "Noir" },
+                    { k: "pop", label: "Pop" },
+                    { k: "overhead", label: "Dall'alto" },
+                  ] as const).map((s) => (
+                    <button key={s.k} onClick={() => enhance(s.k)} disabled={enhancing || step !== "review"}
+                      className="rounded-md border border-ink bg-paper px-2 py-1.5 text-xs font-medium hover:bg-yellow disabled:opacity-40">
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">✋ Aggiunte (mani / contesto)</div>
+                <div className="mb-3 grid grid-cols-2 gap-1.5">
+                  <button onClick={() => enhance("hands")} disabled={enhancing || step !== "review"}
+                    className="rounded-md border border-ink bg-paper px-2 py-1.5 text-xs font-medium hover:bg-yellow disabled:opacity-40">
+                    🖐️ Mani sul piatto
+                  </button>
+                  <button onClick={() => enhance("context")} disabled={enhancing || step !== "review"}
+                    className="rounded-md border border-ink bg-paper px-2 py-1.5 text-xs font-medium hover:bg-yellow disabled:opacity-40">
+                    🍷 Contesto tavola
+                  </button>
+                </div>
+
+                <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">✨ Pro Magazine</div>
+                <button onClick={() => enhance("pro_magazine")} disabled={enhancing || step !== "review"}
+                  className="w-full rounded-md border-2 border-ink bg-ink px-3 py-2 text-xs font-bold uppercase text-paper hover:bg-yellow hover:text-ink disabled:opacity-40">
                   📸 Stile food magazine
                 </button>
                 {enhancing && (
@@ -435,34 +479,46 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
                 </div>
               </div>
 
-              <div>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={scheduleNow} onChange={(e) => setScheduleNow(e.target.checked)} />
-                  Pubblica ora
-                </label>
-                {!scheduleNow && (
-                  <input
-                    type="datetime-local"
-                    value={scheduledAt}
-                    onChange={(e) => setScheduledAt(e.target.value)}
-                    className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                  />
+              <div className="rounded-lg border-2 border-ink bg-cream/60 p-3">
+                <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-ink/70">⏰ Quando pubblicare</label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {([
+                    { k: "now", label: "Subito" },
+                    { k: "today", label: "Oggi a…" },
+                    { k: "custom", label: "Altro giorno" },
+                  ] as const).map((m) => (
+                    <button key={m.k} onClick={() => setScheduleMode(m.k)}
+                      className={`rounded-md border px-2 py-1.5 text-xs font-medium ${scheduleMode === m.k ? "border-ink bg-ink text-paper" : "border-ink/40 bg-paper"}`}>
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+                {scheduleMode === "today" && (
+                  <input type="time" value={todayTime} onChange={(e) => setTodayTime(e.target.value)}
+                    className="mt-2 w-full rounded-md border border-ink bg-paper px-3 py-2 text-sm" />
+                )}
+                {scheduleMode === "custom" && (
+                  <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)}
+                    min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                    className="mt-2 w-full rounded-md border border-ink bg-paper px-3 py-2 text-sm" />
                 )}
               </div>
 
-              <div className="flex gap-2 pt-1">
-                <button
-                  onClick={reset}
-                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                >
-                  Annulla
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button onClick={() => fileRef.current?.click()}
+                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm" title="Sostituisci la foto">
+                  📷 Cambia foto
                 </button>
-                <button
-                  onClick={publish}
-                  disabled={step !== "review" || !caption.trim()}
-                  className="flex-1 rounded-lg bg-terracotta px-4 py-2 text-sm font-medium text-paper disabled:opacity-40"
-                >
-                  {step === "publishing" ? "Pubblicazione…" : scheduleNow ? "Approva e pubblica" : "Approva e programma"}
+                <button onClick={reset}
+                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                  ← Indietro
+                </button>
+                <button onClick={publish} disabled={step !== "review" || !caption.trim()}
+                  className="flex-1 rounded-lg bg-terracotta px-4 py-2 text-sm font-medium text-paper disabled:opacity-40">
+                  {step === "publishing"
+                    ? "Pubblicazione…"
+                    : scheduleMode === "now" ? "Approva e pubblica"
+                    : "Approva e programma"}
                 </button>
               </div>
 
