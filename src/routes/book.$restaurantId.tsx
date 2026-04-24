@@ -13,7 +13,6 @@ import { generateSlots, computeAvailability, pickTable, type TableRow, type Rese
 import { toast } from "sonner";
 
 const OCCASION_CHIPS = ["Compleanno", "Anniversario", "Cena romantica", "Business", "Famiglia", "Amici"];
-const PREFERENCE_CHIPS = ["Vicino alla finestra", "Zona tranquilla", "Vicino al bagno", "Lontano dalla cucina", "Tavolo alto", "Senza glutine", "Vegetariano"];
 const DAY_LABELS: Record<string, string> = { mon: "Lun", tue: "Mar", wed: "Mer", thu: "Gio", fri: "Ven", sat: "Sab", sun: "Dom" };
 
 export const Route = createFileRoute("/book/$restaurantId")({
@@ -513,24 +512,33 @@ function BookingPage() {
               </Toggle>
             )}
 
-            <div className="mt-3 rounded-lg border border-border bg-background/60 p-3">
-              <p className="text-sm">Hai una preferenza sul tavolo?</p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {PREFERENCE_CHIPS.map((p) => {
-                  const sel = preferences.includes(p);
-                  return (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setPreferences((prev) => sel ? prev.filter((x) => x !== p) : [...prev, p])}
-                      className={`rounded-full border px-3 py-1 text-xs transition ${sel ? "border-terracotta bg-terracotta text-paper" : "border-border bg-card hover:border-terracotta"}`}
-                    >
-                      {p}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            {(() => {
+              const sourceZones = zoneId ? zones.filter((z) => z.id === zoneId) : zones;
+              const allPrefs = Array.from(new Set(
+                sourceZones.flatMap((z) => (z.preferences || "").split("\n").map((s) => s.trim()).filter(Boolean))
+              ));
+              if (allPrefs.length === 0) return null;
+              return (
+                <div className="mt-3 rounded-lg border border-border bg-background/60 p-3">
+                  <p className="text-sm">Hai una preferenza sul tavolo?</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {allPrefs.map((p) => {
+                      const sel = preferences.includes(p);
+                      return (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setPreferences((prev) => sel ? prev.filter((x) => x !== p) : [...prev, p])}
+                          className={`rounded-full border px-3 py-1 text-xs transition ${sel ? "border-terracotta bg-terracotta text-paper" : "border-border bg-card hover:border-terracotta"}`}
+                        >
+                          {p}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
 
             {settings?.ask_allergies && (
               <Toggle label="Hai allergie o preferenze alimentari?" value={hasAllergies} onChange={setHasAllergies}>
