@@ -10,8 +10,13 @@ import {
   fmtDate,
   type RestaurantSettings,
   type RoomZone,
+  type MenuItem,
 } from "@/lib/restaurant";
 import { toast } from "sonner";
+
+const OCCASION_CHIPS = ["Compleanno", "Anniversario", "Cena romantica", "Business", "Famiglia", "Amici"];
+const PREFERENCE_CHIPS = ["Vicino alla finestra", "Zona tranquilla", "Vicino al bagno", "Lontano dalla cucina", "Tavolo alto", "Senza glutine", "Vegetariano"];
+const DAY_LABELS: Record<string, string> = { mon: "Lun", tue: "Mar", wed: "Mer", thu: "Gio", fri: "Ven", sat: "Sab", sun: "Dom" };
 
 export const Route = createFileRoute("/book/$restaurantId")({
   head: () => ({
