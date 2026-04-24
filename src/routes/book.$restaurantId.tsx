@@ -141,7 +141,23 @@ function BookingPage() {
       .eq("date", date)
       .neq("status", "cancelled");
 
-    const assignedTable = pickTable(tables, (latest || []) as ReservationLite[], time, partySize, avgDuration, zoneId);
+    // Se l'utente ha scelto un tavolo specifico, verifica che sia ancora libero
+    let assignedTable: TableRow | null = null;
+    if (tableId) {
+      const chosen = tables.find((t) => t.id === tableId);
+      const occupied = (latest || []).some((r) => r.status !== "cancelled" && r.table_id === tableId && Math.abs(timeToMinLocal(r.time) - timeToMinLocal(time)) < avgDuration);
+      if (chosen && !occupied && chosen.seats >= partySize) {
+        assignedTable = chosen;
+      } else {
+        toast.error("Il tavolo scelto non è più disponibile. Scegline un altro.");
+        setReservations((latest || []) as ReservationLite[]);
+        setTableId(null);
+        setSubmitting(false);
+        return;
+      }
+    } else {
+      assignedTable = pickTable(tables, (latest || []) as ReservationLite[], time, partySize, avgDuration, zoneId);
+    }
     if (!assignedTable) {
       toast.error("Tavolo non più disponibile per quell'orario. Scegli un altro slot.");
       setReservations((latest || []) as ReservationLite[]);
