@@ -130,6 +130,8 @@ function BookingPage() {
         zone_id: zoneId,
         zone_name: zone?.name,
         occasion: hasOccasion && occasion ? occasion : null,
+        occasion_type: hasOccasion ? occasionType : null,
+        preferences: preferences.length ? preferences : null,
         allergies: hasAllergies && allergies ? allergies : null,
         notes: notes || null,
       })
