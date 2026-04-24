@@ -352,6 +352,7 @@ export type Database = {
           preorder_hours_before: number | null
           reminder_24h: boolean | null
           restaurant_id: string | null
+          staff_pin: string | null
           tiktok_handle: string | null
           tone: string | null
           updated_at: string | null
@@ -383,6 +384,7 @@ export type Database = {
           preorder_hours_before?: number | null
           reminder_24h?: boolean | null
           restaurant_id?: string | null
+          staff_pin?: string | null
           tiktok_handle?: string | null
           tone?: string | null
           updated_at?: string | null
@@ -414,6 +416,7 @@ export type Database = {
           preorder_hours_before?: number | null
           reminder_24h?: boolean | null
           restaurant_id?: string | null
+          staff_pin?: string | null
           tiktok_handle?: string | null
           tone?: string | null
           updated_at?: string | null
@@ -736,6 +739,7 @@ export type Database = {
         Args: { _restaurant_id: string; _user_id: string }
         Returns: boolean
       }
+      restaurant_id_by_staff_pin: { Args: { _pin: string }; Returns: string }
     }
     Enums: {
       app_role: "owner" | "staff" | "admin"
