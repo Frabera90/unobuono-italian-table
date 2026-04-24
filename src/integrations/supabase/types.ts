@@ -339,6 +339,7 @@ export type Database = {
           cancelled_at: string | null
           confirmation_sent: boolean | null
           created_at: string | null
+          customer_email: string | null
           customer_name: string
           customer_phone: string | null
           date: string
@@ -365,6 +366,7 @@ export type Database = {
           cancelled_at?: string | null
           confirmation_sent?: boolean | null
           created_at?: string | null
+          customer_email?: string | null
           customer_name: string
           customer_phone?: string | null
           date: string
@@ -391,6 +393,7 @@ export type Database = {
           cancelled_at?: string | null
           confirmation_sent?: boolean | null
           created_at?: string | null
+          customer_email?: string | null
           customer_name?: string
           customer_phone?: string | null
           date?: string
