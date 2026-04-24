@@ -14,16 +14,14 @@ export const Route = createFileRoute("/owner")({
 const NAV = [
   { to: "/owner/dashboard", label: "Dashboard", icon: "📊" },
   { to: "/owner/reservations", label: "Prenotazioni", icon: "📅" },
+  { to: "/owner/sala", label: "Sala & Tavoli", icon: "🪑" },
   { to: "/owner/menu", label: "Menu", icon: "🍕" },
   { to: "/owner/qr", label: "QR Code", icon: "📱" },
   { to: "/owner/staff", label: "Staff", icon: "👨‍🍳" },
-  { to: "/owner/agent", label: "Agente AI", icon: "🤖" },
   { to: "/owner/crm", label: "Clienti", icon: "👥" },
-  { to: "/owner/campaigns", label: "Campagne", icon: "📣" },
-  { to: "/owner/reviews", label: "Recensioni", icon: "⭐" },
   { to: "/owner/social", label: "Social", icon: "📸" },
-  { to: "/owner/stats", label: "Statistiche", icon: "📈" },
   { to: "/owner/settings", label: "Impostazioni", icon: "⚙️" },
+  { to: "/owner/pro", label: "Pro / Prossimamente", icon: "✨" },
 ] as const;
 
 function OwnerLayout() {
