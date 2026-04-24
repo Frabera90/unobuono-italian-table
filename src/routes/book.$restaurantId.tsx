@@ -101,54 +101,22 @@ function BookingPage() {
       .then(({ data }) => setReservations((data || []) as ReservationLite[]));
   }, [date, resolvedRestaurantId]);
 
-  // Slot reali a partire dagli opening_hours del ristorante (configurati dall'owner)
-  // Formato atteso per ogni giorno: "19:00-23:00" oppure "12:00-15:00,19:00-24:00" oppure "closed"
-  const allSlots = useMemo(() => {
-    if (!settings?.opening_hours) return [];
-    const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
-    const d = new Date(date + "T00:00:00");
-    const dayKey = days[d.getDay()];
-    const raw = settings.opening_hours?.[dayKey];
-    if (!raw || raw === "closed") return [];
-    const ranges = String(raw).split(",").map((s) => s.trim()).filter(Boolean);
-    const out: string[] = [];
-    for (const range of ranges) {
-      const [start, end] = range.split("-").map((s) => s.trim());
-      if (!start || !end) continue;
-      const [sh, sm] = start.split(":").map(Number);
-      const [eh, em] = end.split(":").map(Number);
-      if (Number.isNaN(sh) || Number.isNaN(eh)) continue;
-      let cur = sh * 60 + (sm || 0);
-      const stop = eh * 60 + (em || 0);
-      // Ultimo slot prenotabile = chiusura - durata media tavolo (default 90)
-      const durMin = settings?.avg_table_duration ?? 90;
-      const lastBookable = stop - durMin;
-      while (cur <= lastBookable) {
-        const h = Math.floor(cur / 60);
-        const m = cur % 60;
-        out.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
-        cur += 30;
-      }
-    }
-    return out;
-  }, [date, settings]);
+  const avgDuration = settings?.avg_table_duration ?? 90;
 
-  // Capienza reale = somma posti zone disponibili (NON un placeholder)
-  const totalCapacity = useMemo(() => {
-    return zones.filter((z) => z.available).reduce((s, z) => s + (z.capacity || 0), 0);
-  }, [zones]);
+  // Slot orari da opening_hours
+  const allSlots = useMemo(
+    () => generateSlots(settings?.opening_hours, date, avgDuration, 30),
+    [date, settings?.opening_hours, avgDuration],
+  );
 
-  const slots = useMemo(() => {
-    if (totalCapacity <= 0) return [];
-    return allSlots.map((slot) => {
-      const booked = reservations.filter((r) => r.time === slot).reduce((s, r) => s + r.party_size, 0);
-      const available = Math.max(0, totalCapacity - booked);
-      return { slot, available, bookable: available >= partySize };
-    });
-  }, [allSlots, reservations, partySize, totalCapacity]);
+  // Disponibilità reale: per ogni slot guarda se almeno un tavolo che ospita il party_size è libero
+  const slots = useMemo(
+    () => computeAvailability(allSlots, tables, reservations, partySize, avgDuration, zoneId),
+    [allSlots, tables, reservations, partySize, avgDuration, zoneId],
+  );
 
   const noAvailability = slots.length === 0 || slots.every((s) => !s.bookable);
-  const notConfigured = totalCapacity <= 0 || allSlots.length === 0;
+  const notConfigured = tables.length === 0 || allSlots.length === 0;
 
   // calendar for next 30 days
   const days = useMemo(() => {
@@ -164,7 +132,25 @@ function BookingPage() {
   async function submitBooking() {
     if (!firstName.trim() || !lastName.trim() || !phone.trim() || !time || !resolvedRestaurantId) return;
     setSubmitting(true);
-    const zone = zones.find((z) => z.id === zoneId);
+
+    // Re-fetch reservations per evitare race conditions sulla stessa fascia
+    const { data: latest } = await supabase
+      .from("reservations")
+      .select("id,time,party_size,table_id,status")
+      .eq("restaurant_id", resolvedRestaurantId)
+      .eq("date", date)
+      .neq("status", "cancelled");
+
+    const assignedTable = pickTable(tables, (latest || []) as ReservationLite[], time, partySize, avgDuration, zoneId);
+    if (!assignedTable) {
+      toast.error("Tavolo non più disponibile per quell'orario. Scegli un altro slot.");
+      setReservations((latest || []) as ReservationLite[]);
+      setTime(null);
+      setSubmitting(false);
+      return;
+    }
+
+    const zone = zones.find((z) => z.id === (zoneId || assignedTable.zone_id));
     const fullName = `${firstName.trim()} ${lastName.trim()}`;
     const { data, error } = await supabase
       .from("reservations")
@@ -175,15 +161,16 @@ function BookingPage() {
         party_size: partySize,
         date,
         time,
-        zone_id: zoneId,
-        zone_name: zone?.name,
+        zone_id: assignedTable.zone_id,
+        zone_name: zone?.name ?? null,
+        table_id: assignedTable.id,
         occasion: hasOccasion && occasion ? occasion : null,
         occasion_type: hasOccasion ? occasionType : null,
         preferences: preferences.length ? preferences : null,
         allergies: hasAllergies && allergies ? allergies : null,
         notes: notes || null,
       })
-      .select("id")
+      .select("id, manage_token")
       .single();
     if (error) {
       toast.error("Errore: " + error.message);
@@ -191,7 +178,7 @@ function BookingPage() {
       return;
     }
 
-    setConfirmedRes({ id: data!.id });
+    setConfirmedRes({ id: data!.id, manage_token: data!.manage_token as string });
     setStep("done");
     setSubmitting(false);
   }
