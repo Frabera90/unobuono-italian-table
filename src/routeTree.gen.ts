@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WaiterRouteImport } from './routes/waiter'
+import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as OwnerRouteImport } from './routes/owner'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
@@ -44,6 +45,11 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 const WaiterRoute = WaiterRouteImport.update({
   id: '/waiter',
   path: '/waiter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UnsubscribeRoute = UnsubscribeRouteImport.update({
+  id: '/unsubscribe',
+  path: '/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StaffRoute = StaffRouteImport.update({
@@ -207,6 +213,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/owner': typeof OwnerRouteWithChildren
   '/staff': typeof StaffRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/waiter': typeof WaiterRoute
   '/book/$restaurantId': typeof BookRestaurantIdRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -239,6 +246,7 @@ export interface FileRoutesByTo {
   '/demo': typeof DemoRoute
   '/onboarding': typeof OnboardingRoute
   '/staff': typeof StaffRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/waiter': typeof WaiterRoute
   '/book/$restaurantId': typeof BookRestaurantIdRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -273,6 +281,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/owner': typeof OwnerRouteWithChildren
   '/staff': typeof StaffRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/waiter': typeof WaiterRoute
   '/book/$restaurantId': typeof BookRestaurantIdRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -308,6 +317,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/owner'
     | '/staff'
+    | '/unsubscribe'
     | '/waiter'
     | '/book/$restaurantId'
     | '/email/unsubscribe'
@@ -340,6 +350,7 @@ export interface FileRouteTypes {
     | '/demo'
     | '/onboarding'
     | '/staff'
+    | '/unsubscribe'
     | '/waiter'
     | '/book/$restaurantId'
     | '/email/unsubscribe'
@@ -373,6 +384,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/owner'
     | '/staff'
+    | '/unsubscribe'
     | '/waiter'
     | '/book/$restaurantId'
     | '/email/unsubscribe'
@@ -407,6 +419,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   OwnerRoute: typeof OwnerRouteWithChildren
   StaffRoute: typeof StaffRoute
+  UnsubscribeRoute: typeof UnsubscribeRoute
   WaiterRoute: typeof WaiterRoute
   BookRestaurantIdRoute: typeof BookRestaurantIdRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
@@ -426,6 +439,13 @@ declare module '@tanstack/react-router' {
       path: '/waiter'
       fullPath: '/waiter'
       preLoaderRoute: typeof WaiterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/unsubscribe': {
+      id: '/unsubscribe'
+      path: '/unsubscribe'
+      fullPath: '/unsubscribe'
+      preLoaderRoute: typeof UnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/staff': {
@@ -686,6 +706,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   OwnerRoute: OwnerRouteWithChildren,
   StaffRoute: StaffRoute,
+  UnsubscribeRoute: UnsubscribeRoute,
   WaiterRoute: WaiterRoute,
   BookRestaurantIdRoute: BookRestaurantIdRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
@@ -700,12 +721,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
