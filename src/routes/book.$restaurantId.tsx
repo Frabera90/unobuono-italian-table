@@ -448,15 +448,52 @@ function BookingPage() {
             {settings?.ask_occasion && (
               <Toggle label="È un'occasione speciale?" value={hasOccasion} onChange={setHasOccasion}>
                 {hasOccasion && (
-                  <input
-                    placeholder="compleanno, anniversario, proposta di matrimonio..."
-                    className="input mt-2"
-                    value={occasion}
-                    onChange={(e) => setOccasion(e.target.value)}
-                  />
+                  <>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {OCCASION_CHIPS.map((c) => {
+                        const sel = occasionType === c;
+                        return (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => { setOccasionType(sel ? null : c); if (!sel && !occasion) setOccasion(c); }}
+                            className={`rounded-full border px-3 py-1 text-xs transition ${sel ? "border-terracotta bg-terracotta text-paper" : "border-border bg-card hover:border-terracotta"}`}
+                          >
+                            {c}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <input
+                      placeholder="Dettagli (opzionale): nome, dedica, sorpresa..."
+                      className="input mt-2"
+                      value={occasion}
+                      onChange={(e) => setOccasion(e.target.value)}
+                    />
+                  </>
                 )}
               </Toggle>
             )}
+
+            <div className="mt-3 rounded-lg border border-border bg-background/60 p-3">
+              <p className="text-sm">Hai una preferenza sul tavolo?</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {PREFERENCE_CHIPS.map((p) => {
+                  const sel = preferences.includes(p);
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPreferences((prev) => sel ? prev.filter((x) => x !== p) : [...prev, p])}
+                      className={`rounded-full border px-3 py-1 text-xs transition ${sel ? "border-terracotta bg-terracotta text-paper" : "border-border bg-card hover:border-terracotta"}`}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {settings?.ask_allergies && (
               <Toggle label="Hai allergie o preferenze alimentari?" value={hasAllergies} onChange={setHasAllergies}>
                 {hasAllergies && (
