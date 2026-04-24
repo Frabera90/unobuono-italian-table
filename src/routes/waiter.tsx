@@ -6,7 +6,18 @@ import { playDing } from "@/lib/sounds";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/waiter")({
-  head: () => ({ meta: [{ title: "Sala — Unobuono" }] }),
+  head: () => ({
+    meta: [
+      { title: "Sala — Unobuono" },
+      { name: "theme-color", content: "#0a0a0a" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "Sala" },
+    ],
+    links: [
+      { rel: "manifest", href: "/staff.webmanifest" },
+    ],
+  }),
   component: WaiterPage,
 });
 
