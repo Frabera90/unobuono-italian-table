@@ -156,7 +156,14 @@ function ReservationsPage() {
               const compatible = tables.filter((t) => t.seats >= r.party_size);
               return (
                 <li key={r.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
-                  <div className="font-display text-2xl text-terracotta">{r.time}</div>
+                  <div className="flex flex-col items-center">
+                    <div className="font-display text-2xl text-terracotta leading-none">{r.time}</div>
+                    {!date && (
+                      <div className="mt-0.5 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+                        {new Date(r.date).toLocaleDateString("it-IT", { day: "2-digit", month: "short" })}
+                      </div>
+                    )}
+                  </div>
                   <div className="min-w-0 flex-1">
                     <div className="font-display text-base">{r.customer_name} · {r.party_size} pers</div>
                     <div className="truncate text-xs text-muted-foreground">
