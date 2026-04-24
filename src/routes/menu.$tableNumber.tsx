@@ -315,7 +315,10 @@ function PreorderOverlay({ items, restaurantId, reservationId, defaultName, onCl
   return (
     <div className="fixed inset-0 z-40 overflow-y-auto bg-cream">
       <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-cream/95 px-5 py-4 backdrop-blur">
-        <h2 className="font-display text-xl">Ordina prima di sederti</h2>
+        <div>
+          <h2 className="font-display text-xl leading-none">Pre-ordina</h2>
+          <p className="mt-1 text-[11px] text-muted-foreground">Aiuta la cucina a prepararsi: arrivi, ti siedi e mangi subito.</p>
+        </div>
         <button onClick={onClose} className="text-2xl text-muted-foreground">×</button>
       </div>
 
