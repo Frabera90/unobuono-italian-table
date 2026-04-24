@@ -68,6 +68,25 @@ function applyFilters(clients: Client[], f: Filters): Client[] {
   });
 }
 
+function exportCsv(rows: Client[]) {
+  const header = ["name", "phone", "visit_count", "total_spent", "last_visit", "tags"];
+  const esc = (v: any) => {
+    const s = v == null ? "" : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [header.join(",")];
+  for (const r of rows) {
+    lines.push([r.name, r.phone || "", r.visit_count || 0, r.total_spent || 0, r.last_visit || "", (r.tags || []).join("|")].map(esc).join(","));
+  }
+  const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `destinatari-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function CampaignsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -205,18 +224,28 @@ function CampaignsPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between border-t-2 border-ink/10 pt-4">
+          <div className="flex items-center justify-between gap-3 border-t-2 border-ink/10 pt-4">
             <div>
               <p className="font-display text-2xl">{recipients.length}</p>
               <p className="text-[10px] uppercase tracking-wider text-ink/60">destinatari selezionati</p>
             </div>
-            <button
-              onClick={sendCampaign}
-              disabled={sending || !message.trim() || !name.trim() || recipients.length === 0}
-              className="rounded-xl border-2 border-ink bg-yellow px-6 py-3 text-sm font-bold uppercase tracking-wider text-ink shadow-[4px_4px_0_0_#000] transition active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-40"
-            >
-              {sending ? "Invio..." : `Invia a ${recipients.length}`}
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => exportCsv(recipients)}
+                disabled={recipients.length === 0}
+                className="rounded-xl border-2 border-ink bg-paper px-4 py-3 text-xs font-bold uppercase tracking-wider text-ink hover:bg-cream-dark disabled:opacity-40"
+                title="Scarica CSV per inviare a mano via WhatsApp Business"
+              >
+                ⬇ CSV
+              </button>
+              <button
+                onClick={sendCampaign}
+                disabled={sending || !message.trim() || !name.trim() || recipients.length === 0}
+                className="rounded-xl border-2 border-ink bg-yellow px-6 py-3 text-sm font-bold uppercase tracking-wider text-ink shadow-[4px_4px_0_0_#000] transition active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-40"
+              >
+                {sending ? "Invio..." : `Invia a ${recipients.length}`}
+              </button>
+            </div>
           </div>
         </section>
 
