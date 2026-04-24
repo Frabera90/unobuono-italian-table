@@ -171,3 +171,48 @@ Rispondi SOLO con JSON valido:
       return { posts: [], error: "unknown" as const };
     }
   });
+
+export const extractMenuFromImage = createServerFn({ method: "POST" })
+  .inputValidator((input: { imageBase64: string; mimeType: string }) => input)
+  .handler(async ({ data }) => {
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
+
+    const prompt = `Analizza questa foto di un menu di ristorante italiano ed estrai TUTTI i piatti visibili.
+Per ogni piatto fornisci: nome, descrizione (se presente, altrimenti stringa vuota), prezzo in euro come numero (null se non visibile), categoria (es. Antipasti, Primi, Secondi, Pizze, Dolci, Bevande, Vini, Contorni — usa quella che vedi sul menu o deduci dal contesto).
+Mantieni l'ordine originale e raggruppa per categoria.
+Rispondi SOLO con JSON valido, senza markdown:
+{"items":[{"name":"...","description":"...","price":12.5,"category":"Primi"}]}`;
+
+    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-pro",
+        messages: [{
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            { type: "image_url", image_url: { url: `data:${data.mimeType};base64,${data.imageBase64}` } },
+          ],
+        }],
+        response_format: { type: "json_object" },
+      }),
+    });
+    if (r.status === 429) return { items: [], error: "rate_limit" as const };
+    if (r.status === 402) return { items: [], error: "credits" as const };
+    if (!r.ok) {
+      const t = await r.text();
+      console.error("extractMenuFromImage error", r.status, t);
+      return { items: [], error: "unknown" as const };
+    }
+    const j = await r.json();
+    const content = j.choices?.[0]?.message?.content ?? "{}";
+    try {
+      const parsed = JSON.parse(content);
+      const items = Array.isArray(parsed.items) ? parsed.items : [];
+      return { items, error: null as null | "rate_limit" | "credits" | "unknown" };
+    } catch {
+      return { items: [], error: "unknown" as const };
+    }
+  });
