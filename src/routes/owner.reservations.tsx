@@ -79,10 +79,30 @@ function ReservationsPage() {
   async function toggleArrived(r: Reservation) {
     await supabase.from("reservations").update({ arrived: !r.arrived }).eq("id", r.id);
   }
-  async function cancel(id: string) {
-    if (!confirm("Disdire la prenotazione? Il tavolo verrà liberato.")) return;
-    const { error } = await supabase.from("reservations").update({ status: "cancelled" }).eq("id", id);
-    if (error) toast.error(error.message); else toast.success("Prenotazione disdetta");
+  async function cancel(r: Reservation) {
+    if (!confirm("Disdire la prenotazione? Il tavolo verrà liberato e il cliente riceverà una email.")) return;
+    const { error } = await supabase.from("reservations").update({ status: "cancelled" }).eq("id", r.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Prenotazione disdetta");
+    // email al cliente (se ha lasciato l'email)
+    const email = (r as any).customer_email as string | null;
+    if (email) {
+      const { sendBookingEmail, buildBookingEmailData } = await import("@/lib/email/booking");
+      const restName = (await import("@/lib/restaurant")).getMySettings ? null : null;
+      const settingsRow = restaurantId ? (await supabase.from("restaurant_settings").select("name").eq("restaurant_id", restaurantId).maybeSingle()).data : null;
+      void sendBookingEmail({
+        templateName: "booking-cancellation",
+        recipientEmail: email,
+        reservationId: r.id,
+        templateData: buildBookingEmailData({
+          customerName: r.customer_name,
+          restaurantName: settingsRow?.name || null,
+          date: r.date,
+          time: r.time,
+          partySize: r.party_size,
+        }),
+      });
+    }
   }
   async function moveTable(reservationId: string, newTableId: string | null) {
     const { error } = await supabase.from("reservations").update({ table_id: newTableId }).eq("id", reservationId);
@@ -143,7 +163,7 @@ function ReservationsPage() {
       </header>
 
       <div className="mb-4 flex flex-wrap gap-2 border-b border-border">
-        <Tab active={tab === "list"} onClick={() => setTab("list")}>Prenotazioni ({list.length})</Tab>
+        <Tab active={tab === "list"} onClick={() => setTab("list")}>Prenotazioni ({active.length})</Tab>
         <Tab active={tab === "waitlist"} onClick={() => setTab("waitlist")}>Lista d'attesa ({waitlist.length})</Tab>
         <Tab active={tab === "preorders"} onClick={() => setTab("preorders")}>Pre-ordini ({preorders.length})</Tab>
       </div>
@@ -190,7 +210,7 @@ function ReservationsPage() {
                     {r.arrived ? "✓ Arrivato" : "Segna arrivato"}
                   </button>
                   <button
-                    onClick={() => cancel(r.id)}
+                    onClick={() => cancel(r)}
                     className="rounded-md border border-destructive/40 px-2.5 py-2 text-[11px] font-medium uppercase tracking-wider text-destructive hover:bg-destructive hover:text-paper"
                     title="Disdici prenotazione"
                   >
