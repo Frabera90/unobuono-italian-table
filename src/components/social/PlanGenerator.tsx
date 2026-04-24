@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { planSocialCalendar } from "@/server/ai";
 import { supabase } from "@/integrations/supabase/client";
-import type { RestaurantSettings } from "@/lib/restaurant";
+import { getMyRestaurant, type RestaurantSettings } from "@/lib/restaurant";
 import { toast } from "sonner";
 
 type PlanItem = {
@@ -34,7 +34,7 @@ export function PlanGenerator({
       const r = await planSocialCalendar({
         data: {
           range,
-          restaurantName: settings?.name || "Carpediem Pizzeria",
+          restaurantName: settings?.name || "Il ristorante",
           bio: settings?.bio || "",
           tone: settings?.tone || "autentico e caldo",
           startDateISO,
@@ -63,7 +63,10 @@ export function PlanGenerator({
     if (!approved.length) { toast.error("Nessun post approvato."); return; }
     setSaving(true);
     try {
+      const r = await getMyRestaurant();
+      if (!r) { toast.error("Ristorante non trovato."); return; }
       const rows = approved.map((it) => ({
+        restaurant_id: r.id,
         caption: it.caption,
         hashtags: it.hashtags,
         platform: "instagram",
