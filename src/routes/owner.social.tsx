@@ -48,13 +48,17 @@ function SocialPage() {
 
   const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    getSettings().then(setSettings);
-    supabase
+  async function loadPosts() {
+    const { data } = await supabase
       .from("social_posts")
       .select("*")
-      .order("created_at", { ascending: false })
-      .then(({ data }) => setPosts((data || []) as Post[]));
+      .order("created_at", { ascending: false });
+    setPosts((data || []) as Post[]);
+  }
+
+  useEffect(() => {
+    getSettings().then(setSettings);
+    loadPosts();
   }, []);
 
   function handleFile(file: File) {
