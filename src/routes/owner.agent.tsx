@@ -20,7 +20,7 @@ const SUGGESTIONS = [
   "Quanti coperti ho stasera?",
 ];
 
-const SYSTEM = `Sei l'agente AI del ristorante Carpediem (gestionale Unobuono). Capisci comandi in italiano e li esegui restituendo SOLO un JSON valido (nessun testo prima/dopo), oppure testo libero per chat normale.
+const SYSTEM = `Sei l'agente AI del gestionale Unobuono per ristoranti. Capisci comandi in italiano e li esegui restituendo SOLO un JSON valido (nessun testo prima/dopo), oppure testo libero per chat normale.
 
 AZIONI MENU DISPONIBILI:
 
@@ -70,7 +70,7 @@ ESEMPI:
 - "quali piatti non sono disponibili stasera?" → {"action":"query","question":"piatti_non_disponibili"}
 - "quanti coperti stasera?" → {"action":"query","question":"coperti_oggi"}
 - "quante recensioni nuove?" → {"action":"query","question":"recensioni_nuove"}
-- "manda un messaggio per la festa del 1 maggio, pizza offerta ai lavoratori" → {"action":"campaign_draft","name":"Festa del 1° Maggio","channel":"sms","message":"🌹 Buon 1° Maggio dai Carpediem! Per i lavoratori oggi una pizza è offerta. Mostra questo messaggio in cassa. Ti aspettiamo!"}`;
+- "manda un messaggio per la festa del 1 maggio, offerta speciale ai lavoratori" → {"action":"campaign_draft","name":"Festa del 1° Maggio","channel":"sms","message":"🌹 Buon 1° Maggio! Per i lavoratori oggi un'offerta speciale. Mostra questo messaggio in cassa. Ti aspettiamo!"}`;
 
 function AgentPage() {
   const [msgs, setMsgs] = useState<Msg[]>([

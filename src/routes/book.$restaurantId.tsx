@@ -18,9 +18,9 @@ const DAY_LABELS: Record<string, string> = { mon: "Lun", tue: "Mar", wed: "Mer",
 export const Route = createFileRoute("/book/$restaurantId")({
   head: () => ({
     meta: [
-      { title: "Prenota un tavolo — Carpediem Pescara" },
-      { name: "description", content: "Prenota online da Carpediem Pizzeria. Scegli zona, orario e occasione." },
-      { property: "og:title", content: "Prenota un tavolo — Carpediem" },
+      { title: "Prenota un tavolo — Unobuono" },
+      { name: "description", content: "Prenota online. Scegli zona, orario e occasione." },
+      { property: "og:title", content: "Prenota un tavolo — Unobuono" },
       { property: "og:description", content: "Pizzeria di ricerca a Pescara." },
     ],
   }),
@@ -214,7 +214,7 @@ function BookingPage() {
       <header className="border-b-2 border-ink bg-yellow">
         <div className="mx-auto max-w-3xl px-6 py-10 md:py-14">
           <Link to="/demo" className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink/70 hover:text-ink">← Demo</Link>
-          <h1 className="mt-4 font-display text-5xl uppercase leading-[0.9] text-ink md:text-7xl">{settings?.name || "Carpediem"}</h1>
+          <h1 className="mt-4 font-display text-5xl uppercase leading-[0.9] text-ink md:text-7xl">{settings?.name || "Il ristorante"}</h1>
           <p className="mt-4 max-w-xl text-balance font-medium text-ink/80">{settings?.bio}</p>
           <div className="mt-5 flex flex-wrap items-center gap-2">
             {settings?.address && <span className="chip-ink">📍 {settings.address}</span>}

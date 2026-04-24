@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/menu/$tableNumber")({
   head: () => ({
-    meta: [{ title: "Menu — Carpediem" }, { name: "description", content: "Il menu live al tuo tavolo." }],
+    meta: [{ title: "Menu — Unobuono" }, { name: "description", content: "Il menu live al tuo tavolo." }],
   }),
   component: MenuPage,
 });
@@ -73,7 +73,7 @@ function MenuPage() {
           <div className="flex items-center gap-3">
             <span className="grid h-10 w-10 place-items-center rounded-full bg-ink font-display text-yellow">U</span>
             <div>
-              <h1 className="font-display text-2xl uppercase leading-none tracking-tight text-ink">{settings?.name || "Carpediem"}</h1>
+              <h1 className="font-display text-2xl uppercase leading-none tracking-tight text-ink">{settings?.name || "Il ristorante"}</h1>
               <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.25em] text-ink/70">Tavolo {tableNumber} · Menu live</p>
             </div>
           </div>

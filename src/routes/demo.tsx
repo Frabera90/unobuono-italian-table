@@ -31,7 +31,7 @@ function DemoPage() {
       {/* Hero */}
       <section className="border-b-2 border-ink px-5 py-14 md:px-10 md:py-24">
         <div className="mx-auto max-w-6xl">
-          <p className="chip-ink mb-6">Carpediem · Pescara</p>
+          <p className="chip-ink mb-6">Demo · Tutti i ruoli</p>
           <h1 className="font-display text-[16vw] leading-[0.85] uppercase md:text-[10rem]">
             UNO<br />BUONO
           </h1>
@@ -56,7 +56,7 @@ function DemoPage() {
               title="Prenota un tavolo o sfoglia il menu"
               tone="yellow"
               actions={[
-                { label: "Prenota un tavolo →", to: "/book/$restaurantId", params: { restaurantId: "carpediem" } },
+                { label: "Prenota un tavolo →", to: "/book/$restaurantId", params: { restaurantId: "demo" } },
                 { label: "Menu al tavolo (QR)", to: "/menu/$tableNumber", params: { tableNumber: "7" }, ghost: true },
               ]}
             />
