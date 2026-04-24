@@ -641,6 +641,7 @@ function BookingPage() {
               <SummaryRow label="Quando" value={`${fmtDate(date)} · ore ${time}`} />
               <SummaryRow label="Persone" value={`${partySize}`} />
               <SummaryRow label="Zona" value={zones.find((z) => z.id === zoneId)?.name || "—"} />
+              <SummaryRow label="Tavolo" value={tableId ? `Tavolo ${tables.find((t) => t.id === tableId)?.code ?? ""}` : "Assegnato dal locale"} />
               <SummaryRow label="Nome" value={`${firstName} ${lastName}`} />
               <SummaryRow label="WhatsApp" value={phone} />
               {hasOccasion && occasion && <SummaryRow label="Occasione" value={occasion} />}
