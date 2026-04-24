@@ -372,9 +372,11 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
                   )}
                 </div>
                 <p className="mb-2 text-[11px] text-muted-foreground">
-                  Non sei un fotografo? Lascia che l'AI migliori luce, colori e nitidezza. Il piatto resta lo stesso.
+                  Non sei un fotografo? Lascia che l'AI ritocchi la foto. Il piatto resta identico.
                 </p>
-                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+
+                <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">🌿 Naturale (realistico)</div>
+                <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
                   {([
                     { k: "auto", label: "Auto" },
                     { k: "bright", label: "Luminoso" },
@@ -391,6 +393,15 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
                     </button>
                   ))}
                 </div>
+
+                <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">✨ Pro Magazine (stilizzato)</div>
+                <button
+                  onClick={() => enhance("pro_magazine")}
+                  disabled={enhancing || step !== "review"}
+                  className="w-full rounded-md border-2 border-ink bg-ink px-3 py-2 text-xs font-bold uppercase text-paper hover:bg-yellow hover:text-ink disabled:opacity-40"
+                >
+                  📸 Stile food magazine (bokeh + vapore + styling pro)
+                </button>
                 {enhancing && (
                   <div className="mt-2 flex items-center gap-2 text-xs">
                     <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-ink" />
