@@ -16,15 +16,24 @@ function ReservationsPage() {
   const [date, setDate] = useState(isoDate(new Date()));
   const [list, setList] = useState<Reservation[]>([]);
   const [waitlist, setWaitlist] = useState<Waitlist[]>([]);
+  const [tables, setTables] = useState<TableLite[]>([]);
   const [tab, setTab] = useState<"list" | "waitlist">("list");
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
 
   async function load() {
-    const [{ data: r }, { data: w }] = await Promise.all([
-      supabase.from("reservations").select("*").eq("date", date).order("time"),
-      supabase.from("waitlist").select("*").eq("date", date).eq("status", "waiting").order("created_at"),
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: rest } = await supabase.from("restaurants").select("id").eq("owner_id", user.id).maybeSingle();
+    if (!rest) return;
+    setRestaurantId(rest.id);
+    const [{ data: r }, { data: w }, { data: t }] = await Promise.all([
+      supabase.from("reservations").select("*").eq("restaurant_id", rest.id).eq("date", date).order("time"),
+      supabase.from("waitlist").select("*").eq("restaurant_id", rest.id).eq("date", date).eq("status", "waiting").order("created_at"),
+      supabase.from("tables").select("id,code,seats,zone_id").eq("restaurant_id", rest.id).order("code"),
     ]);
     setList((r || []) as Reservation[]);
     setWaitlist((w || []) as Waitlist[]);
+    setTables((t || []) as TableLite[]);
   }
 
   useEffect(() => {
@@ -36,20 +45,30 @@ function ReservationsPage() {
     return () => { supabase.removeChannel(ch); };
   }, [date]);
 
+  const active = useMemo(() => list.filter((r) => r.status !== "cancelled"), [list]);
+  const cancelled = useMemo(() => list.filter((r) => r.status === "cancelled"), [list]);
+
   const totals = useMemo(() => ({
-    covers: list.reduce((s, r) => s + r.party_size, 0),
-    arrived: list.filter((r) => r.arrived).length,
-  }), [list]);
+    covers: active.reduce((s, r) => s + r.party_size, 0),
+    arrived: active.filter((r) => r.arrived).length,
+  }), [active]);
 
   async function toggleArrived(r: Reservation) {
     await supabase.from("reservations").update({ arrived: !r.arrived }).eq("id", r.id);
   }
   async function cancel(id: string) {
-    if (!confirm("Cancellare la prenotazione?")) return;
-    await supabase.from("reservations").delete().eq("id", id);
+    if (!confirm("Disdire la prenotazione? Il tavolo verrà liberato.")) return;
+    const { error } = await supabase.from("reservations").update({ status: "cancelled" }).eq("id", id);
+    if (error) toast.error(error.message); else toast.success("Prenotazione disdetta");
+  }
+  async function moveTable(reservationId: string, newTableId: string | null) {
+    const { error } = await supabase.from("reservations").update({ table_id: newTableId }).eq("id", reservationId);
+    if (error) toast.error(error.message); else toast.success("Tavolo aggiornato");
   }
   async function confirmWait(w: Waitlist) {
+    if (!restaurantId) return;
     await supabase.from("reservations").insert({
+      restaurant_id: restaurantId,
       customer_name: w.customer_name,
       customer_phone: w.customer_phone,
       party_size: w.party_size,
