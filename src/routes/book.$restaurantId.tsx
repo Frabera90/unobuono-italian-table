@@ -42,6 +42,7 @@ function BookingPage() {
   const [partySize, setPartySize] = useState(2);
   const [time, setTime] = useState<string | null>(null);
   const [zoneId, setZoneId] = useState<string | null>(null);
+  const [tableId, setTableId] = useState<string | null>(null); // null = qualsiasi
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
