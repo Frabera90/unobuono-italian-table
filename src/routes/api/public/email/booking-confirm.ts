@@ -25,7 +25,7 @@ function generateToken(): string {
  * Public, unauthenticated trigger for transactional emails (e.g. booking
  * confirmations sent to anonymous guests). Whitelisted templates only.
  */
-const PUBLIC_TEMPLATES = new Set(['booking-confirmation'])
+const PUBLIC_TEMPLATES = new Set(['booking-confirmation', 'booking-cancellation'])
 
 export const Route = createFileRoute('/api/public/email/booking-confirm')({
   server: {

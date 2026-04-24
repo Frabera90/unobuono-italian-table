@@ -209,6 +209,7 @@ function MenuPage() {
           <button
             onClick={() => setPreorderOpen(true)}
             className="flex-1 rounded-xl border-2 border-ink bg-yellow py-3.5 text-sm font-bold uppercase tracking-wider text-ink shadow-brut-sm transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-brut"
+            title="Fai preparare i piatti in anticipo. Quando arrivi mangi subito — puoi sempre aggiungere altro al tavolo."
           >
             🛵 Pre-ordina
           </button>
@@ -315,7 +316,10 @@ function PreorderOverlay({ items, restaurantId, reservationId, defaultName, onCl
   return (
     <div className="fixed inset-0 z-40 overflow-y-auto bg-cream">
       <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-cream/95 px-5 py-4 backdrop-blur">
-        <h2 className="font-display text-xl">Ordina prima di sederti</h2>
+        <div>
+          <h2 className="font-display text-xl leading-none">Pre-ordina</h2>
+          <p className="mt-1 text-[11px] text-muted-foreground">Aiuta la cucina a prepararsi: arrivi, ti siedi e mangi subito.</p>
+        </div>
         <button onClick={onClose} className="text-2xl text-muted-foreground">×</button>
       </div>
 

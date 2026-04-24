@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isoDate, relTime, type MenuItem } from "@/lib/restaurant";
@@ -18,10 +18,11 @@ function DashboardPage() {
 
   async function loadStats() {
     const [r, p, rv, wl] = await Promise.all([
-      supabase.from("reservations").select("id", { count: "exact" }).eq("date", today),
-      supabase.from("preorders").select("id", { count: "exact" }).gte("created_at", today + "T00:00:00"),
-      supabase.from("reviews").select("id", { count: "exact" }).eq("status", "new"),
-      supabase.from("waitlist").select("id", { count: "exact" }).eq("status", "waiting"),
+      // Solo prenotazioni NON cancellate per oggi
+      supabase.from("reservations").select("id", { count: "exact", head: true }).eq("date", today).neq("status", "cancelled"),
+      supabase.from("preorders").select("id", { count: "exact", head: true }).gte("created_at", today + "T00:00:00").neq("status", "cancelled"),
+      supabase.from("reviews").select("id", { count: "exact", head: true }).eq("status", "new"),
+      supabase.from("waitlist").select("id", { count: "exact", head: true }).eq("status", "waiting"),
     ]);
     setStats({ resv: r.count || 0, preo: p.count || 0, reviews: rv.count || 0, waitlist: wl.count || 0 });
   }
@@ -33,15 +34,21 @@ function DashboardPage() {
     const push = (a: Activity) => setActivity((prev) => [a, ...prev].slice(0, 20));
 
     const channels = [
-      supabase.channel("d-resv").on("postgres_changes", { event: "INSERT", schema: "public", table: "reservations" }, (p) => {
-        const r = p.new as any;
-        push({ id: r.id, ts: r.created_at, icon: "📅", text: `Nuova prenotazione: ${r.customer_name} per ${r.party_size} alle ${r.time}` });
+      supabase.channel("d-resv").on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, (p) => {
+        const r = (p.new || p.old) as any;
+        if (p.eventType === "INSERT") {
+          push({ id: r.id, ts: r.created_at, icon: "📅", text: `Nuova prenotazione: ${r.customer_name} per ${r.party_size} alle ${r.time}` });
+        } else if (p.eventType === "UPDATE" && r.status === "cancelled") {
+          push({ id: r.id + "c", ts: new Date().toISOString(), icon: "❌", text: `Disdetta: ${r.customer_name} (${r.party_size}p alle ${r.time})` });
+        }
         loadStats();
       }).subscribe(),
-      supabase.channel("d-pre").on("postgres_changes", { event: "INSERT", schema: "public", table: "preorders" }, (p) => {
-        const r = p.new as any;
-        const items = Array.isArray(r.items) ? r.items.slice(0, 2).map((i: any) => `${i.qty}× ${i.name}`).join(", ") : "";
-        push({ id: r.id, ts: r.created_at, icon: "🛵", text: `Pre-ordine da ${r.customer_name}: ${items}...` });
+      supabase.channel("d-pre").on("postgres_changes", { event: "*", schema: "public", table: "preorders" }, (p) => {
+        const r = (p.new || p.old) as any;
+        if (p.eventType === "INSERT") {
+          const items = Array.isArray(r.items) ? r.items.slice(0, 2).map((i: any) => `${i.qty}× ${i.name}`).join(", ") : "";
+          push({ id: r.id, ts: r.created_at, icon: "🛵", text: `Pre-ordine da ${r.customer_name}: ${items}…` });
+        }
         loadStats();
       }).subscribe(),
       supabase.channel("d-call").on("postgres_changes", { event: "INSERT", schema: "public", table: "waiter_calls" }, (p) => {
@@ -75,15 +82,20 @@ function DashboardPage() {
       </header>
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat icon="📅" label="Prenotazioni oggi" value={stats.resv} />
-        <Stat icon="🛵" label="Pre-ordini" value={stats.preo} />
-        <Stat icon="⭐" label="Recensioni nuove" value={stats.reviews} alert={stats.reviews > 0} />
-        <Stat icon="⏳" label="Lista d'attesa" value={stats.waitlist} />
+        <StatLink to="/owner/reservations" icon="📅" label="Prenotazioni oggi" value={stats.resv} />
+        <StatLink to="/owner/reservations" icon="🛵" label="Pre-ordini" value={stats.preo} />
+        <StatLink to="/owner/reviews" icon="⭐" label="Recensioni nuove" value={stats.reviews} alert={stats.reviews > 0} />
+        <StatLink to="/owner/reservations" icon="⏳" label="Lista d'attesa" value={stats.waitlist} />
       </section>
 
       <div className="mt-7 grid gap-5 lg:grid-cols-3">
         <section className="lg:col-span-2 rounded-2xl border border-border bg-card p-5">
-          <h2 className="mb-3 font-display text-xl">Attività in tempo reale</h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-display text-xl">Attività in tempo reale</h2>
+            <Link to="/owner/reservations" className="font-mono text-[10px] uppercase tracking-wider text-terracotta hover:underline">
+              Vedi tutto →
+            </Link>
+          </div>
           {activity.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">In attesa di nuovi eventi...</p>
           ) : (
@@ -100,7 +112,12 @@ function DashboardPage() {
         </section>
 
         <section className="rounded-2xl border border-border bg-card p-5">
-          <h2 className="mb-3 font-display text-xl">Menu — disponibilità</h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-display text-xl">Menu — disponibilità</h2>
+            <Link to="/owner/menu" className="font-mono text-[10px] uppercase tracking-wider text-terracotta hover:underline">
+              Modifica →
+            </Link>
+          </div>
           <ul className="max-h-[60vh] space-y-1 overflow-y-auto pr-1">
             {items.map((it) => (
               <li key={it.id} className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 hover:bg-cream-dark/50">
@@ -117,15 +134,18 @@ function DashboardPage() {
   );
 }
 
-function Stat({ icon, label, value, alert }: { icon: string; label: string; value: number; alert?: boolean }) {
+function StatLink({ to, icon, label, value, alert }: { to: string; icon: string; label: string; value: number; alert?: boolean }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
+    <Link
+      to={to}
+      className="block rounded-2xl border border-border bg-card p-5 transition hover:border-terracotta hover:shadow-md"
+    >
       <div className="text-2xl">{icon}</div>
       <div className="mt-2 font-display text-3xl">
         {value}
         {alert && value > 0 && <span className="ml-2 inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-destructive align-middle" />}
       </div>
       <div className="mt-1 text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
-    </div>
+    </Link>
   );
 }

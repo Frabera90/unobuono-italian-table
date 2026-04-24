@@ -12,6 +12,7 @@ export const Route = createFileRoute("/manage/$token")({
 type Reservation = {
   id: string;
   customer_name: string;
+  customer_email: string | null;
   party_size: number;
   date: string;
   time: string;
@@ -44,7 +45,7 @@ function ManagePage() {
       setLoading(true);
       const { data: r } = await supabase
         .from("reservations")
-        .select("id,customer_name,party_size,date,time,zone_name,status,cancelled_at,restaurant_id,occasion,allergies,notes")
+        .select("id,customer_name,customer_email,party_size,date,time,zone_name,status,cancelled_at,restaurant_id,occasion,allergies,notes")
         .eq("manage_token", token)
         .maybeSingle();
       if (!r || !r.restaurant_id) { setLoading(false); return; }
@@ -72,8 +73,24 @@ function ManagePage() {
       .eq("manage_token", token);
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Prenotazione disdetta. Il ristorante è stato avvisato.");
+    toast.success("Prenotazione disdetta. Riceverai una email di conferma.");
     setResv({ ...resv, status: "cancelled", cancelled_at: new Date().toISOString() });
+    if (resv.customer_email) {
+      const { sendBookingEmail, buildBookingEmailData } = await import("@/lib/email/booking");
+      void sendBookingEmail({
+        templateName: "booking-cancellation",
+        recipientEmail: resv.customer_email,
+        reservationId: resv.id,
+        templateData: buildBookingEmailData({
+          customerName: resv.customer_name,
+          restaurantName: restaurant?.name || null,
+          date: resv.date,
+          time: resv.time,
+          partySize: resv.party_size,
+          reason: "Richiesta dal cliente",
+        }),
+      });
+    }
   }
 
   async function submitPreorder() {

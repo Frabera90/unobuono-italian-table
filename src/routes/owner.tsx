@@ -96,7 +96,7 @@ function OwnerLayout() {
       </aside>
 
       <main className="min-w-0 flex-1 pb-24 md:pb-0">
-        {/* Header mobile con burger */}
+        {/* Header mobile (senza burger: il menu sta nel bottom nav "Altro") */}
         <div className="sticky top-0 z-20 flex items-center justify-between border-b-2 border-ink bg-ink px-4 py-3 text-paper md:hidden">
           <div className="flex items-center gap-2">
             <span className="grid h-8 w-8 place-items-center rounded-full bg-yellow font-display text-ink">U</span>
@@ -105,32 +105,29 @@ function OwnerLayout() {
               <p className="mt-0.5 truncate font-mono text-[8px] uppercase tracking-[0.2em] text-paper/50">{restaurant?.name || "—"}</p>
             </div>
           </div>
-          <button onClick={() => setMenuOpen(true)} className="grid h-9 w-9 place-items-center rounded-lg border border-paper/20" aria-label="Apri menu">
-            <Menu className="h-5 w-5" />
-          </button>
         </div>
 
         <Outlet />
       </main>
 
       {/* Bottom nav mobile: 4 voci principali + Altro */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t-2 border-ink bg-ink px-1 py-1.5 text-paper md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 gap-0.5 border-t-2 border-ink bg-ink px-1 py-1.5 text-paper md:hidden">
         {NAV.slice(0, 4).map((n) => {
           const active = loc.pathname.startsWith(n.to);
           return (
             <Link key={n.to} to={n.to}
-              className={`flex flex-col items-center rounded-lg py-1.5 text-[10px] font-bold uppercase tracking-wider ${active ? "bg-yellow text-ink" : "text-paper/70"}`}>
-              <span className="text-base">{n.icon}</span>
-              {n.label}
+              className={`flex min-w-0 flex-col items-center justify-center rounded-lg px-1 py-1.5 ${active ? "bg-yellow text-ink" : "text-paper/70"}`}>
+              <span className="text-base leading-none">{n.icon}</span>
+              <span className="mt-0.5 w-full truncate text-center text-[9px] font-bold uppercase tracking-wider leading-tight">{n.label}</span>
             </Link>
           );
         })}
         <button
           onClick={() => setMenuOpen(true)}
-          className={`flex flex-col items-center rounded-lg py-1.5 text-[10px] font-bold uppercase tracking-wider ${menuOpen ? "bg-yellow text-ink" : "text-paper/70"}`}
+          className={`flex min-w-0 flex-col items-center justify-center rounded-lg px-1 py-1.5 ${menuOpen ? "bg-yellow text-ink" : "text-paper/70"}`}
         >
-          <span className="text-base">☰</span>
-          Altro
+          <span className="text-base leading-none">☰</span>
+          <span className="mt-0.5 text-[9px] font-bold uppercase tracking-wider leading-tight">Altro</span>
         </button>
       </nav>
 
