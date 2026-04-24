@@ -47,12 +47,13 @@ function ManagePage() {
         .select("id,customer_name,party_size,date,time,zone_name,status,cancelled_at,restaurant_id,occasion,allergies,notes")
         .eq("manage_token", token)
         .maybeSingle();
-      if (!r) { setLoading(false); return; }
+      if (!r || !r.restaurant_id) { setLoading(false); return; }
       setResv(r as Reservation);
+      const rid = r.restaurant_id;
       const [{ data: rest }, { data: s }, { data: m }] = await Promise.all([
-        supabase.from("restaurants").select("name,slug").eq("id", r.restaurant_id).maybeSingle(),
-        supabase.from("restaurant_settings").select("phone,address,preorder_hours_before").eq("restaurant_id", r.restaurant_id).maybeSingle(),
-        supabase.from("menu_items").select("id,name,description,price,category").eq("restaurant_id", r.restaurant_id).eq("available", true).order("sort_order"),
+        supabase.from("restaurants").select("name,slug").eq("id", rid).maybeSingle(),
+        supabase.from("restaurant_settings").select("phone,address,preorder_hours_before").eq("restaurant_id", rid).maybeSingle(),
+        supabase.from("menu_items").select("id,name,description,price,category").eq("restaurant_id", rid).eq("available", true).order("sort_order"),
       ]);
       setRestaurant(rest as Restaurant | null);
       setSettings(s as Settings | null);
