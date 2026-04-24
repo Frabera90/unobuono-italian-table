@@ -14,7 +14,8 @@ type TableLite = { id: string; code: string; seats: number; zone_id: string | nu
 type Preorder = { id: string; customer_name: string | null; reservation_id: string | null; total: number | null; status: string | null; items: Array<{ name: string; qty: number; price: number }> | null; created_at: string };
 
 function ReservationsPage() {
-  const [date, setDate] = useState(isoDate(new Date()));
+  const today = isoDate(new Date());
+  const [date, setDate] = useState<string | null>(null); // null = "tutte le prossime"
   const [list, setList] = useState<Reservation[]>([]);
   const [waitlist, setWaitlist] = useState<Waitlist[]>([]);
   const [tables, setTables] = useState<TableLite[]>([]);
@@ -28,9 +29,25 @@ function ReservationsPage() {
     const { data: rest } = await supabase.from("restaurants").select("id").eq("owner_id", user.id).maybeSingle();
     if (!rest) return;
     setRestaurantId(rest.id);
+
+    let resvQuery = supabase.from("reservations").select("*").eq("restaurant_id", rest.id);
+    let waitQuery = supabase.from("waitlist").select("*").eq("restaurant_id", rest.id).eq("status", "waiting");
+    if (date) {
+      resvQuery = resvQuery.eq("date", date);
+      waitQuery = waitQuery.eq("date", date);
+    } else {
+      // Tutte le prossime (da oggi in poi), max 200
+      resvQuery = resvQuery.gte("date", today).order("date").order("time").limit(200);
+      waitQuery = waitQuery.gte("date", today).order("date").limit(100);
+    }
+    if (date) {
+      resvQuery = resvQuery.order("time");
+      waitQuery = waitQuery.order("created_at");
+    }
+
     const [{ data: r }, { data: w }, { data: t }, { data: p }] = await Promise.all([
-      supabase.from("reservations").select("*").eq("restaurant_id", rest.id).eq("date", date).order("time"),
-      supabase.from("waitlist").select("*").eq("restaurant_id", rest.id).eq("date", date).eq("status", "waiting").order("created_at"),
+      resvQuery,
+      waitQuery,
       supabase.from("tables").select("id,code,seats,zone_id").eq("restaurant_id", rest.id).order("code"),
       supabase.from("preorders").select("id,customer_name,reservation_id,total,status,items,created_at").eq("restaurant_id", rest.id).order("created_at", { ascending: false }).limit(50),
     ]);
@@ -42,12 +59,13 @@ function ReservationsPage() {
 
   useEffect(() => {
     load();
-    const ch = supabase.channel("o-resv-" + date)
+    const ch = supabase.channel("o-resv-" + (date ?? "all"))
       .on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "waitlist" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "preorders" }, load)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date]);
 
   const active = useMemo(() => list.filter((r) => r.status !== "cancelled"), [list]);
