@@ -458,6 +458,7 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
           </div>
         )}
       </div>
+      )}
 
       {/* History */}
       <ul className="mt-6 space-y-3">
