@@ -97,12 +97,12 @@ function WaiterPage() {
   return (
     <main className="min-h-screen bg-ink text-paper">
       {showInstall && (
-        <div className="border-b border-white/10 bg-terracotta/20 px-4 py-2 text-center text-xs">
-          💡 Aggiungi alla schermata home per le notifiche
-          <button className="ml-3 text-paper/60" onClick={() => { localStorage.setItem("waiter-install-dismissed", "1"); setShowInstall(false); }}>×</button>
+        <div className="border-b-2 border-yellow bg-yellow px-4 py-2 text-center text-xs font-bold uppercase tracking-wider text-ink">
+          💡 Aggiungi alla home per le notifiche
+          <button className="ml-3 text-ink/60" onClick={() => { localStorage.setItem("waiter-install-dismissed", "1"); setShowInstall(false); }}>×</button>
         </div>
       )}
-      <div className="sticky top-0 z-10 grid grid-cols-3 border-b border-white/10 bg-ink">
+      <div className="sticky top-0 z-10 grid grid-cols-3 border-b-2 border-yellow bg-ink">
         <TabBtn active={tab === "calls"} onClick={() => { setTab("calls"); setReadCalls(calls.length); }} badge={callsBadge}>🔔 Chiamate</TabBtn>
         <TabBtn active={tab === "reservations"} onClick={() => setTab("reservations")}>📋 Oggi</TabBtn>
         <TabBtn active={tab === "preorders"} onClick={() => { setTab("preorders"); setReadPre(preorders.length); }} badge={preBadge}>📦 Pre-ordini</TabBtn>
