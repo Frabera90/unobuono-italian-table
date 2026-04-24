@@ -5,14 +5,16 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-display: "Playfair Display", Georgia, serif;
-  --font-body: "DM Sans", system-ui, sans-serif;
+  /* Display = Archivo Black (logo + giant headlines). Body = Space Grotesk. */
+  --font-display: "Archivo Black", "Space Grotesk", system-ui, sans-serif;
+  --font-body: "Space Grotesk", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-xl: calc(var(--radius) + 8px);
+  --radius-2xl: calc(var(--radius) + 16px);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -34,14 +36,20 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  /* Brand tokens (new pop palette) */
+  --color-yellow: var(--yellow);
+  --color-yellow-deep: var(--yellow-deep);
+  --color-yellow-soft: var(--yellow-soft);
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
   --color-cream: var(--cream);
   --color-cream-dark: var(--cream-dark);
-  --color-terracotta: var(--terracotta);
-  --color-terracotta-dark: var(--terracotta-dark);
-  --color-ink: var(--ink);
-  --color-gold: var(--gold);
-  --color-olive: var(--olive);
-  --color-paper: var(--paper);
+
+  /* Backwards-compatible aliases (so old class names keep working) */
+  --color-terracotta: var(--ink);
+  --color-terracotta-dark: var(--ink);
+  --color-gold: var(--yellow);
+  --color-olive: var(--ink);
 
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -54,105 +62,136 @@
 }
 
 :root {
-  --radius: 0.75rem;
+  --radius: 1rem;
 
-  /* Brand palette */
-  --cream: oklch(0.957 0.018 85);
-  --cream-dark: oklch(0.918 0.024 82);
-  --terracotta: oklch(0.598 0.155 42);
-  --terracotta-dark: oklch(0.512 0.152 40);
-  --ink: oklch(0.18 0.012 60);
-  --gold: oklch(0.685 0.082 75);
-  --olive: oklch(0.402 0.038 130);
-  --paper: oklch(0.985 0.008 85);
+  /* New pop palette: pure black + bold yellow + paper white */
+  --yellow: oklch(0.9 0.19 99);          /* main yellow #FFD60A-ish */
+  --yellow-deep: oklch(0.82 0.2 92);     /* hover / pressed */
+  --yellow-soft: oklch(0.965 0.06 100);  /* faded yellow surface */
+  --ink: oklch(0.12 0 0);                /* near-black */
+  --paper: oklch(1 0 0);                 /* pure white */
+  --cream: oklch(0.98 0.01 100);         /* off-white for sections */
+  --cream-dark: oklch(0.94 0.015 100);
 
-  /* Semantic tokens (light, customer-facing) */
-  --background: var(--cream);
+  /* Semantic tokens — light surfaces, ink ink, yellow primary */
+  --background: var(--paper);
   --foreground: var(--ink);
   --card: var(--paper);
   --card-foreground: var(--ink);
   --popover: var(--paper);
   --popover-foreground: var(--ink);
-  --primary: var(--terracotta);
-  --primary-foreground: var(--paper);
-  --secondary: var(--cream-dark);
-  --secondary-foreground: var(--ink);
+  --primary: var(--yellow);
+  --primary-foreground: var(--ink);
+  --secondary: var(--ink);
+  --secondary-foreground: var(--paper);
   --muted: var(--cream-dark);
-  --muted-foreground: oklch(0.42 0.014 60);
-  --accent: var(--gold);
-  --accent-foreground: var(--ink);
-  --destructive: oklch(0.55 0.18 25);
+  --muted-foreground: oklch(0.42 0 0);
+  --accent: var(--ink);
+  --accent-foreground: var(--yellow);
+  --destructive: oklch(0.58 0.22 27);
   --destructive-foreground: var(--paper);
-  --border: oklch(0.86 0.02 75);
-  --input: oklch(0.86 0.02 75);
-  --ring: var(--terracotta);
+  --border: oklch(0.12 0 0 / 0.12);
+  --input: oklch(0.12 0 0 / 0.18);
+  --ring: var(--ink);
 
-  --sidebar: var(--cream-dark);
-  --sidebar-foreground: var(--ink);
-  --sidebar-primary: var(--terracotta);
-  --sidebar-primary-foreground: var(--paper);
-  --sidebar-accent: var(--cream);
-  --sidebar-accent-foreground: var(--ink);
-  --sidebar-border: oklch(0.86 0.02 75);
-  --sidebar-ring: var(--terracotta);
+  --sidebar: var(--ink);
+  --sidebar-foreground: var(--paper);
+  --sidebar-primary: var(--yellow);
+  --sidebar-primary-foreground: var(--ink);
+  --sidebar-accent: oklch(0.18 0 0);
+  --sidebar-accent-foreground: var(--paper);
+  --sidebar-border: oklch(1 0 0 / 0.12);
+  --sidebar-ring: var(--yellow);
 }
 
 .dark {
   --background: var(--ink);
-  --foreground: var(--cream);
-  --card: oklch(0.23 0.012 60);
-  --card-foreground: var(--cream);
-  --popover: oklch(0.23 0.012 60);
-  --popover-foreground: var(--cream);
-  --primary: var(--terracotta);
-  --primary-foreground: var(--paper);
-  --secondary: oklch(0.26 0.012 60);
-  --secondary-foreground: var(--cream);
-  --muted: oklch(0.26 0.012 60);
-  --muted-foreground: oklch(0.7 0.014 70);
-  --accent: var(--gold);
+  --foreground: var(--paper);
+  --card: oklch(0.18 0 0);
+  --card-foreground: var(--paper);
+  --popover: oklch(0.18 0 0);
+  --popover-foreground: var(--paper);
+  --primary: var(--yellow);
+  --primary-foreground: var(--ink);
+  --secondary: oklch(0.22 0 0);
+  --secondary-foreground: var(--paper);
+  --muted: oklch(0.22 0 0);
+  --muted-foreground: oklch(0.7 0 0);
+  --accent: var(--yellow);
   --accent-foreground: var(--ink);
-  --destructive: oklch(0.62 0.2 25);
+  --destructive: oklch(0.62 0.22 27);
   --destructive-foreground: var(--paper);
-  --border: oklch(0.32 0.012 60);
-  --input: oklch(0.32 0.012 60);
-  --ring: var(--terracotta);
+  --border: oklch(1 0 0 / 0.12);
+  --input: oklch(1 0 0 / 0.18);
+  --ring: var(--yellow);
 
-  --sidebar: oklch(0.16 0.01 60);
-  --sidebar-foreground: var(--cream);
-  --sidebar-primary: var(--terracotta);
-  --sidebar-primary-foreground: var(--paper);
-  --sidebar-accent: oklch(0.23 0.012 60);
-  --sidebar-accent-foreground: var(--cream);
-  --sidebar-border: oklch(0.32 0.012 60);
-  --sidebar-ring: var(--terracotta);
+  --sidebar: oklch(0.08 0 0);
+  --sidebar-foreground: var(--paper);
+  --sidebar-primary: var(--yellow);
+  --sidebar-primary-foreground: var(--ink);
+  --sidebar-accent: oklch(0.18 0 0);
+  --sidebar-accent-foreground: var(--paper);
+  --sidebar-border: oklch(1 0 0 / 0.1);
+  --sidebar-ring: var(--yellow);
 }
 
 @layer base {
   * { border-color: var(--color-border); }
-  html, body { background-color: var(--color-background); color: var(--color-foreground); font-family: var(--font-body); }
-  h1, h2, h3, h4, .font-display { font-family: var(--font-display); }
+  html, body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-body);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+    line-height: 0.95;
+  }
 }
 
 @layer utilities {
   .font-display { font-family: var(--font-display); }
   .font-body { font-family: var(--font-body); }
+  .font-mono { font-family: var(--font-mono); }
   .text-balance { text-wrap: balance; }
+
+  /* Brutalist hard shadow — used on bold cards/buttons */
+  .shadow-brut { box-shadow: 6px 6px 0 0 var(--ink); }
+  .shadow-brut-sm { box-shadow: 3px 3px 0 0 var(--ink); }
+  .shadow-brut-lg { box-shadow: 10px 10px 0 0 var(--ink); }
+  .shadow-brut-yellow { box-shadow: 6px 6px 0 0 var(--yellow); }
+
+  /* Big tag / chip utilities */
+  .chip-ink {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.35rem 0.7rem; border-radius: 9999px;
+    background: var(--ink); color: var(--paper);
+    font-weight: 600; font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .chip-yellow {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.35rem 0.7rem; border-radius: 9999px;
+    background: var(--yellow); color: var(--ink);
+    font-weight: 700; font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+
   .ring-pulse-gold {
     animation: ring-pulse-gold 1.6s ease-out;
   }
   @keyframes ring-pulse-gold {
-    0% { box-shadow: 0 0 0 0 oklch(0.685 0.082 75 / 0.6); }
-    100% { box-shadow: 0 0 0 18px oklch(0.685 0.082 75 / 0); }
+    0% { box-shadow: 0 0 0 0 oklch(0.9 0.19 99 / 0.7); }
+    100% { box-shadow: 0 0 0 22px oklch(0.9 0.19 99 / 0); }
   }
   .live-dot {
-    width: 8px; height: 8px; border-radius: 9999px; background: oklch(0.7 0.18 145);
-    box-shadow: 0 0 0 0 oklch(0.7 0.18 145 / 0.7);
+    width: 8px; height: 8px; border-radius: 9999px; background: oklch(0.7 0.2 145);
+    box-shadow: 0 0 0 0 oklch(0.7 0.2 145 / 0.7);
     animation: live-dot 1.6s ease-out infinite;
   }
   @keyframes live-dot {
-    0% { box-shadow: 0 0 0 0 oklch(0.7 0.18 145 / 0.7); }
-    100% { box-shadow: 0 0 0 10px oklch(0.7 0.18 145 / 0); }
+    0% { box-shadow: 0 0 0 0 oklch(0.7 0.2 145 / 0.7); }
+    100% { box-shadow: 0 0 0 10px oklch(0.7 0.2 145 / 0); }
   }
   .slide-in-right { animation: slide-in-right 0.32s cubic-bezier(0.2,0.8,0.2,1); }
   @keyframes slide-in-right {
@@ -165,4 +204,25 @@
     20%,60% { transform: translateX(-8px); }
     40%,80% { transform: translateX(8px); }
   }
+
+  /* Marquee text strip */
+  .marquee { overflow: hidden; white-space: nowrap; }
+  .marquee-track { display: inline-block; padding-left: 100%; animation: marquee 22s linear infinite; }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-100%); }
+  }
+
+  /* Reusable input baseline (used by booking flow) */
+  .input {
+    width: 100%; border-radius: 0.75rem;
+    border: 2px solid var(--ink);
+    background: var(--paper);
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    color: var(--ink);
+    transition: box-shadow 0.15s, transform 0.15s;
+  }
+  .input:focus { outline: none; box-shadow: 4px 4px 0 0 var(--ink); transform: translate(-2px, -2px); }
+  .input::placeholder { color: oklch(0.5 0 0); }
 }
