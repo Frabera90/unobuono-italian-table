@@ -17,7 +17,7 @@ const DAYS = [
 
 function OnboardingPage() {
   const nav = useNavigate();
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -39,13 +39,6 @@ function OnboardingPage() {
   const [zoneName, setZoneName] = useState("Sala interna");
   const [capacity, setCapacity] = useState(40);
   const [tableCount, setTableCount] = useState(10);
-
-  // Step 4
-  const [items, setItems] = useState([
-    { name: "", price: "", category: "Antipasti" },
-    { name: "", price: "", category: "Primi" },
-    { name: "", price: "", category: "Secondi" },
-  ]);
 
   useEffect(() => {
     (async () => {
@@ -80,36 +73,18 @@ function OnboardingPage() {
     setStep(3);
   }
 
-  async function saveStep3() {
+  async function finish() {
     if (!restaurant || !zoneName.trim()) { toast.error("Inserisci il nome della sala"); return; }
     setBusy(true);
     const { error } = await supabase.from("room_zones").insert({
       restaurant_id: restaurant.id, name: zoneName, capacity, table_count: tableCount, sort_order: 0,
     });
     const { error: e2 } = await supabase.from("restaurant_settings").update({ max_covers: capacity }).eq("restaurant_id", restaurant.id);
-    setBusy(false);
-    if (error || e2) { toast.error((error || e2)?.message); return; }
-    setStep(4);
-  }
-
-  async function finish() {
-    if (!restaurant) return;
-    setBusy(true);
-    const validItems = items.filter((i) => i.name.trim());
-    if (validItems.length > 0) {
-      const records = validItems.map((i, idx) => ({
-        restaurant_id: restaurant.id,
-        name: i.name, category: i.category,
-        price: i.price ? Number(i.price) : null,
-        available: true, sort_order: idx,
-      }));
-      const { error } = await supabase.from("menu_items").insert(records);
-      if (error) { toast.error(error.message); setBusy(false); return; }
-    }
+    if (error || e2) { toast.error((error || e2)?.message); setBusy(false); return; }
     await supabase.from("restaurants").update({ onboarding_complete: true }).eq("id", restaurant.id);
     setBusy(false);
-    toast.success("Setup completato!");
-    nav({ to: "/owner/dashboard" });
+    toast.success("Setup completato! Ora aggiungi il tuo menu →");
+    nav({ to: "/owner/menu" });
   }
 
   return (
@@ -117,9 +92,9 @@ function OnboardingPage() {
       <div className="mx-auto max-w-xl">
         <div className="mb-6 text-center">
           <h1 className="font-display text-3xl text-ink">Setup ristorante</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Step {step} di 4</p>
+          <p className="mt-1 text-sm text-muted-foreground">Step {step} di 3</p>
           <div className="mt-3 flex justify-center gap-1.5">
-            {[1, 2, 3, 4].map((s) => (
+            {[1, 2, 3].map((s) => (
               <div key={s} className={`h-1.5 w-12 rounded-full ${s <= step ? "bg-terracotta" : "bg-border"}`} />
             ))}
           </div>
@@ -170,33 +145,13 @@ function OnboardingPage() {
                 <Field label="Capienza coperti"><input type="number" className="ob-in" value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} /></Field>
                 <Field label="Numero tavoli"><input type="number" className="ob-in" value={tableCount} onChange={(e) => setTableCount(Number(e.target.value))} /></Field>
               </div>
+              <div className="rounded-lg border border-terracotta/30 bg-terracotta/5 p-3 text-xs text-ink/80">
+                📋 Subito dopo potrai caricare il menu — anche solo con una foto, l'AI lo trascrive per te.
+              </div>
               <div className="flex gap-2">
                 <SecondaryBtn onClick={() => setStep(2)}>← Indietro</SecondaryBtn>
-                <PrimaryBtn onClick={saveStep3} busy={busy}>Continua →</PrimaryBtn>
-              </div>
-            </div>
-          )}
-
-          {step === 4 && (
-            <div className="space-y-4">
-              <h2 className="font-display text-xl text-terracotta">Primi 3 piatti</h2>
-              <p className="text-sm text-muted-foreground">Aggiungi qualche piatto per iniziare. Lascia vuoto per saltare.</p>
-              {items.map((it, idx) => (
-                <div key={idx} className="space-y-2 rounded-lg border border-border p-3">
-                  <div className="flex gap-2">
-                    <input className="ob-in flex-1" value={it.name} onChange={(e) => { const c = [...items]; c[idx].name = e.target.value; setItems(c); }} placeholder="Nome piatto" />
-                    <input className="ob-in w-20" value={it.price} onChange={(e) => { const c = [...items]; c[idx].price = e.target.value; setItems(c); }} placeholder="€" />
-                  </div>
-                  <select className="ob-in" value={it.category} onChange={(e) => { const c = [...items]; c[idx].category = e.target.value; setItems(c); }}>
-                    <option>Antipasti</option><option>Primi</option><option>Secondi</option><option>Pizze</option><option>Dolci</option><option>Bevande</option>
-                  </select>
-                </div>
-              ))}
-              <div className="flex gap-2">
-                <SecondaryBtn onClick={() => setStep(3)}>← Indietro</SecondaryBtn>
                 <PrimaryBtn onClick={finish} busy={busy}>Fine setup ✓</PrimaryBtn>
               </div>
-              <button onClick={finish} className="w-full text-center text-xs text-muted-foreground hover:text-ink">Salta e completa dopo</button>
             </div>
           )}
         </div>
