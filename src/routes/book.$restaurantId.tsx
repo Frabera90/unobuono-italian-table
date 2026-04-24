@@ -66,6 +66,14 @@ function BookingPage() {
   useEffect(() => {
     getSettings().then(setSettings);
     supabase.from("room_zones").select("*").order("sort_order").then(({ data }) => setZones((data || []) as RoomZone[]));
+    supabase
+      .from("menu_items")
+      .select("*")
+      .eq("available", true)
+      .eq("featured", true)
+      .order("sort_order")
+      .limit(6)
+      .then(({ data }) => setFeatured((data || []) as MenuItem[]));
   }, []);
 
   useEffect(() => {
