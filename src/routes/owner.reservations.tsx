@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { isoDate, fmtDate, type Reservation } from "@/lib/restaurant";
+import { isoDate, fmtDate, fmtDateShort, type Reservation } from "@/lib/restaurant";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/owner/reservations")({
@@ -160,7 +160,7 @@ function ReservationsPage() {
                     <div className="font-display text-2xl text-terracotta leading-none">{r.time}</div>
                     {!date && (
                       <div className="mt-0.5 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
-                        {new Date(r.date).toLocaleDateString("it-IT", { day: "2-digit", month: "short" })}
+                        {fmtDateShort(r.date)}
                       </div>
                     )}
                   </div>
