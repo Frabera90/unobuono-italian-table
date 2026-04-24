@@ -176,6 +176,39 @@ function ReservationsPage() {
           ))}
         </ul>
       )}
+
+      {tab === "preorders" && (
+        <ul className="space-y-2">
+          {preorders.length === 0 && <li className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">Nessun pre-ordine ricevuto.</li>}
+          {preorders.map((p) => {
+            const linked = p.reservation_id ? list.find((r) => r.id === p.reservation_id) : null;
+            return (
+              <li key={p.id} className="rounded-xl border border-border bg-card p-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <div>
+                    <div className="font-display text-base">{p.customer_name || "Cliente"}{linked ? ` · tavolo ${linked.time}` : ""}</div>
+                    <div className="text-xs text-muted-foreground">{new Date(p.created_at).toLocaleString("it-IT")}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${p.status === "ready" ? "bg-emerald-500/15 text-emerald-700" : p.status === "preparing" ? "bg-amber-500/15 text-amber-700" : "bg-terracotta/15 text-terracotta"}`}>{p.status || "pending"}</span>
+                    <span className="font-display text-lg text-terracotta">€ {Number(p.total || 0).toFixed(2)}</span>
+                  </div>
+                </div>
+                {Array.isArray(p.items) && p.items.length > 0 && (
+                  <ul className="mt-2 divide-y divide-border/40 text-sm">
+                    {p.items.map((it, i) => (
+                      <li key={i} className="flex justify-between py-1">
+                        <span><span className="font-mono text-xs text-muted-foreground">{it.qty}×</span> {it.name}</span>
+                        <span className="text-xs text-muted-foreground">€ {(Number(it.price) * it.qty).toFixed(2)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }
