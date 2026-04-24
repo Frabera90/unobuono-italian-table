@@ -460,6 +460,51 @@ function BookingPage() {
                   </>
                 )}
 
+                {/* Selezione tavolo specifico (opzionale) */}
+                {(() => {
+                  const candidates = tables
+                    .filter((t) => t.seats >= partySize && (zoneId == null || t.zone_id === zoneId))
+                    .filter((t) => !reservations.some((r) => r.status !== "cancelled" && r.table_id === t.id && Math.abs(timeToMinLocal(r.time) - timeToMinLocal(time)) < avgDuration))
+                    .sort((a, b) => a.seats - b.seats);
+                  if (candidates.length === 0) return null;
+                  return (
+                    <>
+                      <p className="mb-2 mt-7 text-sm text-muted-foreground">Vuoi un tavolo specifico? <span className="text-xs opacity-60">(opzionale)</span></p>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        <button
+                          type="button"
+                          onClick={() => setTableId(null)}
+                          className={`rounded-lg border p-3 text-left transition ${
+                            tableId == null ? "border-terracotta bg-terracotta/5" : "border-border bg-card hover:border-terracotta"
+                          }`}
+                        >
+                          <div className="font-display text-sm uppercase">Qualsiasi</div>
+                          <div className="text-[11px] text-muted-foreground">Decidiamo noi</div>
+                        </button>
+                        {candidates.map((t) => {
+                          const sel = tableId === t.id;
+                          const zone = zones.find((z) => z.id === t.zone_id);
+                          return (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => setTableId(sel ? null : t.id)}
+                              className={`rounded-lg border p-3 text-left transition ${
+                                sel ? "border-terracotta bg-terracotta/5" : "border-border bg-card hover:border-terracotta"
+                              }`}
+                            >
+                              <div className="font-display text-sm uppercase">Tavolo {t.code}</div>
+                              <div className="text-[11px] text-muted-foreground">
+                                {t.seats} posti{zone ? ` · ${zone.name}` : ""}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  );
+                })()}
+
                 <button
                   onClick={() => setStep(3)}
                   className="mt-7 w-full rounded-md bg-terracotta py-3.5 font-medium text-paper transition hover:bg-terracotta-dark"
