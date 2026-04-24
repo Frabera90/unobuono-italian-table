@@ -2,8 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  TIME_SLOTS,
-  LUNCH_SLOTS,
   isClosed,
   isoDate,
   fmtDate,
@@ -95,24 +93,54 @@ function BookingPage() {
       .then(({ data }) => setReservations((data || []) as any));
   }, [date, resolvedRestaurantId]);
 
+  // Slot reali a partire dagli opening_hours del ristorante (configurati dall'owner)
+  // Formato atteso per ogni giorno: "19:00-23:00" oppure "12:00-15:00,19:00-24:00" oppure "closed"
   const allSlots = useMemo(() => {
+    if (!settings?.opening_hours) return [];
+    const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
     const d = new Date(date + "T00:00:00");
-    const day = d.getDay();
-    if (day === 0) return LUNCH_SLOTS; // Sun lunch only per opening_hours
-    if (day === 6) return [...LUNCH_SLOTS, ...TIME_SLOTS]; // Sat both
-    return TIME_SLOTS;
-  }, [date]);
+    const dayKey = days[d.getDay()];
+    const raw = settings.opening_hours?.[dayKey];
+    if (!raw || raw === "closed") return [];
+    const ranges = String(raw).split(",").map((s) => s.trim()).filter(Boolean);
+    const out: string[] = [];
+    for (const range of ranges) {
+      const [start, end] = range.split("-").map((s) => s.trim());
+      if (!start || !end) continue;
+      const [sh, sm] = start.split(":").map(Number);
+      const [eh, em] = end.split(":").map(Number);
+      if (Number.isNaN(sh) || Number.isNaN(eh)) continue;
+      let cur = sh * 60 + (sm || 0);
+      const stop = eh * 60 + (em || 0);
+      // Ultimo slot prenotabile = chiusura - durata media tavolo (default 90)
+      const durMin = settings?.avg_table_duration ?? 90;
+      const lastBookable = stop - durMin;
+      while (cur <= lastBookable) {
+        const h = Math.floor(cur / 60);
+        const m = cur % 60;
+        out.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+        cur += 30;
+      }
+    }
+    return out;
+  }, [date, settings]);
+
+  // Capienza reale = somma posti zone disponibili (NON un placeholder)
+  const totalCapacity = useMemo(() => {
+    return zones.filter((z) => z.available).reduce((s, z) => s + (z.capacity || 0), 0);
+  }, [zones]);
 
   const slots = useMemo(() => {
-    const max = settings?.max_covers ?? 60;
+    if (totalCapacity <= 0) return [];
     return allSlots.map((slot) => {
       const booked = reservations.filter((r) => r.time === slot).reduce((s, r) => s + r.party_size, 0);
-      const available = max - booked;
+      const available = Math.max(0, totalCapacity - booked);
       return { slot, available, bookable: available >= partySize };
     });
-  }, [allSlots, reservations, partySize, settings]);
+  }, [allSlots, reservations, partySize, totalCapacity]);
 
-  const noAvailability = slots.every((s) => !s.bookable);
+  const noAvailability = slots.length === 0 || slots.every((s) => !s.bookable);
+  const notConfigured = totalCapacity <= 0 || allSlots.length === 0;
 
   // calendar for next 30 days
   const days = useMemo(() => {
@@ -337,36 +365,53 @@ function BookingPage() {
 
         {step === 2 && (
           <Section title={fmtDate(date)} onBack={() => setStep(1)}>
-            <p className="mb-2 text-sm text-muted-foreground">Orario</p>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {slots.map((s) => (
-                <button
-                  key={s.slot}
-                  disabled={!s.bookable}
-                  onClick={() => setTime(s.slot)}
-                  className={`rounded-lg border p-3 text-center transition ${
-                    !s.bookable
-                      ? "cursor-not-allowed border-border bg-muted/30 text-muted-foreground/40"
-                      : time === s.slot
-                      ? "border-terracotta bg-terracotta text-paper"
-                      : "border-border bg-card hover:border-terracotta"
-                  }`}
-                >
-                  <div className="font-display text-lg">{s.slot}</div>
-                  <div className="text-[10px] opacity-70">{s.available} posti</div>
-                </button>
-              ))}
-            </div>
-
-            {noAvailability && settings?.waitlist_enabled && (
-              <div className="mt-6 rounded-xl border border-dashed border-terracotta bg-terracotta/5 p-5">
-                <p className="font-display text-lg">Siamo al completo per questa data</p>
-                <p className="mt-1 text-sm text-muted-foreground">Vuoi entrare in lista d'attesa? Ti avvisiamo su WhatsApp appena si libera un posto.</p>
-                <button onClick={() => setStep("waitlist")} className="mt-4 rounded-md border border-terracotta px-4 py-2 text-sm font-medium text-terracotta hover:bg-terracotta hover:text-paper">
-                  Entra in lista d'attesa
-                </button>
+            {notConfigured ? (
+              <div className="rounded-xl border-2 border-dashed border-ink/30 bg-paper p-6 text-center">
+                <p className="font-display text-xl uppercase">Prenotazioni non ancora attive</p>
+                <p className="mt-2 text-sm text-ink/70">
+                  Il ristorante non ha ancora configurato orari di apertura o sale per questa data. Riprova più tardi o contatta direttamente il locale.
+                </p>
+                {settings?.phone && (
+                  <a href={`tel:${settings.phone}`} className="mt-4 inline-flex rounded-md border-2 border-ink bg-yellow px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink">
+                    📞 {settings.phone}
+                  </a>
+                )}
               </div>
+            ) : (
+              <>
+                <p className="mb-2 text-sm text-muted-foreground">Orario</p>
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  {slots.map((s) => (
+                    <button
+                      key={s.slot}
+                      disabled={!s.bookable}
+                      onClick={() => setTime(s.slot)}
+                      className={`rounded-lg border p-3 text-center transition ${
+                        !s.bookable
+                          ? "cursor-not-allowed border-border bg-muted/30 text-muted-foreground/40"
+                          : time === s.slot
+                          ? "border-terracotta bg-terracotta text-paper"
+                          : "border-border bg-card hover:border-terracotta"
+                      }`}
+                    >
+                      <div className="font-display text-lg">{s.slot}</div>
+                      <div className="text-[10px] opacity-70">{s.available} {s.available === 1 ? "posto" : "posti"}</div>
+                    </button>
+                  ))}
+                </div>
+
+                {noAvailability && settings?.waitlist_enabled && (
+                  <div className="mt-6 rounded-xl border border-dashed border-terracotta bg-terracotta/5 p-5">
+                    <p className="font-display text-lg">Siamo al completo per questa data</p>
+                    <p className="mt-1 text-sm text-muted-foreground">Vuoi entrare in lista d'attesa? Ti avvisiamo su WhatsApp appena si libera un posto.</p>
+                    <button onClick={() => setStep("waitlist")} className="mt-4 rounded-md border border-terracotta px-4 py-2 text-sm font-medium text-terracotta hover:bg-terracotta hover:text-paper">
+                      Entra in lista d'attesa
+                    </button>
+                  </div>
+                )}
+              </>
             )}
+
 
             {time && (
               <>

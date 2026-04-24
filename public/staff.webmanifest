@@ -1,0 +1,14 @@
+{
+  "name": "Unobuono Sala",
+  "short_name": "Sala",
+  "start_url": "/staff",
+  "scope": "/staff",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0a0a0a",
+  "background_color": "#0a0a0a",
+  "description": "Pannello sala in tempo reale: chiamate tavoli, prenotazioni, pre-ordini.",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "any", "type": "image/x-icon" }
+  ]
+}

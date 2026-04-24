@@ -2,10 +2,10 @@
   "name": "Unobuono — Gestione ristorante",
   "short_name": "Unobuono",
   "start_url": "/owner",
-  "scope": "/",
+  "scope": "/owner",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#c4592a",
+  "theme_color": "#FFD60A",
   "background_color": "#f5f0e8",
   "description": "Prenotazioni, menu live, sala e CRM per ristoranti.",
   "icons": [
