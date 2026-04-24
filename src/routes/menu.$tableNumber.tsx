@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { getSettings, type MenuItem, type RestaurantSettings } from "@/lib/restaurant";
+import { type MenuItem, type RestaurantSettings } from "@/lib/restaurant";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/menu/$tableNumber")({
@@ -18,42 +18,96 @@ const QUICK = [
   "Altra richiesta",
 ];
 
+type ActiveReservation = {
+  id: string;
+  customer_name: string;
+  party_size: number;
+  date: string;
+  time: string;
+};
+
 function MenuPage() {
   const { tableNumber } = Route.useParams();
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
   const [items, setItems] = useState<MenuItem[]>([]);
+  const [activeRes, setActiveRes] = useState<ActiveReservation | null>(null);
   const [recentlyChanged, setRecentlyChanged] = useState<Set<string>>(new Set());
   const [callOpen, setCallOpen] = useState(false);
   const [preorderOpen, setPreorderOpen] = useState(false);
 
+  // Resolve restaurant from query string ?r=slug or ?tid=tableId
   useEffect(() => {
-    getSettings().then(setSettings);
-    supabase.from("menu_items").select("*").order("sort_order").then(({ data }) => setItems((data || []) as MenuItem[]));
+    void (async () => {
+      const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+      const slug = params.get("r");
+      const tid = params.get("tid");
+      let rid: string | null = null;
+      if (slug) {
+        const { data: r } = await supabase.from("restaurants").select("id").eq("slug", slug).maybeSingle();
+        rid = r?.id ?? null;
+      }
+      if (!rid && tid) {
+        const { data: t } = await supabase.from("tables").select("restaurant_id").eq("id", tid).maybeSingle();
+        rid = t?.restaurant_id ?? null;
+      }
+      if (!rid) return;
+      setRestaurantId(rid);
 
-    const ch = supabase
-      .channel("menu-public")
-      .on("postgres_changes", { event: "*", schema: "public", table: "menu_items" }, (payload) => {
-        const row = (payload.new || payload.old) as MenuItem;
-        if (payload.eventType === "DELETE") {
-          setItems((prev) => prev.filter((i) => i.id !== row.id));
-          return;
-        }
-        setItems((prev) => {
-          const idx = prev.findIndex((i) => i.id === row.id);
-          if (idx === -1) return [...prev, row].sort((a, b) => a.sort_order - b.sort_order);
-          const copy = [...prev];
-          copy[idx] = row;
-          return copy;
-        });
-        setRecentlyChanged((s) => new Set(s).add(row.id));
-        setTimeout(() => setRecentlyChanged((s) => {
-          const n = new Set(s);
-          n.delete(row.id);
-          return n;
-        }), 2200);
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
+      const [{ data: s }, { data: m }] = await Promise.all([
+        supabase.from("restaurant_settings").select("*").eq("restaurant_id", rid).maybeSingle(),
+        supabase.from("menu_items").select("*").eq("restaurant_id", rid).order("sort_order"),
+      ]);
+      setSettings(s as RestaurantSettings | null);
+      setItems((m || []) as MenuItem[]);
+
+      // Find an active reservation today on this table
+      const today = new Date().toISOString().slice(0, 10);
+      let resQ = supabase
+        .from("reservations")
+        .select("id,customer_name,party_size,date,time")
+        .eq("restaurant_id", rid)
+        .eq("date", today)
+        .neq("status", "cancelled")
+        .order("time");
+      if (tid) resQ = resQ.eq("table_id", tid);
+      const { data: rs } = await resQ;
+      // pick the closest in time
+      if (rs && rs.length) {
+        const now = new Date();
+        const closest = [...rs].sort((a, b) => {
+          const da = Math.abs(toMin(a.time) - (now.getHours() * 60 + now.getMinutes()));
+          const db = Math.abs(toMin(b.time) - (now.getHours() * 60 + now.getMinutes()));
+          return da - db;
+        })[0];
+        setActiveRes(closest as ActiveReservation);
+      }
+
+      const ch = supabase
+        .channel("menu-public-" + rid)
+        .on("postgres_changes", { event: "*", schema: "public", table: "menu_items", filter: `restaurant_id=eq.${rid}` }, (payload) => {
+          const row = (payload.new || payload.old) as MenuItem;
+          if (payload.eventType === "DELETE") {
+            setItems((prev) => prev.filter((i) => i.id !== row.id));
+            return;
+          }
+          setItems((prev) => {
+            const idx = prev.findIndex((i) => i.id === row.id);
+            if (idx === -1) return [...prev, row].sort((a, b) => a.sort_order - b.sort_order);
+            const copy = [...prev];
+            copy[idx] = row;
+            return copy;
+          });
+          setRecentlyChanged((s) => new Set(s).add(row.id));
+          setTimeout(() => setRecentlyChanged((s) => {
+            const n = new Set(s);
+            n.delete(row.id);
+            return n;
+          }), 2200);
+        })
+        .subscribe();
+      return () => { supabase.removeChannel(ch); };
+    })();
   }, []);
 
   const grouped = useMemo(() => {
@@ -65,6 +119,17 @@ function MenuPage() {
     }
     return Array.from(map.entries());
   }, [items]);
+
+  if (!restaurantId) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-cream px-5 text-center">
+        <div>
+          <h1 className="font-display text-3xl uppercase">Menu non disponibile</h1>
+          <p className="mt-2 text-sm text-ink/60">Questo QR non è collegato a un ristorante. Chiedi al cameriere.</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-paper pb-32">
@@ -81,10 +146,15 @@ function MenuPage() {
             <span className="live-dot" /> live
           </div>
         </div>
+        {activeRes && (
+          <div className="mx-auto mt-3 max-w-3xl rounded-xl border-2 border-ink bg-paper px-3 py-2 text-sm">
+            👋 Ciao <strong>{activeRes.customer_name}</strong>! Prenotazione delle {activeRes.time} per {activeRes.party_size}.
+          </div>
+        )}
       </header>
 
       <div className="mx-auto max-w-3xl px-5 py-8">
-        {grouped.length === 0 && <p className="text-center text-muted-foreground">Caricamento...</p>}
+        {grouped.length === 0 && <p className="text-center text-muted-foreground">Nessun piatto disponibile.</p>}
         {grouped.map(([cat, list]) => (
           <section key={cat} className="mb-12">
             <div className="flex items-baseline justify-between">
@@ -145,16 +215,18 @@ function MenuPage() {
         </div>
       </div>
 
-      {callOpen && <WaiterCallSheet table={tableNumber} onClose={() => setCallOpen(false)} />}
-      {preorderOpen && <PreorderOverlay items={items} onClose={() => setPreorderOpen(false)} />}
+      {callOpen && <WaiterCallSheet table={tableNumber} restaurantId={restaurantId} reservationId={activeRes?.id ?? null} defaultName={activeRes?.customer_name ?? ""} onClose={() => setCallOpen(false)} />}
+      {preorderOpen && <PreorderOverlay items={items} restaurantId={restaurantId} reservationId={activeRes?.id ?? null} defaultName={activeRes?.customer_name ?? ""} onClose={() => setPreorderOpen(false)} />}
     </main>
   );
 }
 
-function WaiterCallSheet({ table, onClose }: { table: string; onClose: () => void }) {
+function toMin(t: string) { const [h, m] = t.split(":").map(Number); return h * 60 + (m || 0); }
+
+function WaiterCallSheet({ table, restaurantId, reservationId, defaultName, onClose }: { table: string; restaurantId: string; reservationId: string | null; defaultName: string; onClose: () => void }) {
   const [msg, setMsg] = useState<string>(QUICK[0]);
   const [custom, setCustom] = useState("");
-  const [name, setName] = useState("");
+  const [name, setName] = useState(defaultName);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -162,15 +234,14 @@ function WaiterCallSheet({ table, onClose }: { table: string; onClose: () => voi
     setBusy(true);
     const message = custom.trim() || msg;
     const { error } = await supabase.from("waiter_calls").insert({
+      restaurant_id: restaurantId,
+      reservation_id: reservationId,
       table_number: table,
       message,
       customer_name: name || null,
     });
     setBusy(false);
-    if (error) {
-      toast.error("Errore: " + error.message);
-      return;
-    }
+    if (error) { toast.error("Errore: " + error.message); return; }
     setDone(true);
     setTimeout(onClose, 1800);
   }
@@ -191,30 +262,12 @@ function WaiterCallSheet({ table, onClose }: { table: string; onClose: () => voi
             </div>
             <div className="grid grid-cols-2 gap-2">
               {QUICK.map((q) => (
-                <button
-                  key={q}
-                  onClick={() => { setMsg(q); setCustom(""); }}
-                  className={`rounded-lg border p-3 text-left text-sm transition ${msg === q && !custom ? "border-terracotta bg-terracotta/5" : "border-border bg-background"}`}
-                >
-                  {q}
-                </button>
+                <button key={q} onClick={() => { setMsg(q); setCustom(""); }} className={`rounded-lg border p-3 text-left text-sm transition ${msg === q && !custom ? "border-terracotta bg-terracotta/5" : "border-border bg-background"}`}>{q}</button>
               ))}
             </div>
-            <input
-              placeholder="Oppure scrivi qui..."
-              className="mt-3 w-full rounded-lg border border-border bg-background p-3 text-sm"
-              value={custom}
-              onChange={(e) => setCustom(e.target.value)}
-            />
-            <input
-              placeholder="Il tuo nome (opzionale)"
-              className="mt-2 w-full rounded-lg border border-border bg-background p-3 text-sm"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <button onClick={send} disabled={busy} className="mt-5 w-full rounded-md bg-terracotta py-3.5 font-medium text-paper hover:bg-terracotta-dark disabled:opacity-40">
-              {busy ? "Invio..." : "Conferma"}
-            </button>
+            <input placeholder="Oppure scrivi qui..." className="mt-3 w-full rounded-lg border border-border bg-background p-3 text-sm" value={custom} onChange={(e) => setCustom(e.target.value)} />
+            <input placeholder="Il tuo nome (opzionale)" className="mt-2 w-full rounded-lg border border-border bg-background p-3 text-sm" value={name} onChange={(e) => setName(e.target.value)} />
+            <button onClick={send} disabled={busy} className="mt-5 w-full rounded-md bg-terracotta py-3.5 font-medium text-paper hover:bg-terracotta-dark disabled:opacity-40">{busy ? "Invio..." : "Conferma"}</button>
           </>
         )}
       </div>
@@ -222,16 +275,13 @@ function WaiterCallSheet({ table, onClose }: { table: string; onClose: () => voi
   );
 }
 
-function PreorderOverlay({ items, onClose }: { items: MenuItem[]; onClose: () => void }) {
+function PreorderOverlay({ items, restaurantId, reservationId, defaultName, onClose }: { items: MenuItem[]; restaurantId: string; reservationId: string | null; defaultName: string; onClose: () => void }) {
   const [qty, setQty] = useState<Record<string, number>>({});
-  const [name, setName] = useState("");
+  const [name, setName] = useState(defaultName);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
 
-  const total = useMemo(() => {
-    return items.reduce((s, it) => s + (qty[it.id] || 0) * (Number(it.price) || 0), 0);
-  }, [items, qty]);
-
+  const total = useMemo(() => items.reduce((s, it) => s + (qty[it.id] || 0) * (Number(it.price) || 0), 0), [items, qty]);
   const grouped = useMemo(() => {
     const m = new Map<string, MenuItem[]>();
     for (const it of items.filter((i) => i.available && i.price)) {
@@ -243,22 +293,21 @@ function PreorderOverlay({ items, onClose }: { items: MenuItem[]; onClose: () =>
   }, [items]);
 
   async function submit() {
-    if (!name.trim()) return;
-    const selected = items
-      .filter((i) => qty[i.id])
-      .map((i) => ({ name: i.name, qty: qty[i.id], price: Number(i.price) }));
-    if (selected.length === 0) return;
+    if (!name.trim()) { toast.error("Inserisci il tuo nome"); return; }
+    const selected = items.filter((i) => qty[i.id]).map((i) => ({ id: i.id, name: i.name, qty: qty[i.id], price: Number(i.price) }));
+    if (selected.length === 0) { toast.error("Aggiungi almeno un piatto"); return; }
+    if (!reservationId) { toast.error("Per pre-ordinare devi avere una prenotazione attiva su questo tavolo."); return; }
     setBusy(true);
     const { error } = await supabase.from("preorders").insert({
+      restaurant_id: restaurantId,
+      reservation_id: reservationId,
       customer_name: name,
       items: selected,
       total,
+      status: "pending",
     });
     setBusy(false);
-    if (error) {
-      toast.error("Errore: " + error.message);
-      return;
-    }
+    if (error) { toast.error("Errore: " + error.message); return; }
     setDone(true);
     setTimeout(onClose, 2200);
   }
@@ -279,6 +328,11 @@ function PreorderOverlay({ items, onClose }: { items: MenuItem[]; onClose: () =>
       ) : (
         <>
           <div className="mx-auto max-w-2xl px-5 py-6 pb-40">
+            {!reservationId && (
+              <div className="mb-4 rounded-lg bg-amber-100 p-3 text-xs text-amber-900">
+                ⚠ Nessuna prenotazione attiva trovata su questo tavolo. Per pre-ordinare devi prima prenotare.
+              </div>
+            )}
             {grouped.map(([cat, list]) => (
               <section key={cat} className="mb-7">
                 <h3 className="font-display text-xl italic text-terracotta">{cat}</h3>
@@ -290,19 +344,9 @@ function PreorderOverlay({ items, onClose }: { items: MenuItem[]; onClose: () =>
                         <div className="text-xs text-terracotta">€ {Number(it.price).toFixed(2).replace(".", ",")}</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setQty((q) => ({ ...q, [it.id]: Math.max(0, (q[it.id] || 0) - 1) }))}
-                          className="h-8 w-8 rounded-full border border-border text-lg leading-none"
-                        >
-                          −
-                        </button>
+                        <button onClick={() => setQty((q) => ({ ...q, [it.id]: Math.max(0, (q[it.id] || 0) - 1) }))} className="h-8 w-8 rounded-full border border-border text-lg leading-none">−</button>
                         <span className="w-6 text-center text-sm font-medium">{qty[it.id] || 0}</span>
-                        <button
-                          onClick={() => setQty((q) => ({ ...q, [it.id]: (q[it.id] || 0) + 1 }))}
-                          className="h-8 w-8 rounded-full bg-terracotta text-lg leading-none text-paper"
-                        >
-                          +
-                        </button>
+                        <button onClick={() => setQty((q) => ({ ...q, [it.id]: (q[it.id] || 0) + 1 }))} className="h-8 w-8 rounded-full bg-terracotta text-lg leading-none text-paper">+</button>
                       </div>
                     </li>
                   ))}
@@ -312,24 +356,13 @@ function PreorderOverlay({ items, onClose }: { items: MenuItem[]; onClose: () =>
           </div>
           <div className="fixed inset-x-0 bottom-0 border-t border-border bg-cream/95 p-4 backdrop-blur">
             <div className="mx-auto max-w-2xl">
-              <input
-                placeholder="Come ti chiami?"
-                className="w-full rounded-lg border border-border bg-card p-3 text-sm"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
+              <input placeholder="Come ti chiami?" className="w-full rounded-lg border border-border bg-card p-3 text-sm" value={name} onChange={(e) => setName(e.target.value)} />
               <div className="mt-3 flex items-center justify-between gap-3">
                 <div>
                   <div className="text-xs text-muted-foreground">Totale</div>
                   <div className="font-display text-2xl text-terracotta">€ {total.toFixed(2).replace(".", ",")}</div>
                 </div>
-                <button
-                  onClick={submit}
-                  disabled={busy || !name.trim() || total === 0}
-                  className="rounded-md bg-terracotta px-6 py-3 font-medium text-paper hover:bg-terracotta-dark disabled:opacity-40"
-                >
-                  {busy ? "Invio..." : "Manda ordine"}
-                </button>
+                <button onClick={submit} disabled={busy || !name.trim() || total === 0 || !reservationId} className="rounded-md bg-terracotta px-6 py-3 font-medium text-paper hover:bg-terracotta-dark disabled:opacity-40">{busy ? "Invio..." : "Manda ordine"}</button>
               </div>
             </div>
           </div>

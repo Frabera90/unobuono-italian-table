@@ -45,6 +45,7 @@ export type RoomZone = {
   name: string;
   description: string | null;
   features: string | null;
+  preferences: string | null;
   table_count: number;
   capacity: number;
   available: boolean;

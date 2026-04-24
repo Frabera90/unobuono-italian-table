@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyRestaurant, type Restaurant } from "@/lib/restaurant";
 import { toast } from "sonner";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { Plus, Trash2, QrCode } from "lucide-react";
 
 export const Route = createFileRoute("/owner/sala")({
   head: () => ({ meta: [{ title: "Sala & Tavoli — Unobuono" }] }),
@@ -15,6 +16,7 @@ type Zone = {
   name: string;
   description: string | null;
   features: string | null;
+  preferences: string | null;
   capacity: number;
   available: boolean;
   sort_order: number;
@@ -39,11 +41,20 @@ function SalaPage() {
   const [zName, setZName] = useState("");
   const [zDesc, setZDesc] = useState("");
   const [zFeatures, setZFeatures] = useState("");
+  const [zPrefs, setZPrefs] = useState("");
+
+  // edit preferenze area inline
+  const [editingPrefsZone, setEditingPrefsZone] = useState<string | null>(null);
+  const [prefsDraft, setPrefsDraft] = useState("");
 
   // form aggiungi tavolo
   const [tableFormZone, setTableFormZone] = useState<string | null>(null);
   const [tCode, setTCode] = useState("");
   const [tSeats, setTSeats] = useState(2);
+
+  // QR modal
+  const [qrTable, setQrTable] = useState<Table | null>(null);
+  const qrCanvas = useRef<HTMLCanvasElement>(null);
 
   async function reload(rid: string) {
     const [{ data: z }, { data: t }] = await Promise.all([
@@ -63,6 +74,14 @@ function SalaPage() {
     })();
   }, []);
 
+  // Render QR when modal opens
+  useEffect(() => {
+    if (!qrTable || !restaurant || !qrCanvas.current) return;
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const url = `${origin}/menu/${encodeURIComponent(qrTable.code)}?r=${restaurant.slug}&tid=${qrTable.id}`;
+    QRCode.toCanvas(qrCanvas.current, url, { width: 280, margin: 2, color: { dark: "#1a1611", light: "#fdfaf3" } });
+  }, [qrTable, restaurant]);
+
   async function addZone() {
     if (!restaurant || !zName.trim()) { toast.error("Inserisci il nome"); return; }
     const { error } = await supabase.from("room_zones").insert({
@@ -70,13 +89,14 @@ function SalaPage() {
       name: zName.trim(),
       description: zDesc.trim() || null,
       features: zFeatures.trim() || null,
+      preferences: zPrefs.trim() || null,
       sort_order: zones.length,
       capacity: 0,
       table_count: 0,
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Area aggiunta");
-    setZName(""); setZDesc(""); setZFeatures(""); setZoneFormOpen(false);
+    setZName(""); setZDesc(""); setZFeatures(""); setZPrefs(""); setZoneFormOpen(false);
     await reload(restaurant.id);
   }
 
@@ -86,6 +106,15 @@ function SalaPage() {
     const { error } = await supabase.from("room_zones").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success("Area eliminata");
+    await reload(restaurant.id);
+  }
+
+  async function savePrefs(zoneId: string) {
+    if (!restaurant) return;
+    const { error } = await supabase.from("room_zones").update({ preferences: prefsDraft.trim() || null }).eq("id", zoneId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Preferenze aggiornate");
+    setEditingPrefsZone(null);
     await reload(restaurant.id);
   }
 
@@ -123,6 +152,16 @@ function SalaPage() {
     setTables((prev) => prev.map((t) => (t.id === id ? { ...t, seats } : t)));
   }
 
+  function downloadQr() {
+    if (!qrCanvas.current || !qrTable || !restaurant) return;
+    const url = qrCanvas.current.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `qr-${restaurant.slug}-${qrTable.code}.png`;
+    a.click();
+    toast.success("QR scaricato");
+  }
+
   // tavoli senza area
   const orphanTables = tables.filter((t) => !t.zone_id || !zones.find((z) => z.id === t.zone_id));
 
@@ -135,7 +174,7 @@ function SalaPage() {
       <header className="mb-5">
         <h1 className="font-display text-2xl sm:text-3xl">Sala & Tavoli</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Crea le aree del tuo locale e i tavoli al loro interno. Ogni tavolo avrà un QR code stabile collegato alla prenotazione di quell'orario.
+          Crea le aree del tuo locale, i tavoli, le preferenze selezionabili dai clienti. Ogni tavolo ha un QR stabile da stampare.
         </p>
         <div className="mt-3 flex flex-wrap gap-3 text-xs">
           <span className="rounded-full border border-ink/20 bg-cream px-3 py-1"><strong>{zones.length}</strong> aree</span>
@@ -144,7 +183,6 @@ function SalaPage() {
         </div>
       </header>
 
-      {/* Aggiungi area */}
       {!zoneFormOpen ? (
         <button onClick={() => setZoneFormOpen(true)} className="mb-5 inline-flex items-center gap-2 rounded-lg border-2 border-ink bg-yellow px-4 py-2 text-sm font-bold uppercase tracking-wider hover:bg-yellow/80">
           <Plus className="h-4 w-4" /> Aggiungi area
@@ -156,15 +194,22 @@ function SalaPage() {
             <Field label="Nome area *"><input className="set-in" value={zName} onChange={(e) => setZName(e.target.value)} placeholder="Sala interna, Terrazza, Veranda…" /></Field>
             <Field label="Descrizione"><input className="set-in" value={zDesc} onChange={(e) => setZDesc(e.target.value)} placeholder="es. Vista mare al primo piano" /></Field>
             <Field label="Caratteristiche"><input className="set-in" value={zFeatures} onChange={(e) => setZFeatures(e.target.value)} placeholder="es. Riscaldata, dehor, fumatori…" /></Field>
+            <Field label="Preferenze selezionabili dai clienti">
+              <textarea
+                className="set-in min-h-[70px]"
+                value={zPrefs}
+                onChange={(e) => setZPrefs(e.target.value)}
+                placeholder={"Una per riga, es.:\nVicino alla finestra\nTavolo alto\nLontano dalla cucina"}
+              />
+            </Field>
             <div className="flex gap-2">
               <button onClick={addZone} className="flex-1 rounded-lg border-2 border-ink bg-yellow py-2 text-sm font-bold uppercase tracking-wider hover:bg-yellow/80">Salva area</button>
-              <button onClick={() => { setZoneFormOpen(false); setZName(""); setZDesc(""); setZFeatures(""); }} className="rounded-lg border-2 border-ink bg-paper px-4 py-2 text-sm font-bold uppercase tracking-wider hover:bg-cream-dark">Annulla</button>
+              <button onClick={() => { setZoneFormOpen(false); setZName(""); setZDesc(""); setZFeatures(""); setZPrefs(""); }} className="rounded-lg border-2 border-ink bg-paper px-4 py-2 text-sm font-bold uppercase tracking-wider hover:bg-cream-dark">Annulla</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Lista aree */}
       {zones.length === 0 && orphanTables.length === 0 && (
         <div className="rounded-2xl border border-dashed border-border bg-card/50 p-8 text-center text-sm text-muted-foreground">
           Nessuna area ancora. Crea la prima per iniziare a gestire i tuoi tavoli.
@@ -175,6 +220,7 @@ function SalaPage() {
         {zones.map((zone) => {
           const zTables = tables.filter((t) => t.zone_id === zone.id).sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
           const zSeats = zTables.reduce((s, t) => s + t.seats, 0);
+          const prefList = (zone.preferences || "").split("\n").map((p) => p.trim()).filter(Boolean);
           return (
             <div key={zone.id} className="rounded-2xl border-2 border-ink bg-paper p-4 shadow-[4px_4px_0_0_hsl(var(--ink))] sm:p-5">
               <div className="mb-3 flex items-start justify-between gap-3">
@@ -189,15 +235,62 @@ function SalaPage() {
                 </button>
               </div>
 
+              {/* Preferenze */}
+              <div className="mb-3 rounded-lg border border-ink/15 bg-cream/40 p-3">
+                <div className="mb-1.5 flex items-center justify-between">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink/60">Preferenze cliente</span>
+                  {editingPrefsZone !== zone.id && (
+                    <button
+                      onClick={() => { setEditingPrefsZone(zone.id); setPrefsDraft(zone.preferences || ""); }}
+                      className="text-[11px] font-bold uppercase tracking-wider text-terracotta hover:underline"
+                    >
+                      Modifica
+                    </button>
+                  )}
+                </div>
+                {editingPrefsZone === zone.id ? (
+                  <>
+                    <textarea
+                      className="set-in min-h-[80px]"
+                      value={prefsDraft}
+                      onChange={(e) => setPrefsDraft(e.target.value)}
+                      placeholder={"Una per riga, es.:\nVicino alla finestra\nTavolo alto"}
+                    />
+                    <div className="mt-2 flex gap-2">
+                      <button onClick={() => savePrefs(zone.id)} className="rounded-lg border-2 border-ink bg-yellow px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider">Salva</button>
+                      <button onClick={() => setEditingPrefsZone(null)} className="rounded-lg border-2 border-ink bg-paper px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider">Annulla</button>
+                    </div>
+                  </>
+                ) : prefList.length === 0 ? (
+                  <p className="text-xs italic text-ink/40">Nessuna preferenza definita per questa area.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {prefList.map((p, i) => (
+                      <span key={i} className="rounded-full border border-ink/20 bg-paper px-2.5 py-0.5 text-[11px]">{p}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Tavoli */}
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
                 {zTables.map((t) => (
                   <div key={t.id} className="rounded-lg border-2 border-ink bg-cream p-3">
                     <div className="flex items-start justify-between">
                       <span className="font-display text-lg text-ink">{t.code}</span>
-                      <button onClick={() => deleteTable(t.id, t.code)} className="text-muted-foreground hover:text-destructive" aria-label="Elimina tavolo">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => setQrTable(t)}
+                          className="text-ink/60 hover:text-terracotta"
+                          aria-label="Mostra QR"
+                          title="QR del tavolo"
+                        >
+                          <QrCode className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => deleteTable(t.id, t.code)} className="text-muted-foreground hover:text-destructive" aria-label="Elimina tavolo">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
                     <label className="mt-1 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-ink/60">
                       Posti
@@ -233,7 +326,6 @@ function SalaPage() {
           );
         })}
 
-        {/* Tavoli orfani */}
         {orphanTables.length > 0 && (
           <div className="rounded-2xl border border-dashed border-border bg-card/50 p-4">
             <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">Tavoli senza area</h3>
@@ -242,9 +334,14 @@ function SalaPage() {
                 <div key={t.id} className="rounded-lg border border-border bg-paper p-3">
                   <div className="flex items-start justify-between">
                     <span className="font-display text-lg">{t.code}</span>
-                    <button onClick={() => deleteTable(t.id, t.code)} className="text-muted-foreground hover:text-destructive">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    <div className="flex gap-1">
+                      <button onClick={() => setQrTable(t)} className="text-ink/60 hover:text-terracotta" aria-label="QR">
+                        <QrCode className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => deleteTable(t.id, t.code)} className="text-muted-foreground hover:text-destructive">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                   <p className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">{t.seats} posti</p>
                 </div>
@@ -254,9 +351,28 @@ function SalaPage() {
         )}
       </div>
 
-      <div className="mt-6 rounded-xl border border-border bg-cream-dark/30 p-4 text-sm">
-        <strong>💡 Come funziona:</strong> ogni tavolo ha un QR code stabile (lo stampi e lo lasci sul tavolo). Quando un cliente lo scansiona, vede la sua prenotazione attiva per quell'orario, può ordinare e chiamare il cameriere. Vai in <strong>QR Code</strong> per stamparli.
-      </div>
+      {/* QR Modal */}
+      {qrTable && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4" onClick={() => setQrTable(null)}>
+          <div className="w-full max-w-sm rounded-2xl border-2 border-ink bg-paper p-5 shadow-[6px_6px_0_0_hsl(var(--ink))]" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3 flex items-start justify-between">
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink/60">QR Tavolo</p>
+                <h3 className="font-display text-2xl uppercase">{qrTable.code}</h3>
+              </div>
+              <button onClick={() => setQrTable(null)} className="text-2xl text-ink/60">×</button>
+            </div>
+            <div className="flex justify-center rounded-xl bg-cream p-3">
+              <canvas ref={qrCanvas} />
+            </div>
+            <p className="mt-3 text-center text-xs text-ink/60">Stampa e attaccalo al tavolo. Il cliente lo scansiona e vede menu live, può ordinare e chiamare il cameriere.</p>
+            <div className="mt-4 flex gap-2">
+              <button onClick={downloadQr} className="flex-1 rounded-lg border-2 border-ink bg-yellow py-2.5 text-xs font-bold uppercase tracking-wider hover:bg-yellow/80">⬇ Scarica PNG</button>
+              <button onClick={() => setQrTable(null)} className="rounded-lg border-2 border-ink bg-paper px-4 py-2.5 text-xs font-bold uppercase tracking-wider">Chiudi</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`.set-in{width:100%;border:2px solid hsl(var(--ink));background:hsl(var(--paper));border-radius:8px;padding:8px 10px;font-size:14px;color:inherit}`}</style>
     </div>
