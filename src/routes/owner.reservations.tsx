@@ -185,7 +185,12 @@ function ReservationsPage() {
                   <div className="min-w-0 flex-1">
                     <div className="font-display text-base">{r.customer_name} · {r.party_size} pers</div>
                     <div className="truncate text-xs text-muted-foreground">
-                      {r.zone_name}{r.customer_phone ? ` · ${r.customer_phone}` : ""}
+                      {r.zone_name}
+                      {r.table_id && (() => {
+                        const tb = tables.find((t) => t.id === r.table_id);
+                        return tb ? ` · 🪑 Tavolo ${tb.code}` : "";
+                      })()}
+                      {r.customer_phone ? ` · ${r.customer_phone}` : ""}
                     </div>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       {r.occasion && <Badge>🎂 {r.occasion}</Badge>}
