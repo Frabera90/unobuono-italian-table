@@ -34,7 +34,11 @@ import { Route as OwnerCampaignsRouteImport } from './routes/owner.campaigns'
 import { Route as OwnerAgentRouteImport } from './routes/owner.agent'
 import { Route as MenuTableNumberRouteImport } from './routes/menu.$tableNumber'
 import { Route as ManageTokenRouteImport } from './routes/manage.$token'
+import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as BookRestaurantIdRouteImport } from './routes/book.$restaurantId'
+import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
+import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 
 const WaiterRoute = WaiterRouteImport.update({
@@ -162,11 +166,33 @@ const ManageTokenRoute = ManageTokenRouteImport.update({
   path: '/manage/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
+  id: '/email/unsubscribe',
+  path: '/email/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BookRestaurantIdRoute = BookRestaurantIdRouteImport.update({
   id: '/book/$restaurantId',
   path: '/book/$restaurantId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
+  id: '/lovable/email/suppression',
+  path: '/lovable/email/suppression',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailTransactionalSendRoute =
+  LovableEmailTransactionalSendRouteImport.update({
+    id: '/lovable/email/transactional/send',
+    path: '/lovable/email/transactional/send',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -183,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/staff': typeof StaffRoute
   '/waiter': typeof WaiterRoute
   '/book/$restaurantId': typeof BookRestaurantIdRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/manage/$token': typeof ManageTokenRoute
   '/menu/$tableNumber': typeof MenuTableNumberRoute
   '/owner/agent': typeof OwnerAgentRoute
@@ -201,7 +228,10 @@ export interface FileRoutesByFullPath {
   '/owner/stats': typeof OwnerStatsRoute
   '/r/$slug': typeof RSlugRoute
   '/owner/': typeof OwnerIndexRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -211,6 +241,7 @@ export interface FileRoutesByTo {
   '/staff': typeof StaffRoute
   '/waiter': typeof WaiterRoute
   '/book/$restaurantId': typeof BookRestaurantIdRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/manage/$token': typeof ManageTokenRoute
   '/menu/$tableNumber': typeof MenuTableNumberRoute
   '/owner/agent': typeof OwnerAgentRoute
@@ -229,7 +260,10 @@ export interface FileRoutesByTo {
   '/owner/stats': typeof OwnerStatsRoute
   '/r/$slug': typeof RSlugRoute
   '/owner': typeof OwnerIndexRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -241,6 +275,7 @@ export interface FileRoutesById {
   '/staff': typeof StaffRoute
   '/waiter': typeof WaiterRoute
   '/book/$restaurantId': typeof BookRestaurantIdRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/manage/$token': typeof ManageTokenRoute
   '/menu/$tableNumber': typeof MenuTableNumberRoute
   '/owner/agent': typeof OwnerAgentRoute
@@ -259,7 +294,10 @@ export interface FileRoutesById {
   '/owner/stats': typeof OwnerStatsRoute
   '/r/$slug': typeof RSlugRoute
   '/owner/': typeof OwnerIndexRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -272,6 +310,7 @@ export interface FileRouteTypes {
     | '/staff'
     | '/waiter'
     | '/book/$restaurantId'
+    | '/email/unsubscribe'
     | '/manage/$token'
     | '/menu/$tableNumber'
     | '/owner/agent'
@@ -290,7 +329,10 @@ export interface FileRouteTypes {
     | '/owner/stats'
     | '/r/$slug'
     | '/owner/'
+    | '/lovable/email/suppression'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -300,6 +342,7 @@ export interface FileRouteTypes {
     | '/staff'
     | '/waiter'
     | '/book/$restaurantId'
+    | '/email/unsubscribe'
     | '/manage/$token'
     | '/menu/$tableNumber'
     | '/owner/agent'
@@ -318,7 +361,10 @@ export interface FileRouteTypes {
     | '/owner/stats'
     | '/r/$slug'
     | '/owner'
+    | '/lovable/email/suppression'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   id:
     | '__root__'
     | '/'
@@ -329,6 +375,7 @@ export interface FileRouteTypes {
     | '/staff'
     | '/waiter'
     | '/book/$restaurantId'
+    | '/email/unsubscribe'
     | '/manage/$token'
     | '/menu/$tableNumber'
     | '/owner/agent'
@@ -347,7 +394,10 @@ export interface FileRouteTypes {
     | '/owner/stats'
     | '/r/$slug'
     | '/owner/'
+    | '/lovable/email/suppression'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -359,10 +409,14 @@ export interface RootRouteChildren {
   StaffRoute: typeof StaffRoute
   WaiterRoute: typeof WaiterRoute
   BookRestaurantIdRoute: typeof BookRestaurantIdRoute
+  EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   ManageTokenRoute: typeof ManageTokenRoute
   MenuTableNumberRoute: typeof MenuTableNumberRoute
   RSlugRoute: typeof RSlugRoute
+  LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
+  LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
+  LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -542,11 +596,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ManageTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/email/unsubscribe': {
+      id: '/email/unsubscribe'
+      path: '/email/unsubscribe'
+      fullPath: '/email/unsubscribe'
+      preLoaderRoute: typeof EmailUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/book/$restaurantId': {
       id: '/book/$restaurantId'
       path: '/book/$restaurantId'
       fullPath: '/book/$restaurantId'
       preLoaderRoute: typeof BookRestaurantIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/suppression': {
+      id: '/lovable/email/suppression'
+      path: '/lovable/email/suppression'
+      fullPath: '/lovable/email/suppression'
+      preLoaderRoute: typeof LovableEmailSuppressionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/transactional/send': {
+      id: '/lovable/email/transactional/send'
+      path: '/lovable/email/transactional/send'
+      fullPath: '/lovable/email/transactional/send'
+      preLoaderRoute: typeof LovableEmailTransactionalSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lovable/email/queue/process': {
@@ -606,10 +688,14 @@ const rootRouteChildren: RootRouteChildren = {
   StaffRoute: StaffRoute,
   WaiterRoute: WaiterRoute,
   BookRestaurantIdRoute: BookRestaurantIdRoute,
+  EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   ManageTokenRoute: ManageTokenRoute,
   MenuTableNumberRoute: MenuTableNumberRoute,
   RSlugRoute: RSlugRoute,
+  LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
+  LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
+  LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
