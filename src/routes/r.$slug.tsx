@@ -45,10 +45,6 @@ function PublicPage() {
     })();
   }, [restaurant]);
 
-  if (!restaurant) {
-    return <div className="grid min-h-screen place-items-center bg-cream px-5 text-center"><div><h1 className="font-display text-3xl">Ristorante non trovato</h1><Link to="/" className="mt-4 inline-block underline">Torna alla home</Link></div></div>;
-  }
-
   const byCategory = useMemo(() => {
     const m = new Map<string, MenuItem[]>();
     for (const it of menu) {
@@ -59,10 +55,12 @@ function PublicPage() {
     return Array.from(m.entries());
   }, [menu]);
 
+  if (!restaurant) {
+    return <div className="grid min-h-screen place-items-center bg-cream px-5 text-center"><div><h1 className="font-display text-3xl">Ristorante non trovato</h1><Link to="/" className="mt-4 inline-block underline">Torna alla home</Link></div></div>;
+  }
+
   const avgRating = reviews.length ? (reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length).toFixed(1) : null;
   const cover = settings?.cover_photo_url;
-
-  // booking uses restaurant id (or slug as fallback in case the booking page resolves it)
   const bookId = restaurant.id;
 
   return (
