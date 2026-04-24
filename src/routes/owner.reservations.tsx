@@ -106,10 +106,33 @@ function ReservationsPage() {
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl">Prenotazioni</h1>
-          <p className="text-sm text-muted-foreground capitalize">{fmtDate(date)}</p>
+          <p className="text-sm text-muted-foreground capitalize">
+            {date ? fmtDate(date) : "Tutte le prossime prenotazioni"}
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="rounded-lg border border-border bg-card px-3 py-2 text-sm" />
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="rounded-lg border-2 border-ink bg-yellow/40 px-2 py-1.5">
+            <label className="mb-0.5 block text-[9px] font-bold uppercase tracking-widest text-ink/70">
+              📅 Filtra per giorno (opzionale)
+            </label>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="date"
+                value={date ?? ""}
+                onChange={(e) => setDate(e.target.value || null)}
+                className="rounded-md border border-ink bg-paper px-2 py-1 text-sm"
+              />
+              {date && (
+                <button
+                  onClick={() => setDate(null)}
+                  className="rounded-md border border-ink bg-paper px-2 py-1 text-[10px] font-bold uppercase tracking-wider hover:bg-ink hover:text-paper"
+                  title="Mostra tutte"
+                >
+                  ✕ tutte
+                </button>
+              )}
+            </div>
+          </div>
           <div className="rounded-lg border border-border bg-card px-3 py-2 text-xs">
             <span className="font-display text-base">{totals.covers}</span>
             <span className="text-muted-foreground"> coperti · </span>
