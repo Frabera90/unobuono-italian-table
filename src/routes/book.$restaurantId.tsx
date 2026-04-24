@@ -32,9 +32,11 @@ type Step = 1 | 2 | 3 | 4 | "waitlist" | "done";
 
 function BookingPage() {
   const { restaurantId: param } = Route.useParams();
+  const navigate = useNavigate();
   const [resolvedRestaurantId, setResolvedRestaurantId] = useState<string | null>(null);
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
   const [zones, setZones] = useState<RoomZone[]>([]);
+  const [tables, setTables] = useState<TableRow[]>([]);
   const [step, setStep] = useState<Step>(1);
 
   const [date, setDate] = useState<string>(isoDate(new Date()));
@@ -53,13 +55,13 @@ function BookingPage() {
   const [preferences, setPreferences] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [confirmedRes, setConfirmedRes] = useState<{ id: string } | null>(null);
+  const [confirmedRes, setConfirmedRes] = useState<{ id: string; manage_token: string } | null>(null);
 
   const [wlName, setWlName] = useState("");
   const [wlPhone, setWlPhone] = useState("+39 ");
   const [wlPreferred, setWlPreferred] = useState("20:00");
 
-  const [reservations, setReservations] = useState<{ time: string; party_size: number }[]>([]);
+  const [reservations, setReservations] = useState<ReservationLite[]>([]);
   const [featured, setFeatured] = useState<MenuItem[]>([]);
 
   // Resolve param: it can be a UUID (restaurant.id) or a slug
