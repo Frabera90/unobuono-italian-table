@@ -203,7 +203,60 @@ function BookingPage() {
             >
               📖 Vedi il menu
             </a>
+            {settings?.google_maps_url && (
+              <a
+                href={settings.google_maps_url}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border-2 border-ink bg-paper px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-ink hover:bg-cream-dark"
+              >
+                🗺 Indicazioni
+              </a>
+            )}
+            {settings?.phone && (
+              <a
+                href={`https://wa.me/${settings.phone.replace(/[^0-9]/g, "")}`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border-2 border-ink bg-paper px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-ink hover:bg-cream-dark"
+              >
+                💬 WhatsApp
+              </a>
+            )}
           </div>
+
+          {/* Quick info chips */}
+          {settings && (
+            <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px]">
+              {settings.wheelchair_accessible && <span className="rounded-full bg-paper/70 px-2.5 py-1">♿ Accessibile</span>}
+              {settings.pets_allowed && <span className="rounded-full bg-paper/70 px-2.5 py-1">🐶 Animali ammessi</span>}
+              {settings.parking_available && <span className="rounded-full bg-paper/70 px-2.5 py-1">🅿 Parcheggio</span>}
+              {settings.kid_friendly && <span className="rounded-full bg-paper/70 px-2.5 py-1">👶 Adatto bambini</span>}
+              {settings.min_age != null && settings.min_age > 0 && <span className="rounded-full bg-paper/70 px-2.5 py-1">🔞 +{settings.min_age}</span>}
+            </div>
+          )}
+
+          {/* Opening hours summary */}
+          {settings?.opening_hours && (
+            <details className="mt-3 text-xs text-ink/80">
+              <summary className="cursor-pointer font-mono uppercase tracking-wider">🕐 Orari</summary>
+              <ul className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-3">
+                {(["mon","tue","wed","thu","fri","sat","sun"] as const).map((k) => {
+                  const v = settings.opening_hours?.[k];
+                  return (
+                    <li key={k} className="flex justify-between font-mono text-[11px]">
+                      <span className="opacity-70">{DAY_LABELS[k]}</span>
+                      <span>{!v || v === "closed" ? "Chiuso" : v}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </details>
+          )}
+
+          {settings?.good_to_know && (
+            <p className="mt-3 rounded-lg bg-paper/60 px-3 py-2 text-xs text-ink/80">ℹ {settings.good_to_know}</p>
+          )}
         </div>
       </header>
 
