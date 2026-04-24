@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -9,6 +9,7 @@ import {
   type RoomZone,
   type MenuItem,
 } from "@/lib/restaurant";
+import { generateSlots, computeAvailability, pickTable, type TableRow, type ReservationLite } from "@/lib/availability";
 import { toast } from "sonner";
 
 const OCCASION_CHIPS = ["Compleanno", "Anniversario", "Cena romantica", "Business", "Famiglia", "Amici"];
