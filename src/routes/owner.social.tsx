@@ -199,11 +199,45 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
   return (
     <div className="mx-auto max-w-3xl px-5 py-7">
       <header className="mb-5">
-        <h1 className="font-display text-3xl">Social</h1>
-        <p className="text-sm text-muted-foreground">Foto → AI scrive → tu approvi → pubblica.</p>
+        <h1 className="font-display text-3xl uppercase">Social</h1>
+        <p className="text-sm text-muted-foreground">Foto → AI ritocca → AI scrive → tu approvi → pubblica.</p>
       </header>
 
-      {/* Composer */}
+      {/* Tabs */}
+      <div className="mb-5 flex gap-1 rounded-xl border-2 border-ink bg-paper p-1">
+        {([
+          { k: "composer", label: "✏️ Crea" },
+          { k: "calendar", label: "📅 Calendario" },
+          { k: "plan", label: "✨ Piano AI" },
+        ] as const).map((t) => (
+          <button
+            key={t.k}
+            onClick={() => setTab(t.k)}
+            className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold uppercase transition ${tab === t.k ? "bg-ink text-paper" : "text-ink hover:bg-yellow/40"}`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "calendar" && (
+        <div className="rounded-2xl border-2 border-ink bg-paper p-5 shadow-brut">
+          <CalendarGrid
+            posts={posts}
+            monthOffset={monthOffset}
+            onChangeMonth={(d) => setMonthOffset((m) => m + d)}
+            onPick={(p) => {
+              toast(p.caption || "Post", { description: p.scheduled_at ? `Programmato: ${new Date(p.scheduled_at).toLocaleString("it-IT")}` : `Pubblicato: ${new Date(p.created_at).toLocaleString("it-IT")}` });
+            }}
+          />
+        </div>
+      )}
+
+      {tab === "plan" && (
+        <PlanGenerator settings={settings} onAfterSave={loadPosts} />
+      )}
+
+      {tab === "composer" && (
       <div className="rounded-2xl border border-border bg-card p-5">
         {step === "upload" && (
           <div>
