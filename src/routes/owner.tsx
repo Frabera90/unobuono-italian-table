@@ -13,16 +13,16 @@ export const Route = createFileRoute("/owner")({
 });
 
 const NAV = [
-  { to: "/owner/dashboard", label: "Dashboard", icon: "📊" },
-  { to: "/owner/reservations", label: "Prenotazioni", icon: "📅" },
-  { to: "/owner/sala", label: "Sala & Tavoli", icon: "🪑" },
-  { to: "/owner/menu", label: "Menu", icon: "🍕" },
-  { to: "/owner/qr", label: "QR Code", icon: "📱" },
-  { to: "/owner/staff", label: "Staff", icon: "👨‍🍳" },
-  { to: "/owner/crm", label: "Clienti", icon: "👥" },
-  { to: "/owner/social", label: "Social", icon: "📸" },
-  { to: "/owner/settings", label: "Il mio locale", icon: "🏠" },
-  { to: "/owner/pro", label: "Pro / Prossimamente", icon: "✨" },
+  { to: "/owner/dashboard", label: "Dashboard", short: "Home", icon: "📊" },
+  { to: "/owner/reservations", label: "Prenotazioni", short: "Preno", icon: "📅" },
+  { to: "/owner/sala", label: "Sala & Tavoli", short: "Sala", icon: "🪑" },
+  { to: "/owner/menu", label: "Menu", short: "Menu", icon: "🍕" },
+  { to: "/owner/qr", label: "QR Code", short: "QR", icon: "📱" },
+  { to: "/owner/staff", label: "Staff", short: "Staff", icon: "👨‍🍳" },
+  { to: "/owner/crm", label: "Clienti", short: "Clienti", icon: "👥" },
+  { to: "/owner/social", label: "Social", short: "Social", icon: "📸" },
+  { to: "/owner/settings", label: "Il mio locale", short: "Locale", icon: "🏠" },
+  { to: "/owner/pro", label: "Pro / Prossimamente", short: "Pro", icon: "✨" },
 ] as const;
 
 function OwnerLayout() {
@@ -102,23 +102,23 @@ function OwnerLayout() {
       </main>
 
       {/* Bottom nav mobile: 4 voci principali + Altro */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 gap-0.5 border-t-2 border-ink bg-ink px-1 py-1.5 text-paper md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t-2 border-ink bg-ink text-paper md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         {NAV.slice(0, 4).map((n) => {
           const active = loc.pathname.startsWith(n.to);
           return (
             <Link key={n.to} to={n.to}
-              className={`flex min-w-0 flex-col items-center justify-center rounded-lg px-1 py-1.5 ${active ? "bg-yellow text-ink" : "text-paper/70"}`}>
-              <span className="text-base leading-none">{n.icon}</span>
-              <span className="mt-0.5 w-full truncate text-center text-[9px] font-bold uppercase tracking-wider leading-tight">{n.label}</span>
+              className={`flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-2 text-center ${active ? "bg-yellow text-ink" : "text-paper/70"}`}>
+              <span className="text-[18px] leading-none">{n.icon}</span>
+              <span className="block w-full truncate text-[10px] font-bold uppercase leading-none tracking-wide">{n.short}</span>
             </Link>
           );
         })}
         <button
           onClick={() => setMenuOpen(true)}
-          className={`flex min-w-0 flex-col items-center justify-center rounded-lg px-1 py-1.5 ${menuOpen ? "bg-yellow text-ink" : "text-paper/70"}`}
+          className={`flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-2 text-center ${menuOpen ? "bg-yellow text-ink" : "text-paper/70"}`}
         >
-          <span className="text-base leading-none">☰</span>
-          <span className="mt-0.5 text-[9px] font-bold uppercase tracking-wider leading-tight">Altro</span>
+          <span className="text-[18px] leading-none">☰</span>
+          <span className="block w-full truncate text-[10px] font-bold uppercase leading-none tracking-wide">Altro</span>
         </button>
       </nav>
 
