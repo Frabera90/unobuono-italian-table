@@ -170,15 +170,15 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
   type EnhanceStyle =
     | "auto" | "bright" | "moody" | "clean"
     | "pro_magazine" | "minimal" | "elegant" | "bistrot"
-    | "rustic" | "hands" | "context" | "overhead"
+    | "rustic" | "overhead"
     | "pop" | "vintage" | "noir";
 
-  async function enhance(style: EnhanceStyle, extraInstructions = "") {
+  async function enhance(style: EnhanceStyle, addons: AddonKey[] = [], extraInstructions = "") {
     if (!imageDataUrl || enhancing) return;
     setEnhancing(true);
     try {
       const base64 = imageDataUrl.split(",")[1] || "";
-      const r = await enhanceImage({ data: { imageBase64: base64, mimeType: imageMime, style, extraInstructions } });
+      const r = await enhanceImage({ data: { imageBase64: base64, mimeType: imageMime, style, addons, extraInstructions } });
       if (r.error === "rate_limit") { toast.error("Troppe richieste. Riprova tra poco."); return; }
       if (r.error === "credits") { toast.error("Crediti AI esauriti."); return; }
       if (r.error || !r.imageUrl) { toast.error("Ritocco non riuscito. Riprova."); return; }
@@ -187,6 +187,7 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
       setImageMime("image/png");
       setEnhanced(true);
       setLastStyle(style);
+      setLastAddons(addons);
       setLastExtra(extraInstructions);
       toast.success("Foto ritoccata ✨");
     } catch (e: any) {
