@@ -52,6 +52,7 @@ function SocialPage() {
   const [enhanced, setEnhanced] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [lastStyle, setLastStyle] = useState<string>("auto");
+  const [lastAddons, setLastAddons] = useState<AddonKey[]>([]);
   const [lastExtra, setLastExtra] = useState<string>("");
 
   const fileRef = useRef<HTMLInputElement>(null);
