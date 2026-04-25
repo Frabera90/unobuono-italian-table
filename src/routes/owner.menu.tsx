@@ -23,6 +23,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Trash2 } from "lucide-react";
+import { ALLERGENS, DIETS, type AllergenKey, type DietKey } from "@/lib/allergens";
 
 export const Route = createFileRoute("/owner/menu")({
   head: () => ({ meta: [{ title: "Menu — Unobuono" }] }),
@@ -51,7 +52,7 @@ const CATEGORY_ORDER = [
   "Altro",
 ];
 const DEFAULT_CATEGORIES = ["Antipasti", "Primi", "Secondi", "Pizze", "Contorni", "Dolci", "Bevande", "Vini"];
-const EMPTY: Partial<MenuItem> = { name: "", description: "", price: 0, category: "", available: true, allergens: "" };
+const EMPTY: Partial<MenuItem> = { name: "", description: "", price: 0, category: "", available: true, allergens: "", allergen_tags: [], diet_tags: [] };
 
 // Indice della categoria nell'ordine canonico (case-insensitive, fuzzy)
 function categoryRank(cat: string | null | undefined): number {
@@ -178,6 +179,8 @@ function MenuPage() {
       available: edit.available !== false,
       featured: !!edit.featured,
       allergens: edit.allergens,
+      allergen_tags: edit.allergen_tags || [],
+      diet_tags: edit.diet_tags || [],
       updated_at: new Date().toISOString(),
     };
     if (edit.id) {
@@ -185,7 +188,6 @@ function MenuPage() {
       if (error) return toast.error(error.message);
       toast.success("Aggiornato");
     } else {
-      // Calcola sort_order = max corrente in categoria + 1
       const sameCat = items.filter((i) => (i.category || "") === finalCategory);
       const maxSort = sameCat.reduce((m, i) => Math.max(m, i.sort_order ?? 0), -1);
       const { error } = await supabase.from("menu_items").insert({ ...payload, restaurant_id: restaurant.id, sort_order: maxSort + 1 });
@@ -234,6 +236,8 @@ function MenuPage() {
         const k = cat || "";
         const next = (maxByCat.get(k) ?? -1) + 1;
         maxByCat.set(k, next);
+        const validAllergens = new Set(ALLERGENS.map((a) => a.key));
+        const validDiets = new Set(DIETS.map((d) => d.key));
         return {
           restaurant_id: restaurant.id,
           name: String(it.name || "").slice(0, 200),
@@ -241,6 +245,8 @@ function MenuPage() {
           price: it.price != null && !Number.isNaN(Number(it.price)) ? Number(it.price) : null,
           category: cat,
           available: true,
+          allergen_tags: Array.isArray(it.allergen_tags) ? it.allergen_tags.filter((x: any) => validAllergens.has(x)) : [],
+          diet_tags: Array.isArray(it.diet_tags) ? it.diet_tags.filter((x: any) => validDiets.has(x)) : [],
           sort_order: next,
           updated_at: new Date().toISOString(),
         };
