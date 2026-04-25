@@ -209,10 +209,12 @@ export type Database = {
       }
       menu_items: {
         Row: {
+          allergen_tags: string[] | null
           allergens: string | null
           available: boolean | null
           category: string | null
           description: string | null
+          diet_tags: string[] | null
           featured: boolean | null
           id: string
           name: string
@@ -223,10 +225,12 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          allergen_tags?: string[] | null
           allergens?: string | null
           available?: boolean | null
           category?: string | null
           description?: string | null
+          diet_tags?: string[] | null
           featured?: boolean | null
           id?: string
           name: string
@@ -237,10 +241,12 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          allergen_tags?: string[] | null
           allergens?: string | null
           available?: boolean | null
           category?: string | null
           description?: string | null
+          diet_tags?: string[] | null
           featured?: boolean | null
           id?: string
           name?: string
@@ -262,6 +268,7 @@ export type Database = {
       }
       preorders: {
         Row: {
+          course_status: string | null
           created_at: string | null
           customer_name: string | null
           id: string
@@ -272,6 +279,7 @@ export type Database = {
           total: number | null
         }
         Insert: {
+          course_status?: string | null
           created_at?: string | null
           customer_name?: string | null
           id?: string
@@ -282,6 +290,7 @@ export type Database = {
           total?: number | null
         }
         Update: {
+          course_status?: string | null
           created_at?: string | null
           customer_name?: string | null
           id?: string
@@ -344,6 +353,7 @@ export type Database = {
           customer_phone: string | null
           date: string
           id: string
+          joined_table_ids: string[] | null
           manage_token: string | null
           notes: string | null
           occasion: string | null
@@ -354,6 +364,7 @@ export type Database = {
           reminder_email_sent: boolean | null
           reminder_sent: boolean | null
           restaurant_id: string | null
+          source: string | null
           status: string | null
           table_id: string | null
           time: string
@@ -371,6 +382,7 @@ export type Database = {
           customer_phone?: string | null
           date: string
           id?: string
+          joined_table_ids?: string[] | null
           manage_token?: string | null
           notes?: string | null
           occasion?: string | null
@@ -381,6 +393,7 @@ export type Database = {
           reminder_email_sent?: boolean | null
           reminder_sent?: boolean | null
           restaurant_id?: string | null
+          source?: string | null
           status?: string | null
           table_id?: string | null
           time: string
@@ -398,6 +411,7 @@ export type Database = {
           customer_phone?: string | null
           date?: string
           id?: string
+          joined_table_ids?: string[] | null
           manage_token?: string | null
           notes?: string | null
           occasion?: string | null
@@ -408,6 +422,7 @@ export type Database = {
           reminder_email_sent?: boolean | null
           reminder_sent?: boolean | null
           restaurant_id?: string | null
+          source?: string | null
           status?: string | null
           table_id?: string | null
           time?: string
@@ -780,6 +795,8 @@ export type Database = {
           code: string
           created_at: string
           id: string
+          max_seats: number | null
+          min_seats: number | null
           notes: string | null
           restaurant_id: string
           seats: number
@@ -790,6 +807,8 @@ export type Database = {
           code: string
           created_at?: string
           id?: string
+          max_seats?: number | null
+          min_seats?: number | null
           notes?: string | null
           restaurant_id: string
           seats?: number
@@ -800,6 +819,8 @@ export type Database = {
           code?: string
           created_at?: string
           id?: string
+          max_seats?: number | null
+          min_seats?: number | null
           notes?: string | null
           restaurant_id?: string
           seats?: number
@@ -991,8 +1012,40 @@ export type Database = {
       }
       regenerate_staff_pin: { Args: never; Returns: string }
       restaurant_id_by_staff_pin: { Args: { _pin: string }; Returns: string }
+      staff_assign_table: {
+        Args: {
+          _joined_ids?: string[]
+          _pin: string
+          _reservation_id: string
+          _table_id: string
+        }
+        Returns: boolean
+      }
+      staff_create_walkin: {
+        Args: {
+          _customer_name: string
+          _notes?: string
+          _party_size: number
+          _pin: string
+          _table_id?: string
+        }
+        Returns: string
+      }
       staff_mark_call_seen: {
         Args: { _call_id: string; _pin: string }
+        Returns: boolean
+      }
+      staff_set_course_status: {
+        Args: { _course_status: string; _pin: string; _preorder_id: string }
+        Returns: boolean
+      }
+      staff_set_preorder_item_notes: {
+        Args: {
+          _item_index: number
+          _notes: string
+          _pin: string
+          _preorder_id: string
+        }
         Returns: boolean
       }
       staff_set_preorder_status: {
@@ -1002,6 +1055,15 @@ export type Database = {
       staff_toggle_arrived: {
         Args: { _pin: string; _reservation_id: string }
         Returns: boolean
+      }
+      staff_upsert_preorder: {
+        Args: {
+          _items: Json
+          _pin: string
+          _reservation_id: string
+          _total?: number
+        }
+        Returns: string
       }
     }
     Enums: {
