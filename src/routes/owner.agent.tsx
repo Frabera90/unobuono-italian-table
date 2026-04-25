@@ -11,14 +11,40 @@ export const Route = createFileRoute("/owner/agent")({
 
 type Msg = { role: "user" | "assistant"; content: string; ts: number };
 
-const SUGGESTIONS = [
-  "Togli la Diavola stasera",
-  "Elimina la Diavola dal menu",
-  "Cambia prezzo Margherita a 9€",
-  "Quali piatti non sono disponibili stasera?",
-  "Crea campagna 1° Maggio per i lavoratori",
-  "Quanti coperti ho stasera?",
+const SUGGESTION_GROUPS: { label: string; icon: string; items: string[] }[] = [
+  {
+    label: "Menu",
+    icon: "🍕",
+    items: [
+      "Togli la Diavola stasera",
+      "Elimina la Diavola dal menu",
+      "Cambia prezzo Margherita a 9€",
+      "Aumenta del 10% il prezzo delle pizze",
+      "Riscrivi la descrizione della Diavola",
+      "Aggiungi Bufalina a 11€ — pomodoro, mozzarella di bufala, basilico",
+    ],
+  },
+  {
+    label: "Oggi",
+    icon: "📅",
+    items: [
+      "Quante prenotazioni ho oggi?",
+      "Quanti coperti ho stasera?",
+      "Quali piatti non sono disponibili stasera?",
+      "Quante recensioni nuove?",
+    ],
+  },
+  {
+    label: "Marketing",
+    icon: "📣",
+    items: [
+      "Crea campagna 1° Maggio per i lavoratori",
+      "Manda promo weekend ai clienti",
+      "Bozza messaggio compleanni del mese",
+    ],
+  },
 ];
+const ALL_SUGGESTIONS = SUGGESTION_GROUPS.flatMap((g) => g.items);
 
 const SYSTEM = `Sei l'agente AI del gestionale Unobuono per ristoranti. Capisci comandi in italiano e li esegui restituendo SOLO un JSON valido (nessun testo prima/dopo), oppure testo libero per chat normale.
 
@@ -74,8 +100,9 @@ ESEMPI:
 
 function AgentPage() {
   const [msgs, setMsgs] = useState<Msg[]>([
-    { role: "assistant", content: "Ciao! Sono il tuo agente. Dimmi cosa vuoi fare — modificare il menu, controllare le prenotazioni, qualsiasi cosa.", ts: Date.now() },
+    { role: "assistant", content: "Ciao! Sono il tuo agente. Posso modificare il menu in tempo reale, controllare prenotazioni, generare campagne e post. Scegli un suggerimento qui sotto o scrivi quello che ti serve.", ts: Date.now() },
   ]);
+  const [activeGroup, setActiveGroup] = useState<string>(SUGGESTION_GROUPS[0].label);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
