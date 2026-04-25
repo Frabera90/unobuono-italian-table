@@ -72,15 +72,16 @@ function MenuPage() {
         .order("time");
       if (tid) resQ = resQ.eq("table_id", tid);
       const { data: rs } = await resQ;
-      // pick the closest in time
+      // pick the closest in time, but only if within ±3h (altrimenti walk-in)
       if (rs && rs.length) {
-        const now = new Date();
-        const closest = [...rs].sort((a, b) => {
-          const da = Math.abs(toMin(a.time) - (now.getHours() * 60 + now.getMinutes()));
-          const db = Math.abs(toMin(b.time) - (now.getHours() * 60 + now.getMinutes()));
-          return da - db;
-        })[0];
-        setActiveRes(closest as ActiveReservation);
+        const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+        const sorted = [...rs]
+          .map((r) => ({ r, diff: Math.abs(toMin(r.time) - nowMin) }))
+          .sort((a, b) => a.diff - b.diff);
+        const best = sorted[0];
+        if (best && best.diff <= 180) {
+          setActiveRes(best.r as ActiveReservation);
+        }
       }
 
       const ch = supabase
@@ -146,9 +147,13 @@ function MenuPage() {
             <span className="live-dot" /> live
           </div>
         </div>
-        {activeRes && (
+        {activeRes ? (
           <div className="mx-auto mt-3 max-w-3xl rounded-xl border-2 border-ink bg-paper px-3 py-2 text-sm">
             👋 Ciao <strong>{activeRes.customer_name}</strong>! Prenotazione delle {activeRes.time} per {activeRes.party_size}.
+          </div>
+        ) : (
+          <div className="mx-auto mt-3 max-w-3xl rounded-xl border-2 border-ink bg-paper px-3 py-2 text-sm">
+            👋 Benvenuto! Sfoglia il menu, chiama il cameriere quando vuoi ordinare.
           </div>
         )}
       </header>
@@ -207,11 +212,11 @@ function MenuPage() {
             🙋 Cameriere
           </button>
           <button
-            onClick={() => setPreorderOpen(true)}
-            className="flex-1 rounded-xl border-2 border-ink bg-yellow py-3.5 text-sm font-bold uppercase tracking-wider text-ink shadow-brut-sm transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-brut"
-            title="Fai preparare i piatti in anticipo. Quando arrivi mangi subito — puoi sempre aggiungere altro al tavolo."
+            onClick={() => activeRes ? setPreorderOpen(true) : toast.info("Pre-ordine disponibile solo con prenotazione")}
+            className={`flex-1 rounded-xl border-2 border-ink py-3.5 text-sm font-bold uppercase tracking-wider text-ink shadow-brut-sm transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-brut ${activeRes ? "bg-yellow" : "bg-cream-dark/40 opacity-70"}`}
+            title={activeRes ? "Fai preparare i piatti in anticipo. Quando arrivi mangi subito — puoi sempre aggiungere altro al tavolo." : "Disponibile solo se hai una prenotazione attiva"}
           >
-            🛵 Pre-ordina
+            🛵 Pre-ordina{!activeRes && " 🔒"}
           </button>
         </div>
       </div>

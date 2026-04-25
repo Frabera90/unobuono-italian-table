@@ -5,6 +5,8 @@ import { callAIVision, enhanceImage } from "@/server/ai";
 import { getMySettings, getMyRestaurant, type RestaurantSettings, type Restaurant } from "@/lib/restaurant";
 import { CalendarGrid } from "@/components/social/CalendarGrid";
 import { PlanGenerator } from "@/components/social/PlanGenerator";
+import { StyleWizard } from "@/components/social/StyleWizard";
+import { EditChips } from "@/components/social/EditChips";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/owner/social")({
@@ -47,6 +49,9 @@ function SocialPage() {
   const [enhancing, setEnhancing] = useState(false);
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [enhanced, setEnhanced] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [lastStyle, setLastStyle] = useState<string>("auto");
+  const [lastExtra, setLastExtra] = useState<string>("");
 
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -166,12 +171,12 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
     | "rustic" | "hands" | "context" | "overhead"
     | "pop" | "vintage" | "noir";
 
-  async function enhance(style: EnhanceStyle) {
+  async function enhance(style: EnhanceStyle, extraInstructions = "") {
     if (!imageDataUrl || enhancing) return;
     setEnhancing(true);
     try {
       const base64 = imageDataUrl.split(",")[1] || "";
-      const r = await enhanceImage({ data: { imageBase64: base64, mimeType: imageMime, style } });
+      const r = await enhanceImage({ data: { imageBase64: base64, mimeType: imageMime, style, extraInstructions } });
       if (r.error === "rate_limit") { toast.error("Troppe richieste. Riprova tra poco."); return; }
       if (r.error === "credits") { toast.error("Crediti AI esauriti."); return; }
       if (r.error || !r.imageUrl) { toast.error("Ritocco non riuscito. Riprova."); return; }
@@ -179,6 +184,8 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
       setImageDataUrl(r.imageUrl);
       setImageMime("image/png");
       setEnhanced(true);
+      setLastStyle(style);
+      setLastExtra(extraInstructions);
       toast.success("Foto ritoccata ✨");
     } catch (e: any) {
       toast.error(e.message || "Errore");
@@ -401,61 +408,39 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
                     </button>
                   )}
                 </div>
-                <p className="mb-2 text-[11px] text-muted-foreground">
-                  Non sei un fotografo? Lascia che l'AI ritocchi la foto. Il piatto resta identico.
+                <p className="mb-3 text-[11px] text-muted-foreground">
+                  Scegli uno stile (o usa il tuo preset salvato), poi modifichi con un tocco. Il piatto resta identico.
                 </p>
 
-                <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">🌿 Naturale (realistico)</div>
-                <div className="mb-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-                  {([
-                    { k: "auto", label: "Auto" },
-                    { k: "bright", label: "Luminoso" },
-                    { k: "moody", label: "Caldo" },
-                    { k: "clean", label: "Pulito" },
-                  ] as const).map((s) => (
-                    <button key={s.k} onClick={() => enhance(s.k)} disabled={enhancing || step !== "review"}
-                      className="rounded-md border border-ink bg-paper px-2 py-1.5 text-xs font-medium hover:bg-yellow disabled:opacity-40">
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">🎨 Mood &amp; stile</div>
-                <div className="mb-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-                  {([
-                    { k: "minimal", label: "Minimal" },
-                    { k: "elegant", label: "Elegante" },
-                    { k: "bistrot", label: "Bistrot" },
-                    { k: "rustic", label: "Rustico" },
-                    { k: "vintage", label: "Vintage" },
-                    { k: "noir", label: "Noir" },
-                    { k: "pop", label: "Pop" },
-                    { k: "overhead", label: "Dall'alto" },
-                  ] as const).map((s) => (
-                    <button key={s.k} onClick={() => enhance(s.k)} disabled={enhancing || step !== "review"}
-                      className="rounded-md border border-ink bg-paper px-2 py-1.5 text-xs font-medium hover:bg-yellow disabled:opacity-40">
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">✋ Aggiunte (mani / contesto)</div>
-                <div className="mb-3 grid grid-cols-2 gap-1.5">
-                  <button onClick={() => enhance("hands")} disabled={enhancing || step !== "review"}
-                    className="rounded-md border border-ink bg-paper px-2 py-1.5 text-xs font-medium hover:bg-yellow disabled:opacity-40">
-                    🖐️ Mani sul piatto
+                <div className="mb-2 grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setWizardOpen(true)}
+                    disabled={enhancing || step !== "review"}
+                    className="rounded-lg border-2 border-ink bg-paper px-3 py-2 text-xs font-bold uppercase shadow-brut hover:translate-y-[1px] hover:shadow-none disabled:opacity-40"
+                  >
+                    🎨 Scegli stile
                   </button>
-                  <button onClick={() => enhance("context")} disabled={enhancing || step !== "review"}
-                    className="rounded-md border border-ink bg-paper px-2 py-1.5 text-xs font-medium hover:bg-yellow disabled:opacity-40">
-                    🍷 Contesto tavola
+                  <button
+                    onClick={() => enhance("auto")}
+                    disabled={enhancing || step !== "review"}
+                    className="rounded-lg border-2 border-ink bg-ink px-3 py-2 text-xs font-bold uppercase text-paper hover:bg-yellow hover:text-ink disabled:opacity-40"
+                  >
+                    ✨ Ritocco rapido
                   </button>
                 </div>
 
-                <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">✨ Pro Magazine</div>
-                <button onClick={() => enhance("pro_magazine")} disabled={enhancing || step !== "review"}
-                  className="w-full rounded-md border-2 border-ink bg-ink px-3 py-2 text-xs font-bold uppercase text-paper hover:bg-yellow hover:text-ink disabled:opacity-40">
-                  📸 Stile food magazine
-                </button>
+                {enhanced && (
+                  <div className="mt-3 rounded-lg border border-ink/30 bg-paper/70 p-2">
+                    <EditChips
+                      onPick={(instr) => enhance(lastStyle as EnhanceStyle, instr)}
+                      disabled={enhancing}
+                    />
+                    <p className="mt-2 text-[10px] text-muted-foreground">
+                      Stile attivo: <strong>{lastStyle}</strong>{lastExtra ? ` · "${lastExtra.slice(0, 40)}${lastExtra.length > 40 ? "…" : ""}"` : ""}
+                    </p>
+                  </div>
+                )}
+
                 {enhancing && (
                   <div className="mt-2 flex items-center gap-2 text-xs">
                     <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-ink" />
@@ -535,6 +520,14 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
           </div>
         )}
       </div>
+
+      {wizardOpen && restaurant?.id && (
+        <StyleWizard
+          restaurantId={restaurant.id}
+          onApply={(style, extra) => enhance(style as EnhanceStyle, extra)}
+          onClose={() => setWizardOpen(false)}
+        />
+      )}
 
       {/* CALENDARIO */}
       <section className="mt-6 rounded-2xl border-2 border-ink bg-paper p-4 shadow-brut md:p-5">
