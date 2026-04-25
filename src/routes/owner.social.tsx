@@ -521,6 +521,14 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
         )}
       </div>
 
+      {wizardOpen && restaurant?.id && (
+        <StyleWizard
+          restaurantId={restaurant.id}
+          onApply={(style, extra) => enhance(style as EnhanceStyle, extra)}
+          onClose={() => setWizardOpen(false)}
+        />
+      )}
+
       {/* CALENDARIO */}
       <section className="mt-6 rounded-2xl border-2 border-ink bg-paper p-4 shadow-brut md:p-5">
         <h2 className="mb-3 font-display text-xl uppercase">📅 Calendario</h2>
