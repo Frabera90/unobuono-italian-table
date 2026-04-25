@@ -7,6 +7,7 @@ import { CalendarGrid } from "@/components/social/CalendarGrid";
 import { PlanGenerator } from "@/components/social/PlanGenerator";
 import { StyleWizard } from "@/components/social/StyleWizard";
 import { EditChips } from "@/components/social/EditChips";
+import type { AddonKey } from "@/components/social/StyleWizard";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/owner/social")({
