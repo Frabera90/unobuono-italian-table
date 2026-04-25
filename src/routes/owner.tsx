@@ -103,7 +103,7 @@ function OwnerLayout() {
         </button>
       </aside>
 
-      <main className="min-w-0 flex-1 pb-24 md:pb-0">
+      <main className="min-w-0 flex-1 overflow-x-hidden pb-28 md:pb-0">
         {/* Header mobile (senza burger: il menu sta nel bottom nav "Altro") */}
         <div className="sticky top-0 z-20 flex items-center justify-between border-b-2 border-ink bg-ink px-4 py-3 text-paper md:hidden">
           <BrandLockup variant="yellow" size="sm" subtitle={restaurant?.name || "—"} />
