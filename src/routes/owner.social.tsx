@@ -5,6 +5,8 @@ import { callAIVision, enhanceImage } from "@/server/ai";
 import { getMySettings, getMyRestaurant, type RestaurantSettings, type Restaurant } from "@/lib/restaurant";
 import { CalendarGrid } from "@/components/social/CalendarGrid";
 import { PlanGenerator } from "@/components/social/PlanGenerator";
+import { StyleWizard } from "@/components/social/StyleWizard";
+import { EditChips } from "@/components/social/EditChips";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/owner/social")({
@@ -47,6 +49,9 @@ function SocialPage() {
   const [enhancing, setEnhancing] = useState(false);
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [enhanced, setEnhanced] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [lastStyle, setLastStyle] = useState<string>("auto");
+  const [lastExtra, setLastExtra] = useState<string>("");
 
   const fileRef = useRef<HTMLInputElement>(null);
 
