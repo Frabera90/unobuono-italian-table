@@ -171,12 +171,12 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
     | "rustic" | "hands" | "context" | "overhead"
     | "pop" | "vintage" | "noir";
 
-  async function enhance(style: EnhanceStyle) {
+  async function enhance(style: EnhanceStyle, extraInstructions = "") {
     if (!imageDataUrl || enhancing) return;
     setEnhancing(true);
     try {
       const base64 = imageDataUrl.split(",")[1] || "";
-      const r = await enhanceImage({ data: { imageBase64: base64, mimeType: imageMime, style } });
+      const r = await enhanceImage({ data: { imageBase64: base64, mimeType: imageMime, style, extraInstructions } });
       if (r.error === "rate_limit") { toast.error("Troppe richieste. Riprova tra poco."); return; }
       if (r.error === "credits") { toast.error("Crediti AI esauriti."); return; }
       if (r.error || !r.imageUrl) { toast.error("Ritocco non riuscito. Riprova."); return; }
@@ -184,6 +184,8 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
       setImageDataUrl(r.imageUrl);
       setImageMime("image/png");
       setEnhanced(true);
+      setLastStyle(style);
+      setLastExtra(extraInstructions);
       toast.success("Foto ritoccata ✨");
     } catch (e: any) {
       toast.error(e.message || "Errore");
