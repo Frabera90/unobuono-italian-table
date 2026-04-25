@@ -15,14 +15,25 @@ export const Route = createFileRoute("/owner")({
 const NAV = [
   { to: "/owner/dashboard", label: "Dashboard", short: "Home", icon: "📊" },
   { to: "/owner/reservations", label: "Prenotazioni", short: "Preno", icon: "📅" },
-  { to: "/owner/sala", label: "Sala & Tavoli", short: "Sala", icon: "🪑" },
+  { to: "/owner/agent", label: "Agente AI", short: "AI", icon: "✨" },
   { to: "/owner/menu", label: "Menu", short: "Menu", icon: "🍕" },
+  { to: "/owner/sala", label: "Sala & Tavoli", short: "Sala", icon: "🪑" },
   { to: "/owner/qr", label: "QR Code", short: "QR", icon: "📱" },
   { to: "/owner/staff", label: "Staff", short: "Staff", icon: "👨‍🍳" },
   { to: "/owner/crm", label: "Clienti", short: "Clienti", icon: "👥" },
   { to: "/owner/social", label: "Social", short: "Social", icon: "📸" },
   { to: "/owner/settings", label: "Il mio locale", short: "Locale", icon: "🏠" },
   { to: "/owner/pro", label: "Pro / Prossimamente", short: "Pro", icon: "✨" },
+] as const;
+
+// Bottom nav mobile: 2 voci sx + AI al centro (FAB) + 2 voci dx
+const BOTTOM_LEFT = [
+  { to: "/owner/dashboard", label: "Home", icon: "📊" },
+  { to: "/owner/reservations", label: "Preno", icon: "📅" },
+] as const;
+const BOTTOM_RIGHT = [
+  { to: "/owner/menu", label: "Menu", icon: "🍕" },
+  { to: "/owner/sala", label: "Sala", icon: "🪑" },
 ] as const;
 
 function OwnerLayout() {
@@ -92,7 +103,7 @@ function OwnerLayout() {
         </button>
       </aside>
 
-      <main className="min-w-0 flex-1 pb-24 md:pb-0">
+      <main className="min-w-0 flex-1 overflow-x-hidden pb-28 md:pb-0">
         {/* Header mobile (senza burger: il menu sta nel bottom nav "Altro") */}
         <div className="sticky top-0 z-20 flex items-center justify-between border-b-2 border-ink bg-ink px-4 py-3 text-paper md:hidden">
           <BrandLockup variant="yellow" size="sm" subtitle={restaurant?.name || "—"} />
@@ -101,25 +112,54 @@ function OwnerLayout() {
         <Outlet />
       </main>
 
-      {/* Bottom nav mobile: 4 voci principali + Altro */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t-2 border-ink bg-ink text-paper md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-        {NAV.slice(0, 4).map((n) => {
-          const active = loc.pathname.startsWith(n.to);
-          return (
-            <Link key={n.to} to={n.to}
-              className={`flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-2 text-center ${active ? "bg-yellow text-ink" : "text-paper/70"}`}>
-              <span className="text-[18px] leading-none">{n.icon}</span>
-              <span className="block w-full truncate text-[10px] font-bold uppercase leading-none tracking-wide">{n.short}</span>
-            </Link>
-          );
-        })}
-        <button
-          onClick={() => setMenuOpen(true)}
-          className={`flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-2 text-center ${menuOpen ? "bg-yellow text-ink" : "text-paper/70"}`}
-        >
-          <span className="text-[18px] leading-none">☰</span>
-          <span className="block w-full truncate text-[10px] font-bold uppercase leading-none tracking-wide">Altro</span>
-        </button>
+      {/* Bottom nav mobile: 2 + AI (FAB) + 2 + Altro */}
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-ink bg-ink text-paper md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <div className="relative grid grid-cols-5">
+          {BOTTOM_LEFT.map((n) => {
+            const active = loc.pathname.startsWith(n.to);
+            return (
+              <Link key={n.to} to={n.to}
+                className={`flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-2 text-center ${active ? "bg-yellow text-ink" : "text-paper/70"}`}>
+                <span className="text-[18px] leading-none">{n.icon}</span>
+                <span className="block w-full truncate text-[10px] font-bold uppercase leading-none tracking-wide">{n.label}</span>
+              </Link>
+            );
+          })}
+          {/* FAB centrale: Agente AI */}
+          <Link
+            to="/owner/agent"
+            className="flex min-w-0 flex-col items-center justify-end px-1 pb-1.5 pt-0 text-center"
+            aria-label="Agente AI"
+          >
+            <span
+              className={`-mt-6 grid h-14 w-14 place-items-center rounded-full border-2 border-ink shadow-lg ${
+                loc.pathname.startsWith("/owner/agent")
+                  ? "bg-terracotta text-paper"
+                  : "bg-yellow text-ink"
+              }`}
+            >
+              <span className="text-2xl leading-none">✨</span>
+            </span>
+            <span className="mt-0.5 block w-full truncate text-[10px] font-bold uppercase leading-none tracking-wide text-paper/80">AI</span>
+          </Link>
+          {BOTTOM_RIGHT.map((n) => {
+            const active = loc.pathname.startsWith(n.to);
+            return (
+              <Link key={n.to} to={n.to}
+                className={`flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-2 text-center ${active ? "bg-yellow text-ink" : "text-paper/70"}`}>
+                <span className="text-[18px] leading-none">{n.icon}</span>
+                <span className="block w-full truncate text-[10px] font-bold uppercase leading-none tracking-wide">{n.label}</span>
+              </Link>
+            );
+          })}
+          <button
+            onClick={() => setMenuOpen(true)}
+            className={`flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-2 text-center ${menuOpen ? "bg-yellow text-ink" : "text-paper/70"}`}
+          >
+            <span className="text-[18px] leading-none">☰</span>
+            <span className="block w-full truncate text-[10px] font-bold uppercase leading-none tracking-wide">Altro</span>
+          </button>
+        </div>
       </nav>
 
       {/* Drawer burger menu */}

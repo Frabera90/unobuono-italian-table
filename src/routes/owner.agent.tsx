@@ -11,14 +11,40 @@ export const Route = createFileRoute("/owner/agent")({
 
 type Msg = { role: "user" | "assistant"; content: string; ts: number };
 
-const SUGGESTIONS = [
-  "Togli la Diavola stasera",
-  "Elimina la Diavola dal menu",
-  "Cambia prezzo Margherita a 9€",
-  "Quali piatti non sono disponibili stasera?",
-  "Crea campagna 1° Maggio per i lavoratori",
-  "Quanti coperti ho stasera?",
+const SUGGESTION_GROUPS: { label: string; icon: string; items: string[] }[] = [
+  {
+    label: "Menu",
+    icon: "🍕",
+    items: [
+      "Togli la Diavola stasera",
+      "Elimina la Diavola dal menu",
+      "Cambia prezzo Margherita a 9€",
+      "Aumenta del 10% il prezzo delle pizze",
+      "Riscrivi la descrizione della Diavola",
+      "Aggiungi Bufalina a 11€ — pomodoro, mozzarella di bufala, basilico",
+    ],
+  },
+  {
+    label: "Oggi",
+    icon: "📅",
+    items: [
+      "Quante prenotazioni ho oggi?",
+      "Quanti coperti ho stasera?",
+      "Quali piatti non sono disponibili stasera?",
+      "Quante recensioni nuove?",
+    ],
+  },
+  {
+    label: "Marketing",
+    icon: "📣",
+    items: [
+      "Crea campagna 1° Maggio per i lavoratori",
+      "Manda promo weekend ai clienti",
+      "Bozza messaggio compleanni del mese",
+    ],
+  },
 ];
+const ALL_SUGGESTIONS = SUGGESTION_GROUPS.flatMap((g) => g.items);
 
 const SYSTEM = `Sei l'agente AI del gestionale Unobuono per ristoranti. Capisci comandi in italiano e li esegui restituendo SOLO un JSON valido (nessun testo prima/dopo), oppure testo libero per chat normale.
 
@@ -74,8 +100,9 @@ ESEMPI:
 
 function AgentPage() {
   const [msgs, setMsgs] = useState<Msg[]>([
-    { role: "assistant", content: "Ciao! Sono il tuo agente. Dimmi cosa vuoi fare — modificare il menu, controllare le prenotazioni, qualsiasi cosa.", ts: Date.now() },
+    { role: "assistant", content: "Ciao! Sono il tuo agente. Posso modificare il menu in tempo reale, controllare prenotazioni, generare campagne e post. Scegli un suggerimento qui sotto o scrivi quello che ti serve.", ts: Date.now() },
   ]);
+  const [activeGroup, setActiveGroup] = useState<string>(SUGGESTION_GROUPS[0].label);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -232,29 +259,53 @@ function AgentPage() {
     return raw;
   }
 
+  const groupItems = SUGGESTION_GROUPS.find((g) => g.label === activeGroup)?.items || ALL_SUGGESTIONS;
+
   return (
-    <div className="mx-auto flex h-screen max-w-3xl flex-col px-5 py-7">
-      <header className="mb-4">
-        <h1 className="font-display text-3xl">Agente AI</h1>
-        <p className="text-sm text-muted-foreground">Comanda il ristorante in linguaggio naturale.</p>
+    <div className="mx-auto flex h-[calc(100dvh-3.5rem)] max-w-3xl flex-col px-3 py-4 md:h-screen md:px-5 md:py-7">
+      <header className="mb-3 md:mb-4">
+        <h1 className="font-display text-2xl md:text-3xl">Agente AI ✨</h1>
+        <p className="text-xs text-muted-foreground md:text-sm">Comanda il ristorante in linguaggio naturale.</p>
       </header>
 
-      <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto rounded-2xl border border-border bg-card p-4">
+      <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto rounded-2xl border border-border bg-card p-3 md:p-4">
         {msgs.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${m.role === "user" ? "bg-terracotta text-paper" : "bg-cream-dark/60 text-foreground"}`}>{m.content}</div>
+            <div className={`max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2.5 text-sm md:max-w-[80%] md:px-4 ${m.role === "user" ? "bg-terracotta text-paper" : "bg-cream-dark/60 text-foreground"}`}>{m.content}</div>
           </div>
         ))}
         {busy && <div className="text-sm text-muted-foreground">L'agente sta pensando...</div>}
       </div>
 
-      {msgs.length <= 2 && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {SUGGESTIONS.map((s) => (
-            <button key={s} onClick={() => send(s)} className="rounded-full border border-border bg-card px-3 py-1.5 text-xs hover:bg-cream-dark">{s}</button>
+      <div className="mt-3 space-y-2">
+        <div className="flex flex-wrap gap-1.5">
+          {SUGGESTION_GROUPS.map((g) => (
+            <button
+              key={g.label}
+              onClick={() => setActiveGroup(g.label)}
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider transition ${
+                activeGroup === g.label
+                  ? "border-ink bg-ink text-paper"
+                  : "border-border bg-card text-muted-foreground hover:border-ink"
+              }`}
+            >
+              {g.icon} {g.label}
+            </button>
           ))}
         </div>
-      )}
+        <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {groupItems.map((s) => (
+            <button
+              key={s}
+              onClick={() => send(s)}
+              disabled={busy}
+              className="shrink-0 rounded-full border border-border bg-card px-3 py-1.5 text-xs hover:bg-cream-dark disabled:opacity-50"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="mt-3 flex gap-2">
         <input
@@ -263,9 +314,9 @@ function AgentPage() {
           onKeyDown={(e) => e.key === "Enter" && send()}
           placeholder="Scrivi un comando..."
           disabled={busy}
-          className="flex-1 rounded-lg border border-border bg-card px-4 py-3 text-sm"
+          className="min-w-0 flex-1 rounded-lg border border-border bg-card px-4 py-3 text-sm"
         />
-        <button onClick={() => send()} disabled={busy || !input.trim()} className="rounded-lg bg-terracotta px-5 py-3 text-sm font-medium text-paper disabled:opacity-40">Invia</button>
+        <button onClick={() => send()} disabled={busy || !input.trim()} className="shrink-0 rounded-lg bg-terracotta px-4 py-3 text-sm font-medium text-paper disabled:opacity-40 md:px-5">Invia</button>
       </div>
     </div>
   );
