@@ -4,14 +4,65 @@ import { supabase } from "@/integrations/supabase/client";
 import { getMyRestaurant, type MenuItem, type Restaurant } from "@/lib/restaurant";
 import { extractMenuFromImage } from "@/server/ai";
 import { toast } from "sonner";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/owner/menu")({
   head: () => ({ meta: [{ title: "Menu — Unobuono" }] }),
   component: MenuPage,
 });
 
+// Ordine canonico classico italiano
+const CATEGORY_ORDER = [
+  "Antipasti",
+  "Primi",
+  "Secondi",
+  "Pizze",
+  "Contorni",
+  "Insalate",
+  "Dolci",
+  "Caffetteria",
+  "Bevande",
+  "Birre",
+  "Bollicine",
+  "Vini Bianchi",
+  "Vini Rossi",
+  "Vini Rosati",
+  "Vini",
+  "Distillati",
+  "Liquori",
+  "Altro",
+];
 const DEFAULT_CATEGORIES = ["Antipasti", "Primi", "Secondi", "Pizze", "Contorni", "Dolci", "Bevande", "Vini"];
 const EMPTY: Partial<MenuItem> = { name: "", description: "", price: 0, category: "", available: true, allergens: "" };
+
+// Indice della categoria nell'ordine canonico (case-insensitive, fuzzy)
+function categoryRank(cat: string | null | undefined): number {
+  if (!cat) return CATEGORY_ORDER.indexOf("Altro");
+  const norm = cat.trim().toLowerCase();
+  for (let i = 0; i < CATEGORY_ORDER.length; i++) {
+    const ref = CATEGORY_ORDER[i].toLowerCase();
+    if (norm === ref || norm.includes(ref) || ref.includes(norm)) return i;
+  }
+  return CATEGORY_ORDER.indexOf("Altro");
+}
 
 function MenuPage() {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
@@ -23,10 +74,16 @@ function MenuPage() {
   const [newCatValue, setNewCatValue] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
   async function load(rid?: string) {
     const target = rid ?? restaurant?.id;
     if (!target) return;
-    const { data } = await supabase.from("menu_items").select("*").eq("restaurant_id", target).order("category").order("sort_order");
+    const { data } = await supabase.from("menu_items").select("*").eq("restaurant_id", target).order("sort_order").order("name");
     setItems((data || []) as MenuItem[]);
   }
 
@@ -47,13 +104,13 @@ function MenuPage() {
     return () => { supabase.removeChannel(ch); };
   }, [restaurant]);
 
-  // Category list = defaults + any used in items, deduped
   const categories = useMemo(() => {
     const set = new Set<string>(DEFAULT_CATEGORIES);
     for (const it of items) if (it.category) set.add(it.category);
-    return Array.from(set);
+    return Array.from(set).sort((a, b) => categoryRank(a) - categoryRank(b));
   }, [items]);
 
+  // Raggruppa + ordina per categoria canonica + ordina items per sort_order
   const grouped = useMemo(() => {
     const f = filter.toLowerCase();
     const filtered = f ? items.filter((i) => i.name.toLowerCase().includes(f) || i.category?.toLowerCase().includes(f)) : items;
@@ -63,7 +120,12 @@ function MenuPage() {
       if (!map.has(k)) map.set(k, []);
       map.get(k)!.push(it);
     }
-    return Array.from(map.entries());
+    // Ordina items dentro la categoria per sort_order, poi nome
+    for (const [, arr] of map) {
+      arr.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name));
+    }
+    // Ordina categorie
+    return Array.from(map.entries()).sort(([a], [b]) => categoryRank(a) - categoryRank(b));
   }, [items, filter]);
 
   async function toggle(it: MenuItem) {
@@ -72,6 +134,38 @@ function MenuPage() {
   async function toggleFeatured(it: MenuItem) {
     await supabase.from("menu_items").update({ featured: !it.featured, updated_at: new Date().toISOString() }).eq("id", it.id);
   }
+  async function quickDelete(it: MenuItem) {
+    if (!confirm(`Eliminare "${it.name}" dal menu?`)) return;
+    const { error } = await supabase.from("menu_items").delete().eq("id", it.id);
+    if (error) toast.error(error.message);
+    else toast.success("Piatto eliminato");
+  }
+
+  // Drag end: riordina solo dentro la stessa categoria
+  async function handleDragEnd(category: string, e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const inCat = items
+      .filter((i) => (i.category || "Altro") === category)
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name));
+    const oldIdx = inCat.findIndex((i) => i.id === active.id);
+    const newIdx = inCat.findIndex((i) => i.id === over.id);
+    if (oldIdx < 0 || newIdx < 0) return;
+    const reordered = arrayMove(inCat, oldIdx, newIdx);
+    // Optimistic update
+    setItems((prev) => {
+      const others = prev.filter((p) => (p.category || "Altro") !== category);
+      const updated = reordered.map((it, idx) => ({ ...it, sort_order: idx }));
+      return [...others, ...updated];
+    });
+    // Persist
+    await Promise.all(
+      reordered.map((it, idx) =>
+        supabase.from("menu_items").update({ sort_order: idx, updated_at: new Date().toISOString() }).eq("id", it.id)
+      )
+    );
+  }
+
   async function save() {
     if (!restaurant) { toast.error("Ristorante non trovato"); return; }
     if (!edit?.name) { toast.error("Nome obbligatorio"); return; }
@@ -91,7 +185,10 @@ function MenuPage() {
       if (error) return toast.error(error.message);
       toast.success("Aggiornato");
     } else {
-      const { error } = await supabase.from("menu_items").insert({ ...payload, restaurant_id: restaurant.id });
+      // Calcola sort_order = max corrente in categoria + 1
+      const sameCat = items.filter((i) => (i.category || "") === finalCategory);
+      const maxSort = sameCat.reduce((m, i) => Math.max(m, i.sort_order ?? 0), -1);
+      const { error } = await supabase.from("menu_items").insert({ ...payload, restaurant_id: restaurant.id, sort_order: maxSort + 1 });
       if (error) return toast.error(error.message);
       toast.success("Aggiunto");
     }
@@ -110,7 +207,6 @@ function MenuPage() {
     setNewCatMode(false);
     setNewCatValue("");
   }
-
   function openEdit(it: MenuItem) {
     setEdit(it);
     setNewCatMode(false);
@@ -127,17 +223,28 @@ function MenuPage() {
       if (res.error === "rate_limit") { toast.error("Troppe richieste, riprova tra poco"); return; }
       if (res.error === "credits") { toast.error("Crediti AI esauriti"); return; }
       if (res.error || !Array.isArray(res.items) || res.items.length === 0) { toast.error("Nessun piatto rilevato. Riprova con una foto più nitida."); return; }
-      const baseSort = items.length;
-      const records = res.items.map((it: any, idx: number) => ({
-        restaurant_id: restaurant.id,
-        name: String(it.name || "").slice(0, 200),
-        description: it.description ? String(it.description).slice(0, 500) : null,
-        price: it.price != null && !Number.isNaN(Number(it.price)) ? Number(it.price) : null,
-        category: it.category ? String(it.category).slice(0, 80) : null,
-        available: true,
-        sort_order: baseSort + idx,
-        updated_at: new Date().toISOString(),
-      })).filter((r) => r.name);
+      // Per ogni nuovo piatto, sort_order = max della sua categoria nel db corrente + indice
+      const maxByCat = new Map<string, number>();
+      for (const it of items) {
+        const k = it.category || "";
+        maxByCat.set(k, Math.max(maxByCat.get(k) ?? -1, it.sort_order ?? 0));
+      }
+      const records = res.items.map((it: any) => {
+        const cat = it.category ? String(it.category).slice(0, 80) : null;
+        const k = cat || "";
+        const next = (maxByCat.get(k) ?? -1) + 1;
+        maxByCat.set(k, next);
+        return {
+          restaurant_id: restaurant.id,
+          name: String(it.name || "").slice(0, 200),
+          description: it.description ? String(it.description).slice(0, 500) : null,
+          price: it.price != null && !Number.isNaN(Number(it.price)) ? Number(it.price) : null,
+          category: cat,
+          available: true,
+          sort_order: next,
+          updated_at: new Date().toISOString(),
+        };
+      }).filter((r) => r.name);
       if (records.length === 0) { toast.error("Nessun piatto valido"); return; }
       const { error } = await supabase.from("menu_items").insert(records);
       if (error) { toast.error(error.message); return; }
@@ -151,19 +258,19 @@ function MenuPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-5 py-7">
+    <div className="mx-auto max-w-5xl px-4 py-5 md:px-5 md:py-7">
       <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl">Menu</h1>
-          <p className="text-sm text-muted-foreground">{items.length} piatti · {items.filter((i) => !i.available).length} non disponibili</p>
+          <h1 className="font-display text-2xl md:text-3xl">Menu</h1>
+          <p className="text-xs text-muted-foreground md:text-sm">{items.length} piatti · {items.filter((i) => !i.available).length} non disponibili · Trascina per riordinare</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Cerca..." className="rounded-lg border border-border bg-card px-3 py-2 text-sm" />
+        <div className="flex w-full flex-wrap gap-2 md:w-auto">
+          <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Cerca..." className="min-w-0 flex-1 rounded-lg border border-border bg-card px-3 py-2 text-sm md:flex-none md:w-40" />
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoImport(f); }} />
-          <button onClick={() => fileRef.current?.click()} disabled={importing} className="rounded-lg border-2 border-ink bg-yellow px-4 py-2 text-sm font-bold text-ink disabled:opacity-50">
-            {importing ? "Leggo il menu..." : "📷 Importa da foto"}
+          <button onClick={() => fileRef.current?.click()} disabled={importing} className="rounded-lg border-2 border-ink bg-yellow px-3 py-2 text-xs font-bold text-ink disabled:opacity-50 md:px-4 md:text-sm">
+            {importing ? "Leggo..." : "📷 Importa foto"}
           </button>
-          <button onClick={openNew} className="rounded-lg bg-terracotta px-4 py-2 text-sm font-medium text-paper">+ Aggiungi</button>
+          <button onClick={openNew} className="rounded-lg bg-terracotta px-3 py-2 text-xs font-medium text-paper md:px-4 md:text-sm">+ Aggiungi</button>
         </div>
       </header>
 
@@ -179,24 +286,22 @@ function MenuPage() {
         {grouped.map(([cat, list]) => (
           <section key={cat}>
             <h2 className="mb-2 font-display text-lg italic text-terracotta">{cat}</h2>
-            <ul className="divide-y divide-border rounded-xl border border-border bg-card">
-              {list.map((it) => (
-                <li key={it.id} className="flex items-center gap-3 p-3">
-                  <button onClick={() => openEdit(it)} className="min-w-0 flex-1 text-left">
-                    <div className={`text-sm font-medium ${!it.available ? "text-muted-foreground line-through" : ""}`}>
-                      {it.featured && <span className="mr-1 text-amber-500">⭐</span>}
-                      {it.name}
-                    </div>
-                    {it.description && <div className="truncate text-xs text-muted-foreground">{it.description}</div>}
-                  </button>
-                  <div className="text-sm text-terracotta">{it.price != null ? `€ ${Number(it.price).toFixed(2)}` : "—"}</div>
-                  <button onClick={() => toggleFeatured(it)} title="In evidenza" className={`text-base transition ${it.featured ? "text-amber-500" : "text-muted-foreground/40 hover:text-amber-500"}`}>★</button>
-                  <button onClick={() => toggle(it)} className={`relative h-5 w-9 rounded-full transition ${it.available ? "bg-terracotta" : "bg-border"}`}>
-                    <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-paper transition ${it.available ? "left-[18px]" : "left-0.5"}`} />
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(cat, e)}>
+              <SortableContext items={list.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+                <ul className="divide-y divide-border rounded-xl border border-border bg-card">
+                  {list.map((it) => (
+                    <SortableRow
+                      key={it.id}
+                      item={it}
+                      onEdit={() => openEdit(it)}
+                      onToggle={() => toggle(it)}
+                      onToggleFeatured={() => toggleFeatured(it)}
+                      onDelete={() => quickDelete(it)}
+                    />
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
           </section>
         ))}
       </div>
@@ -256,6 +361,59 @@ function MenuPage() {
       )}
       <style>{`.ed-input{width:100%;border:1px solid hsl(var(--border));background:hsl(var(--background));border-radius:8px;padding:8px 10px;font-size:14px;color:inherit}`}</style>
     </div>
+  );
+}
+
+function SortableRow({
+  item: it,
+  onEdit,
+  onToggle,
+  onToggleFeatured,
+  onDelete,
+}: {
+  item: MenuItem;
+  onEdit: () => void;
+  onToggle: () => void;
+  onToggleFeatured: () => void;
+  onDelete: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: it.id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <li ref={setNodeRef} style={style} className="flex items-center gap-2 p-2.5 md:gap-3 md:p-3">
+      <button
+        {...attributes}
+        {...listeners}
+        className="touch-none cursor-grab text-muted-foreground/50 hover:text-foreground active:cursor-grabbing"
+        aria-label="Trascina per riordinare"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <button onClick={onEdit} className="min-w-0 flex-1 text-left">
+        <div className={`text-sm font-medium ${!it.available ? "text-muted-foreground line-through" : ""}`}>
+          {it.featured && <span className="mr-1 text-amber-500">⭐</span>}
+          {it.name}
+        </div>
+        {it.description && <div className="truncate text-xs text-muted-foreground">{it.description}</div>}
+      </button>
+      <div className="shrink-0 text-sm text-terracotta">{it.price != null ? `€ ${Number(it.price).toFixed(2)}` : "—"}</div>
+      <button onClick={onToggleFeatured} title="In evidenza" className={`shrink-0 text-base transition ${it.featured ? "text-amber-500" : "text-muted-foreground/40 hover:text-amber-500"}`}>★</button>
+      <button onClick={onToggle} className={`relative h-5 w-9 shrink-0 rounded-full transition ${it.available ? "bg-terracotta" : "bg-border"}`} title={it.available ? "Disponibile" : "Non disponibile"}>
+        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-paper transition ${it.available ? "left-[18px]" : "left-0.5"}`} />
+      </button>
+      <button
+        onClick={onDelete}
+        className="shrink-0 rounded-md p-1.5 text-muted-foreground/60 transition hover:bg-destructive/10 hover:text-destructive"
+        title="Elimina definitivamente"
+        aria-label="Elimina"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </li>
   );
 }
 
