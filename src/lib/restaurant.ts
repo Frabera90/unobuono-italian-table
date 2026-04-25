@@ -62,6 +62,8 @@ export type MenuItem = {
   available: boolean;
   photo_url: string | null;
   allergens: string | null;
+  allergen_tags?: string[] | null;
+  diet_tags?: string[] | null;
   sort_order: number;
   updated_at: string;
   featured?: boolean | null;

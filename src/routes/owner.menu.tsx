@@ -23,6 +23,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Trash2 } from "lucide-react";
+import { ALLERGENS, DIETS, type AllergenKey, type DietKey } from "@/lib/allergens";
 
 export const Route = createFileRoute("/owner/menu")({
   head: () => ({ meta: [{ title: "Menu — Unobuono" }] }),
@@ -51,7 +52,7 @@ const CATEGORY_ORDER = [
   "Altro",
 ];
 const DEFAULT_CATEGORIES = ["Antipasti", "Primi", "Secondi", "Pizze", "Contorni", "Dolci", "Bevande", "Vini"];
-const EMPTY: Partial<MenuItem> = { name: "", description: "", price: 0, category: "", available: true, allergens: "" };
+const EMPTY: Partial<MenuItem> = { name: "", description: "", price: 0, category: "", available: true, allergens: "", allergen_tags: [], diet_tags: [] };
 
 // Indice della categoria nell'ordine canonico (case-insensitive, fuzzy)
 function categoryRank(cat: string | null | undefined): number {
@@ -178,6 +179,8 @@ function MenuPage() {
       available: edit.available !== false,
       featured: !!edit.featured,
       allergens: edit.allergens,
+      allergen_tags: edit.allergen_tags || [],
+      diet_tags: edit.diet_tags || [],
       updated_at: new Date().toISOString(),
     };
     if (edit.id) {
@@ -185,7 +188,6 @@ function MenuPage() {
       if (error) return toast.error(error.message);
       toast.success("Aggiornato");
     } else {
-      // Calcola sort_order = max corrente in categoria + 1
       const sameCat = items.filter((i) => (i.category || "") === finalCategory);
       const maxSort = sameCat.reduce((m, i) => Math.max(m, i.sort_order ?? 0), -1);
       const { error } = await supabase.from("menu_items").insert({ ...payload, restaurant_id: restaurant.id, sort_order: maxSort + 1 });
@@ -234,6 +236,8 @@ function MenuPage() {
         const k = cat || "";
         const next = (maxByCat.get(k) ?? -1) + 1;
         maxByCat.set(k, next);
+        const validAllergens = new Set(ALLERGENS.map((a) => a.key));
+        const validDiets = new Set(DIETS.map((d) => d.key));
         return {
           restaurant_id: restaurant.id,
           name: String(it.name || "").slice(0, 200),
@@ -241,6 +245,8 @@ function MenuPage() {
           price: it.price != null && !Number.isNaN(Number(it.price)) ? Number(it.price) : null,
           category: cat,
           available: true,
+          allergen_tags: Array.isArray(it.allergen_tags) ? it.allergen_tags.filter((x: any) => validAllergens.has(x)) : [],
+          diet_tags: Array.isArray(it.diet_tags) ? it.diet_tags.filter((x: any) => validDiets.has(x)) : [],
           sort_order: next,
           updated_at: new Date().toISOString(),
         };
@@ -338,8 +344,52 @@ function MenuPage() {
               <Field label="Descrizione"><textarea value={edit.description || ""} onChange={(e) => setEdit({ ...edit, description: e.target.value })} className="ed-input" rows={2} /></Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Prezzo €"><input type="number" step="0.5" value={edit.price ?? ""} onChange={(e) => setEdit({ ...edit, price: e.target.value === "" ? (null as any) : Number(e.target.value) })} className="ed-input" /></Field>
-                <Field label="Allergeni"><input value={edit.allergens || ""} onChange={(e) => setEdit({ ...edit, allergens: e.target.value })} className="ed-input" placeholder="glutine, latte" /></Field>
+                <Field label="Note allergeni (testo libero)"><input value={edit.allergens || ""} onChange={(e) => setEdit({ ...edit, allergens: e.target.value })} className="ed-input" placeholder="es. tracce di..." /></Field>
               </div>
+
+              <Field label="Allergeni (UE)">
+                <div className="flex flex-wrap gap-1.5">
+                  {ALLERGENS.map((a) => {
+                    const active = (edit.allergen_tags || []).includes(a.key);
+                    return (
+                      <button
+                        key={a.key}
+                        type="button"
+                        onClick={() => {
+                          const cur = new Set(edit.allergen_tags || []);
+                          if (active) cur.delete(a.key); else cur.add(a.key);
+                          setEdit({ ...edit, allergen_tags: Array.from(cur) as AllergenKey[] });
+                        }}
+                        className={`rounded-full border px-2 py-1 text-xs transition ${active ? "border-terracotta bg-terracotta/10 text-terracotta" : "border-border text-muted-foreground hover:bg-cream"}`}
+                      >
+                        {a.emoji} {a.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Field>
+
+              <Field label="Diete / opzioni">
+                <div className="flex flex-wrap gap-1.5">
+                  {DIETS.map((d) => {
+                    const active = (edit.diet_tags || []).includes(d.key);
+                    return (
+                      <button
+                        key={d.key}
+                        type="button"
+                        onClick={() => {
+                          const cur = new Set(edit.diet_tags || []);
+                          if (active) cur.delete(d.key); else cur.add(d.key);
+                          setEdit({ ...edit, diet_tags: Array.from(cur) as DietKey[] });
+                        }}
+                        className={`rounded-full border px-2 py-1 text-xs transition ${active ? "border-emerald-600 bg-emerald-600/10 text-emerald-700" : "border-border text-muted-foreground hover:bg-cream"}`}
+                      >
+                        {d.emoji} {d.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Field>
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={edit.available !== false} onChange={(e) => setEdit({ ...edit, available: e.target.checked })} />
                 Disponibile
@@ -399,6 +449,20 @@ function SortableRow({
           {it.name}
         </div>
         {it.description && <div className="truncate text-xs text-muted-foreground">{it.description}</div>}
+        {((it.diet_tags?.length ?? 0) > 0 || (it.allergen_tags?.length ?? 0) > 0) && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {(it.diet_tags || []).slice(0, 3).map((t) => (
+              <span key={t} className="rounded-full bg-emerald-600/10 px-1.5 py-0.5 text-[10px] text-emerald-700" title="Dieta">
+                {DIETS.find((d) => d.key === t)?.emoji}
+              </span>
+            ))}
+            {(it.allergen_tags || []).slice(0, 5).map((t) => (
+              <span key={t} className="rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-700" title={ALLERGENS.find((a) => a.key === t)?.label || t}>
+                {ALLERGENS.find((a) => a.key === t)?.emoji}
+              </span>
+            ))}
+          </div>
+        )}
       </button>
       <div className="shrink-0 text-sm text-terracotta">{it.price != null ? `€ ${Number(it.price).toFixed(2)}` : "—"}</div>
       <button onClick={onToggleFeatured} title="In evidenza" className={`shrink-0 text-base transition ${it.featured ? "text-amber-500" : "text-muted-foreground/40 hover:text-amber-500"}`}>★</button>
