@@ -2,7 +2,8 @@ import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tansta
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyRestaurant, type Restaurant } from "@/lib/restaurant";
-import { Menu, X } from "lucide-react";
+import { X } from "lucide-react";
+import { BrandLockup, BrandMark } from "@/components/brand";
 
 export const Route = createFileRoute("/owner")({
   head: () => ({
@@ -12,16 +13,16 @@ export const Route = createFileRoute("/owner")({
 });
 
 const NAV = [
-  { to: "/owner/dashboard", label: "Dashboard", icon: "📊" },
-  { to: "/owner/reservations", label: "Prenotazioni", icon: "📅" },
-  { to: "/owner/sala", label: "Sala & Tavoli", icon: "🪑" },
-  { to: "/owner/menu", label: "Menu", icon: "🍕" },
-  { to: "/owner/qr", label: "QR Code", icon: "📱" },
-  { to: "/owner/staff", label: "Staff", icon: "👨‍🍳" },
-  { to: "/owner/crm", label: "Clienti", icon: "👥" },
-  { to: "/owner/social", label: "Social", icon: "📸" },
-  { to: "/owner/settings", label: "Il mio locale", icon: "🏠" },
-  { to: "/owner/pro", label: "Pro / Prossimamente", icon: "✨" },
+  { to: "/owner/dashboard", label: "Dashboard", short: "Home", icon: "📊" },
+  { to: "/owner/reservations", label: "Prenotazioni", short: "Preno", icon: "📅" },
+  { to: "/owner/sala", label: "Sala & Tavoli", short: "Sala", icon: "🪑" },
+  { to: "/owner/menu", label: "Menu", short: "Menu", icon: "🍕" },
+  { to: "/owner/qr", label: "QR Code", short: "QR", icon: "📱" },
+  { to: "/owner/staff", label: "Staff", short: "Staff", icon: "👨‍🍳" },
+  { to: "/owner/crm", label: "Clienti", short: "Clienti", icon: "👥" },
+  { to: "/owner/social", label: "Social", short: "Social", icon: "📸" },
+  { to: "/owner/settings", label: "Il mio locale", short: "Locale", icon: "🏠" },
+  { to: "/owner/pro", label: "Pro / Prossimamente", short: "Pro", icon: "✨" },
 ] as const;
 
 function OwnerLayout() {
@@ -71,12 +72,8 @@ function OwnerLayout() {
   return (
     <div className="min-h-screen bg-cream md:flex">
       <aside className="hidden w-64 shrink-0 flex-col border-r-2 border-ink bg-ink p-5 text-paper md:flex">
-        <div className="mb-8 flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-yellow font-display text-ink">U</span>
-          <div className="min-w-0">
-            <p className="font-display text-lg uppercase leading-none tracking-tight">UNOBUONO</p>
-            <p className="mt-1 truncate font-mono text-[9px] uppercase tracking-[0.2em] text-paper/50">{restaurant?.name || "—"}</p>
-          </div>
+        <div className="mb-8">
+          <BrandLockup variant="yellow" size="md" subtitle={restaurant?.name || "—"} />
         </div>
         <nav className="flex-1 space-y-1 overflow-y-auto">
           {NAV.map((n) => {
@@ -98,36 +95,30 @@ function OwnerLayout() {
       <main className="min-w-0 flex-1 pb-24 md:pb-0">
         {/* Header mobile (senza burger: il menu sta nel bottom nav "Altro") */}
         <div className="sticky top-0 z-20 flex items-center justify-between border-b-2 border-ink bg-ink px-4 py-3 text-paper md:hidden">
-          <div className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-yellow font-display text-ink">U</span>
-            <div className="min-w-0">
-              <p className="font-display text-sm uppercase leading-none tracking-tight">UNOBUONO</p>
-              <p className="mt-0.5 truncate font-mono text-[8px] uppercase tracking-[0.2em] text-paper/50">{restaurant?.name || "—"}</p>
-            </div>
-          </div>
+          <BrandLockup variant="yellow" size="sm" subtitle={restaurant?.name || "—"} />
         </div>
 
         <Outlet />
       </main>
 
       {/* Bottom nav mobile: 4 voci principali + Altro */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 gap-0.5 border-t-2 border-ink bg-ink px-1 py-1.5 text-paper md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t-2 border-ink bg-ink text-paper md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         {NAV.slice(0, 4).map((n) => {
           const active = loc.pathname.startsWith(n.to);
           return (
             <Link key={n.to} to={n.to}
-              className={`flex min-w-0 flex-col items-center justify-center rounded-lg px-1 py-1.5 ${active ? "bg-yellow text-ink" : "text-paper/70"}`}>
-              <span className="text-base leading-none">{n.icon}</span>
-              <span className="mt-0.5 w-full truncate text-center text-[9px] font-bold uppercase tracking-wider leading-tight">{n.label}</span>
+              className={`flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-2 text-center ${active ? "bg-yellow text-ink" : "text-paper/70"}`}>
+              <span className="text-[18px] leading-none">{n.icon}</span>
+              <span className="block w-full truncate text-[10px] font-bold uppercase leading-none tracking-wide">{n.short}</span>
             </Link>
           );
         })}
         <button
           onClick={() => setMenuOpen(true)}
-          className={`flex min-w-0 flex-col items-center justify-center rounded-lg px-1 py-1.5 ${menuOpen ? "bg-yellow text-ink" : "text-paper/70"}`}
+          className={`flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-2 text-center ${menuOpen ? "bg-yellow text-ink" : "text-paper/70"}`}
         >
-          <span className="text-base leading-none">☰</span>
-          <span className="mt-0.5 text-[9px] font-bold uppercase tracking-wider leading-tight">Altro</span>
+          <span className="text-[18px] leading-none">☰</span>
+          <span className="block w-full truncate text-[10px] font-bold uppercase leading-none tracking-wide">Altro</span>
         </button>
       </nav>
 
@@ -137,7 +128,8 @@ function OwnerLayout() {
           <div className="absolute inset-0 bg-ink/60" onClick={() => setMenuOpen(false)} />
           <div className="absolute right-0 top-0 flex h-full w-[82%] max-w-sm flex-col border-l-2 border-ink bg-ink p-5 text-paper shadow-2xl">
             <div className="mb-6 flex items-center justify-between">
-              <p className="font-display text-lg uppercase tracking-tight">Menu</p>
+              <BrandLockup variant="yellow" size="sm" />
+              <span className="sr-only">Menu</span>
               <button onClick={() => setMenuOpen(false)} className="grid h-9 w-9 place-items-center rounded-lg border border-paper/20" aria-label="Chiudi menu">
                 <X className="h-5 w-5" />
               </button>

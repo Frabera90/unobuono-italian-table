@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { BrandMark } from "@/components/brand";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -41,7 +42,7 @@ function HomePage() {
     <main className="min-h-screen bg-yellow text-ink">
       <nav className="flex items-center justify-between border-b-2 border-ink px-5 py-4 md:px-10">
         <div className="flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-ink text-yellow font-display text-sm">U</span>
+          <BrandMark variant="dark" className="h-9 w-9" />
           <span className="font-display text-xl uppercase tracking-tight md:text-2xl">UNOBUONO</span>
         </div>
         <Link
@@ -102,7 +103,7 @@ function HomePage() {
       <footer className="border-t-2 border-ink bg-yellow px-5 py-8 md:px-10">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="grid h-7 w-7 place-items-center rounded-full bg-ink text-yellow font-display text-xs">U</span>
+            <BrandMark variant="dark" className="h-7 w-7" />
             <span className="font-display text-lg uppercase tracking-tight">UNOBUONO</span>
           </div>
           <p className="font-mono text-xs uppercase tracking-widest">Il gestionale più buono d'Italia</p>

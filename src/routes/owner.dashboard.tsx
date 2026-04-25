@@ -75,24 +75,24 @@ function DashboardPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-7">
-      <header className="mb-6">
-        <h1 className="font-display text-3xl">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Tutto quello che succede stasera, in tempo reale.</p>
+    <div className="mx-auto max-w-6xl px-4 py-5 md:px-5 md:py-7">
+      <header className="mb-5 md:mb-6">
+        <h1 className="font-display text-2xl md:text-3xl">Dashboard</h1>
+        <p className="text-xs text-muted-foreground md:text-sm">Tutto quello che succede stasera, in tempo reale.</p>
       </header>
 
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <section className="grid grid-cols-2 gap-2.5 md:gap-3 md:grid-cols-4">
         <StatLink to="/owner/reservations" icon="📅" label="Prenotazioni oggi" value={stats.resv} />
         <StatLink to="/owner/reservations" icon="🛵" label="Pre-ordini" value={stats.preo} />
         <StatLink to="/owner/reviews" icon="⭐" label="Recensioni nuove" value={stats.reviews} alert={stats.reviews > 0} />
         <StatLink to="/owner/reservations" icon="⏳" label="Lista d'attesa" value={stats.waitlist} />
       </section>
 
-      <div className="mt-7 grid gap-5 lg:grid-cols-3">
-        <section className="lg:col-span-2 rounded-2xl border border-border bg-card p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-display text-xl">Attività in tempo reale</h2>
-            <Link to="/owner/reservations" className="font-mono text-[10px] uppercase tracking-wider text-terracotta hover:underline">
+      <div className="mt-5 grid gap-4 md:mt-7 md:gap-5 lg:grid-cols-3">
+        <section className="lg:col-span-2 rounded-2xl border border-border bg-card p-4 md:p-5">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="font-display text-lg md:text-xl">Attività in tempo reale</h2>
+            <Link to="/owner/reservations" className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-terracotta hover:underline">
               Vedi tutto →
             </Link>
           </div>
@@ -101,28 +101,28 @@ function DashboardPage() {
           ) : (
             <ul className="space-y-2">
               {activity.map((a) => (
-                <li key={a.id} className="flex items-start gap-3 rounded-lg border border-border/60 bg-background/40 px-3 py-2 text-sm slide-in-right">
-                  <span className="text-base">{a.icon}</span>
-                  <span className="flex-1">{a.text}</span>
-                  <span className="text-xs text-muted-foreground">{relTime(a.ts)}</span>
+                <li key={a.id} className="flex items-start gap-2 rounded-lg border border-border/60 bg-background/40 px-2.5 py-2 text-sm slide-in-right md:gap-3 md:px-3">
+                  <span className="shrink-0 text-base leading-tight">{a.icon}</span>
+                  <span className="min-w-0 flex-1 break-words text-[13px] leading-snug md:text-sm">{a.text}</span>
+                  <span className="shrink-0 text-[10px] text-muted-foreground md:text-xs">{relTime(a.ts)}</span>
                 </li>
               ))}
             </ul>
           )}
         </section>
 
-        <section className="rounded-2xl border border-border bg-card p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-display text-xl">Menu — disponibilità</h2>
-            <Link to="/owner/menu" className="font-mono text-[10px] uppercase tracking-wider text-terracotta hover:underline">
+        <section className="rounded-2xl border border-border bg-card p-4 md:p-5">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="font-display text-lg md:text-xl">Menu — disponibilità</h2>
+            <Link to="/owner/menu" className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-terracotta hover:underline">
               Modifica →
             </Link>
           </div>
-          <ul className="max-h-[60vh] space-y-1 overflow-y-auto pr-1">
+          <ul className="max-h-[50vh] space-y-1 overflow-y-auto pr-1 md:max-h-[60vh]">
             {items.map((it) => (
               <li key={it.id} className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 hover:bg-cream-dark/50">
                 <span className={`min-w-0 flex-1 truncate text-sm ${!it.available ? "text-muted-foreground line-through" : ""}`}>{it.name}</span>
-                <button onClick={() => toggleItem(it)} className={`relative h-5 w-9 rounded-full transition ${it.available ? "bg-terracotta" : "bg-border"}`}>
+                <button onClick={() => toggleItem(it)} className={`relative h-5 w-9 shrink-0 rounded-full transition ${it.available ? "bg-terracotta" : "bg-border"}`}>
                   <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-paper transition ${it.available ? "left-[18px]" : "left-0.5"}`} />
                 </button>
               </li>
@@ -138,14 +138,14 @@ function StatLink({ to, icon, label, value, alert }: { to: string; icon: string;
   return (
     <Link
       to={to}
-      className="block rounded-2xl border border-border bg-card p-5 transition hover:border-terracotta hover:shadow-md"
+      className="block rounded-2xl border border-border bg-card p-3.5 transition hover:border-terracotta hover:shadow-md md:p-5"
     >
-      <div className="text-2xl">{icon}</div>
-      <div className="mt-2 font-display text-3xl">
+      <div className="text-xl md:text-2xl">{icon}</div>
+      <div className="mt-1.5 font-display text-2xl md:mt-2 md:text-3xl">
         {value}
         {alert && value > 0 && <span className="ml-2 inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-destructive align-middle" />}
       </div>
-      <div className="mt-1 text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground md:text-xs">{label}</div>
     </Link>
   );
 }
