@@ -128,7 +128,8 @@ function OwnerLayout() {
           <div className="absolute inset-0 bg-ink/60" onClick={() => setMenuOpen(false)} />
           <div className="absolute right-0 top-0 flex h-full w-[82%] max-w-sm flex-col border-l-2 border-ink bg-ink p-5 text-paper shadow-2xl">
             <div className="mb-6 flex items-center justify-between">
-              <p className="font-display text-lg uppercase tracking-tight">Menu</p>
+              <BrandLockup variant="yellow" size="sm" />
+              <span className="sr-only">Menu</span>
               <button onClick={() => setMenuOpen(false)} className="grid h-9 w-9 place-items-center rounded-lg border border-paper/20" aria-label="Chiudi menu">
                 <X className="h-5 w-5" />
               </button>
