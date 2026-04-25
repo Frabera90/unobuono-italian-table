@@ -73,7 +73,7 @@ export const callAIVision = createServerFn({ method: "POST" })
   });
 
 export const enhanceImage = createServerFn({ method: "POST" })
-  .inputValidator((input: { imageBase64: string; mimeType: string; style?: string }) => input)
+  .inputValidator((input: { imageBase64: string; mimeType: string; style?: string; extraInstructions?: string }) => input)
   .handler(async ({ data }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
@@ -103,7 +103,9 @@ export const enhanceImage = createServerFn({ method: "POST" })
     const dishLock = allowsAddons
       ? "CRITICAL: The DISH itself, the ingredients, the toppings and the plate MUST stay 100% identical and recognizable. You may only add tasteful surrounding props/styling/light as described above. Output the enhanced image."
       : "CRITICAL: Do NOT change the dish itself, the ingredients, the toppings, the plate or the composition. Only enhance photo quality and ambient styling. Output the enhanced image.";
-    const prompt = `${stylePrompt} ${dishLock}`;
+    const extra = (data.extraInstructions || "").trim().slice(0, 280);
+    const extraBlock = extra ? ` ADDITIONAL USER REQUEST (apply gently, never break the dish): ${extra}.` : "";
+    const prompt = `${stylePrompt} ${dishLock}${extraBlock}`;
 
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
