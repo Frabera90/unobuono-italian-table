@@ -10,39 +10,52 @@ export type StylePreset = {
   is_default: boolean;
 };
 
+// STILE VISIVO — uno solo (luce, colori, sfondo, mood)
 const STYLE_OPTIONS = [
-  { k: "auto", label: "Auto", emoji: "🪄", hint: "Migliora luce e colori, niente di più" },
-  { k: "bright", label: "Luminoso", emoji: "☀️", hint: "Luce naturale calda da finestra" },
-  { k: "moody", label: "Caldo / moody", emoji: "🕯️", hint: "Atmosfera trattoria a lume di candela" },
-  { k: "clean", label: "Pulito", emoji: "⚪", hint: "Sfondo bianco, stile studio" },
-  { k: "minimal", label: "Minimal", emoji: "🤍", hint: "Editoriale scandinavo, spazio bianco" },
-  { k: "elegant", label: "Elegante", emoji: "🥂", hint: "Fine dining, sfondo scuro, oro" },
-  { k: "bistrot", label: "Bistrot", emoji: "🍷", hint: "Tavolo legno, lino, vino — italiano vero" },
-  { k: "rustic", label: "Rustico", emoji: "🌾", hint: "Farm-to-table, terracotta, ingredienti" },
-  { k: "vintage", label: "Vintage", emoji: "📻", hint: "Anni 70, toni caldi, grana film" },
-  { k: "noir", label: "Noir", emoji: "🌑", hint: "Sfondo nero, luce cinematografica" },
-  { k: "pop", label: "Pop", emoji: "🎨", hint: "Sfondo colorato, vivace, contemporaneo" },
-  { k: "overhead", label: "Dall'alto", emoji: "🔝", hint: "Flat lay simmetrico" },
-  { k: "pro_magazine", label: "Pro magazine", emoji: "📸", hint: "Qualità food magazine, bokeh, pro" },
+  { k: "auto", label: "Auto", emoji: "🪄", hint: "Migliora luce e colori" },
+  { k: "bright", label: "Luminoso", emoji: "☀️", hint: "Luce naturale calda" },
+  { k: "moody", label: "Caldo / moody", emoji: "🕯️", hint: "Lume di candela" },
+  { k: "clean", label: "Pulito", emoji: "⚪", hint: "Sfondo bianco studio" },
+  { k: "minimal", label: "Minimal", emoji: "🤍", hint: "Editoriale scandinavo" },
+  { k: "elegant", label: "Elegante", emoji: "🥂", hint: "Fine dining scuro" },
+  { k: "bistrot", label: "Bistrot", emoji: "🍷", hint: "Trattoria italiana" },
+  { k: "rustic", label: "Rustico", emoji: "🌾", hint: "Farm-to-table" },
+  { k: "vintage", label: "Vintage", emoji: "📻", hint: "Anni 70 film" },
+  { k: "noir", label: "Noir", emoji: "🌑", hint: "Sfondo nero cinematico" },
+  { k: "pop", label: "Pop", emoji: "🎨", hint: "Colorato vivace" },
+  { k: "overhead", label: "Dall'alto", emoji: "🔝", hint: "Flat lay 90°" },
+  { k: "pro_magazine", label: "Pro magazine", emoji: "📸", hint: "Food magazine" },
 ] as const;
 
-const ADDONS = [
+// CONTESTO / ADDONS — multi-select (oggetti, persone attorno al piatto)
+export const ADDON_OPTIONS = [
   { k: "hands", label: "Mani sul piatto", emoji: "🖐️" },
   { k: "context", label: "Contesto tavola", emoji: "🍽️" },
+  { k: "eating", label: "Qualcuno che mangia", emoji: "😋" },
+  { k: "props", label: "Styling props", emoji: "🌿" },
+  { k: "steam", label: "Vapore", emoji: "♨️" },
+  { k: "drink", label: "Bicchiere sfondo", emoji: "🍷" },
 ] as const;
+
+export type AddonKey = (typeof ADDON_OPTIONS)[number]["k"];
 
 export function StyleWizard({
   restaurantId,
+  initialStyle,
+  initialAddons,
   onApply,
   onClose,
 }: {
   restaurantId: string;
-  onApply: (style: string, extra: string) => void;
+  initialStyle?: string;
+  initialAddons?: string[];
+  onApply: (style: string, addons: string[], extra: string) => void;
   onClose: () => void;
 }) {
   const [presets, setPresets] = useState<StylePreset[]>([]);
   const [tab, setTab] = useState<"presets" | "new">("presets");
-  const [selectedStyle, setSelectedStyle] = useState<string>("bistrot");
+  const [selectedStyle, setSelectedStyle] = useState<string>(initialStyle || "bistrot");
+  const [selectedAddons, setSelectedAddons] = useState<string[]>(initialAddons || []);
   const [extra, setExtra] = useState("");
   const [name, setName] = useState("");
   const [setDefault, setSetDefault] = useState(false);
@@ -64,6 +77,10 @@ export function StyleWizard({
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantId]);
+
+  function toggleAddon(k: string) {
+    setSelectedAddons((arr) => (arr.includes(k) ? arr.filter((x) => x !== k) : [...arr, k]));
+  }
 
   async function savePreset() {
     if (!name.trim()) { toast.error("Dai un nome al preset"); return; }
@@ -100,12 +117,12 @@ export function StyleWizard({
   }
 
   function applyPreset(p: StylePreset) {
-    onApply(p.style_key, p.extra_instructions || "");
+    onApply(p.style_key, selectedAddons, p.extra_instructions || "");
     onClose();
   }
 
   function applyNow() {
-    onApply(selectedStyle, extra.trim());
+    onApply(selectedStyle, selectedAddons, extra.trim());
     onClose();
   }
 
@@ -167,7 +184,7 @@ export function StyleWizard({
           <div className="space-y-4">
             <div>
               <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                1️⃣ Scegli lo stile base
+                1️⃣ Stile visivo (uno) — luce, colori, sfondo
               </label>
               <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
                 {STYLE_OPTIONS.map((s) => (
@@ -182,27 +199,39 @@ export function StyleWizard({
                   </button>
                 ))}
               </div>
-              <div className="mt-2 grid grid-cols-2 gap-1.5">
-                {ADDONS.map((a) => (
-                  <button
-                    key={a.k}
-                    onClick={() => setSelectedStyle(a.k)}
-                    className={`rounded-lg border-2 px-2 py-2 text-xs transition ${selectedStyle === a.k ? "border-ink bg-yellow" : "border-ink/20 bg-paper hover:border-ink/60"}`}
-                  >
-                    {a.emoji} {a.label}
-                  </button>
-                ))}
+            </div>
+
+            <div>
+              <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                2️⃣ Contesto (anche più di uno) — cosa metto attorno
+              </label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {ADDON_OPTIONS.map((a) => {
+                  const on = selectedAddons.includes(a.k);
+                  return (
+                    <button
+                      key={a.k}
+                      onClick={() => toggleAddon(a.k)}
+                      className={`rounded-lg border-2 px-2 py-2 text-xs transition ${on ? "border-ink bg-yellow" : "border-ink/20 bg-paper hover:border-ink/60"}`}
+                    >
+                      {on ? "✓ " : ""}{a.emoji} {a.label}
+                    </button>
+                  );
+                })}
               </div>
+              {selectedAddons.length === 0 && (
+                <p className="mt-1 text-[10px] text-muted-foreground">Nessuno = solo il piatto, niente extra attorno.</p>
+              )}
             </div>
 
             <div>
               <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                2️⃣ Note extra (opzionale, max 280 char)
+                3️⃣ Note extra (opzionale, max 280 char)
               </label>
               <textarea
                 value={extra}
                 onChange={(e) => setExtra(e.target.value.slice(0, 280))}
-                placeholder='es. "tovaglietta a quadri rossa", "luce dalla destra", "niente posate"'
+                placeholder='es. "tovaglietta a quadri rossa", "luce dalla destra"'
                 rows={2}
                 className="w-full rounded-lg border-2 border-ink/30 bg-background p-2 text-sm"
               />

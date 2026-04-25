@@ -7,6 +7,7 @@ import { CalendarGrid } from "@/components/social/CalendarGrid";
 import { PlanGenerator } from "@/components/social/PlanGenerator";
 import { StyleWizard } from "@/components/social/StyleWizard";
 import { EditChips } from "@/components/social/EditChips";
+import type { AddonKey } from "@/components/social/StyleWizard";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/owner/social")({
@@ -51,6 +52,7 @@ function SocialPage() {
   const [enhanced, setEnhanced] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [lastStyle, setLastStyle] = useState<string>("auto");
+  const [lastAddons, setLastAddons] = useState<AddonKey[]>([]);
   const [lastExtra, setLastExtra] = useState<string>("");
 
   const fileRef = useRef<HTMLInputElement>(null);
@@ -168,15 +170,15 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
   type EnhanceStyle =
     | "auto" | "bright" | "moody" | "clean"
     | "pro_magazine" | "minimal" | "elegant" | "bistrot"
-    | "rustic" | "hands" | "context" | "overhead"
+    | "rustic" | "overhead"
     | "pop" | "vintage" | "noir";
 
-  async function enhance(style: EnhanceStyle, extraInstructions = "") {
+  async function enhance(style: EnhanceStyle, addons: AddonKey[] = [], extraInstructions = "") {
     if (!imageDataUrl || enhancing) return;
     setEnhancing(true);
     try {
       const base64 = imageDataUrl.split(",")[1] || "";
-      const r = await enhanceImage({ data: { imageBase64: base64, mimeType: imageMime, style, extraInstructions } });
+      const r = await enhanceImage({ data: { imageBase64: base64, mimeType: imageMime, style, addons, extraInstructions } });
       if (r.error === "rate_limit") { toast.error("Troppe richieste. Riprova tra poco."); return; }
       if (r.error === "credits") { toast.error("Crediti AI esauriti."); return; }
       if (r.error || !r.imageUrl) { toast.error("Ritocco non riuscito. Riprova."); return; }
@@ -185,6 +187,7 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
       setImageMime("image/png");
       setEnhanced(true);
       setLastStyle(style);
+      setLastAddons(addons);
       setLastExtra(extraInstructions);
       toast.success("Foto ritoccata ✨");
     } catch (e: any) {
@@ -421,7 +424,7 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
                     🎨 Scegli stile
                   </button>
                   <button
-                    onClick={() => enhance("auto")}
+                    onClick={() => enhance("auto", [])}
                     disabled={enhancing || step !== "review"}
                     className="rounded-lg border-2 border-ink bg-ink px-3 py-2 text-xs font-bold uppercase text-paper hover:bg-yellow hover:text-ink disabled:opacity-40"
                   >
@@ -432,11 +435,16 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
                 {enhanced && (
                   <div className="mt-3 rounded-lg border border-ink/30 bg-paper/70 p-2">
                     <EditChips
-                      onPick={(instr) => enhance(lastStyle as EnhanceStyle, instr)}
+                      activeAddons={lastAddons}
+                      onAdd={(a) => enhance(lastStyle as EnhanceStyle, [...lastAddons, a], lastExtra)}
+                      onRemove={(a) => enhance(lastStyle as EnhanceStyle, lastAddons.filter((x) => x !== a), lastExtra)}
+                      onTone={(instr) => enhance(lastStyle as EnhanceStyle, lastAddons, instr)}
                       disabled={enhancing}
                     />
                     <p className="mt-2 text-[10px] text-muted-foreground">
-                      Stile attivo: <strong>{lastStyle}</strong>{lastExtra ? ` · "${lastExtra.slice(0, 40)}${lastExtra.length > 40 ? "…" : ""}"` : ""}
+                      Stile: <strong>{lastStyle}</strong>
+                      {lastAddons.length > 0 ? ` · contesto: ${lastAddons.join(", ")}` : ""}
+                      {lastExtra ? ` · "${lastExtra.slice(0, 40)}${lastExtra.length > 40 ? "…" : ""}"` : ""}
                     </p>
                   </div>
                 )}
@@ -524,7 +532,9 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
       {wizardOpen && restaurant?.id && (
         <StyleWizard
           restaurantId={restaurant.id}
-          onApply={(style, extra) => enhance(style as EnhanceStyle, extra)}
+          initialStyle={lastStyle}
+          initialAddons={lastAddons}
+          onApply={(style, addons, extra) => enhance(style as EnhanceStyle, addons as AddonKey[], extra)}
           onClose={() => setWizardOpen(false)}
         />
       )}

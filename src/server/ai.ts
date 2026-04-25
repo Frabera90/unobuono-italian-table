@@ -73,39 +73,51 @@ export const callAIVision = createServerFn({ method: "POST" })
   });
 
 export const enhanceImage = createServerFn({ method: "POST" })
-  .inputValidator((input: { imageBase64: string; mimeType: string; style?: string; extraInstructions?: string }) => input)
+  .inputValidator((input: { imageBase64: string; mimeType: string; style?: string; addons?: string[]; extraInstructions?: string }) => input)
   .handler(async ({ data }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
 
+    // STILE VISIVO (uno solo) — descrive luce, colori, sfondo, mood. NON aggiunge oggetti/persone.
     const STYLES: Record<string, string> = {
-      // Naturali (realistici)
-      auto: "Professional food photography enhancement: improve lighting, sharpness, color balance and appetizing look. Keep the dish authentic and recognizable. Realistic, no added elements.",
-      bright: "Make it brighter, more vibrant, with natural warm lighting like sunlight from a window. Boost colors slightly. Subtle realistic enhancement only.",
-      moody: "Add moody warm restaurant lighting, deeper shadows, cinematic and intimate atmosphere like a candlelit trattoria. Realistic, no added elements.",
-      clean: "Clean white background, professional studio food photography lighting, minimal and elegant. Realistic only.",
-      // Stilizzati (food magazine quality)
-      pro_magazine: "Transform into a professional FOOD MAGAZINE photo: cinematic depth of field with creamy bokeh background, perfectly balanced soft warm lighting, crisp focus on the dish, vibrant appetizing colors, subtle steam if hot food, tiny natural garnish details (drops, herbs, crumbs) styled like a Michelin photographer, social-media ready composition.",
-      minimal: "Minimal Scandinavian editorial style: lots of negative space, neutral beige/off-white surface, soft diffused daylight from one side, perfectly clean composition, muted natural tones, single subject hero. Refined and quiet.",
-      elegant: "High-end fine dining photograph: dark elegant surface (slate or wood), dramatic single light source, deep rich shadows, gold/amber highlights on the dish, luxury restaurant mood, slight overhead 3/4 angle.",
-      bistrot: "Authentic Italian bistrot vibe: rustic wooden table, checkered linen napkin or aged ceramic, warm golden hour light from a side window, glass of wine softly out of focus in background, lived-in cosy atmosphere.",
-      rustic: "Warm rustic farm-to-table style: aged wooden cutting board, raw natural ingredients scattered around (herbs, garlic, olive oil drips), terracotta plate, warm earthy tones, slightly textured background.",
-      hands: "Add natural human hands gently interacting with the dish (pouring sauce from above, sprinkling herbs, holding a fork) — hands must look real, casual, hyperrealistic, slightly out of focus. The dish stays the hero, sharp and centered.",
-      context: "Add tasteful restaurant context around the plate: a glass of red wine, fresh bread, cutlery on linen napkin, soft blurred trattoria background with warm bokeh lights. The main dish stays sharply in focus.",
-      overhead: "Top-down flat lay food photography: perfectly overhead 90° angle, symmetrical composition, complementary props (bread, wine, herbs) arranged geometrically around the dish, soft even shadows, instagram-ready square framing.",
-      pop: "Bold modern pop-food editorial: clean colored background (warm terracotta or mustard yellow), high contrast, vivid saturated colors, slight tilt-shift, playful composition, contemporary cool restaurant brand vibe.",
-      vintage: "Vintage 70s Italian cookbook aesthetic: warm faded film tones, slight grain, soft matte highlights, nostalgic colors (mustard, ochre, olive, brick), checkered tablecloth optional, analog film look.",
-      noir: "Dark moody chef-table style: nearly black background, single rim light from behind making steam glow, deep contrast, dramatic shadows, single highlight on the dish, refined and intense.",
+      auto: "Professional food photography enhancement: improve lighting, sharpness, color balance and appetizing look. Keep the dish authentic and recognizable. Realistic.",
+      bright: "Bright vibrant lighting, natural warm sunlight feel like from a window. Boost colors slightly. Subtle realistic enhancement.",
+      moody: "Moody warm restaurant lighting, deeper shadows, cinematic intimate atmosphere like a candlelit trattoria.",
+      clean: "Clean white seamless background, professional studio food photography lighting, minimal and elegant.",
+      pro_magazine: "Professional FOOD MAGAZINE look: cinematic depth of field with creamy bokeh, perfectly balanced soft warm lighting, crisp focus on the dish, vibrant appetizing colors, Michelin-photographer styling.",
+      minimal: "Minimal Scandinavian editorial style: lots of negative space, neutral beige/off-white surface, soft diffused daylight from one side, muted natural tones.",
+      elegant: "High-end fine dining look: dark elegant surface (slate or wood), dramatic single light source, deep rich shadows, gold/amber highlights, luxury restaurant mood.",
+      bistrot: "Authentic Italian bistrot vibe: rustic wooden surface tone, warm golden hour light, lived-in cosy atmosphere — atmosphere only, no added props.",
+      rustic: "Warm rustic farm-to-table tone: aged wooden surface feel, warm earthy color palette, slightly textured background.",
+      overhead: "Top-down flat lay framing: perfectly overhead 90° angle, symmetrical composition, soft even shadows.",
+      pop: "Bold modern pop-food editorial: clean colored background (warm terracotta or mustard yellow), high contrast, vivid saturated colors, playful contemporary vibe.",
+      vintage: "Vintage 70s Italian cookbook aesthetic: warm faded film tones, slight grain, soft matte highlights, nostalgic colors (mustard, ochre, olive, brick), analog film look.",
+      noir: "Dark moody chef-table look: nearly black background, single rim light from behind, deep contrast, dramatic shadows, refined and intense.",
     };
-    const stylePrompt = STYLES[data.style || "auto"] || STYLES.auto;
 
-    const allowsAddons = ["hands", "context", "overhead", "pop", "rustic", "bistrot"].includes(data.style || "");
-    const dishLock = allowsAddons
-      ? "CRITICAL: The DISH itself, the ingredients, the toppings and the plate MUST stay 100% identical and recognizable. You may only add tasteful surrounding props/styling/light as described above. Output the enhanced image."
-      : "CRITICAL: Do NOT change the dish itself, the ingredients, the toppings, the plate or the composition. Only enhance photo quality and ambient styling. Output the enhanced image.";
+    // ADDONS / CONTESTO (multi) — aggiungono OGGETTI o PERSONE attorno al piatto.
+    const ADDONS: Record<string, string> = {
+      hands: "Add natural human hands gently interacting with the dish (pouring sauce, sprinkling herbs, or holding a fork from above) — hyperrealistic, casual, slightly out of focus. Dish stays the sharp hero.",
+      context: "Add tasteful restaurant context around the plate: a glass of wine, fresh bread, cutlery on a linen napkin, soft blurred background with warm bokeh. Dish stays sharp.",
+      eating: "Add a person subtly eating or about to eat the dish — only mouth/hand area visible, hyperrealistic, lifestyle feel. Dish remains the focus.",
+      props: "Add a few tasteful styling props nearby: linen napkin, small herbs, olive oil drops, raw ingredient hints. Keep composition clean.",
+      steam: "Add a subtle wisp of natural steam rising from the dish (only if it would be a hot dish), hyperrealistic.",
+      drink: "Add a softly out-of-focus glass of wine or drink in the background corner. Dish stays sharp and centered.",
+    };
+
+    const styleKey = data.style || "auto";
+    const stylePrompt = STYLES[styleKey] || STYLES.auto;
+    const addonKeys = (data.addons || []).filter((k) => ADDONS[k]);
+    const addonBlocks = addonKeys.map((k) => ADDONS[k]).join(" ");
+    const hasAddons = addonKeys.length > 0;
+
+    const dishLock = hasAddons
+      ? "CRITICAL: The DISH itself, its ingredients, toppings and plate MUST stay 100% identical and recognizable. You may only add the surrounding elements described above. No other additions. Output the enhanced image."
+      : "CRITICAL: Do NOT add any new objects, hands, people, props, drinks or food around the dish. Do NOT change the dish itself, the ingredients, the toppings, the plate or the composition. Only adjust lighting, color, sharpness and background mood. Output the enhanced image.";
+
     const extra = (data.extraInstructions || "").trim().slice(0, 280);
     const extraBlock = extra ? ` ADDITIONAL USER REQUEST (apply gently, never break the dish): ${extra}.` : "";
-    const prompt = `${stylePrompt} ${dishLock}${extraBlock}`;
+    const prompt = `STYLE: ${stylePrompt}${hasAddons ? ` CONTEXT TO ADD: ${addonBlocks}` : ""} ${dishLock}${extraBlock}`;
 
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
