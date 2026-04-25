@@ -424,7 +424,7 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
                     🎨 Scegli stile
                   </button>
                   <button
-                    onClick={() => enhance("auto")}
+                    onClick={() => enhance("auto", [])}
                     disabled={enhancing || step !== "review"}
                     className="rounded-lg border-2 border-ink bg-ink px-3 py-2 text-xs font-bold uppercase text-paper hover:bg-yellow hover:text-ink disabled:opacity-40"
                   >
@@ -435,11 +435,16 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
                 {enhanced && (
                   <div className="mt-3 rounded-lg border border-ink/30 bg-paper/70 p-2">
                     <EditChips
-                      onPick={(instr) => enhance(lastStyle as EnhanceStyle, instr)}
+                      activeAddons={lastAddons}
+                      onAdd={(a) => enhance(lastStyle as EnhanceStyle, [...lastAddons, a], lastExtra)}
+                      onRemove={(a) => enhance(lastStyle as EnhanceStyle, lastAddons.filter((x) => x !== a), lastExtra)}
+                      onTone={(instr) => enhance(lastStyle as EnhanceStyle, lastAddons, instr)}
                       disabled={enhancing}
                     />
                     <p className="mt-2 text-[10px] text-muted-foreground">
-                      Stile attivo: <strong>{lastStyle}</strong>{lastExtra ? ` · "${lastExtra.slice(0, 40)}${lastExtra.length > 40 ? "…" : ""}"` : ""}
+                      Stile: <strong>{lastStyle}</strong>
+                      {lastAddons.length > 0 ? ` · contesto: ${lastAddons.join(", ")}` : ""}
+                      {lastExtra ? ` · "${lastExtra.slice(0, 40)}${lastExtra.length > 40 ? "…" : ""}"` : ""}
                     </p>
                   </div>
                 )}
