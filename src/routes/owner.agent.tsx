@@ -259,29 +259,53 @@ function AgentPage() {
     return raw;
   }
 
+  const groupItems = SUGGESTION_GROUPS.find((g) => g.label === activeGroup)?.items || ALL_SUGGESTIONS;
+
   return (
-    <div className="mx-auto flex h-screen max-w-3xl flex-col px-5 py-7">
-      <header className="mb-4">
-        <h1 className="font-display text-3xl">Agente AI</h1>
-        <p className="text-sm text-muted-foreground">Comanda il ristorante in linguaggio naturale.</p>
+    <div className="mx-auto flex h-[calc(100dvh-3.5rem)] max-w-3xl flex-col px-3 py-4 md:h-screen md:px-5 md:py-7">
+      <header className="mb-3 md:mb-4">
+        <h1 className="font-display text-2xl md:text-3xl">Agente AI ✨</h1>
+        <p className="text-xs text-muted-foreground md:text-sm">Comanda il ristorante in linguaggio naturale.</p>
       </header>
 
-      <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto rounded-2xl border border-border bg-card p-4">
+      <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto rounded-2xl border border-border bg-card p-3 md:p-4">
         {msgs.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${m.role === "user" ? "bg-terracotta text-paper" : "bg-cream-dark/60 text-foreground"}`}>{m.content}</div>
+            <div className={`max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2.5 text-sm md:max-w-[80%] md:px-4 ${m.role === "user" ? "bg-terracotta text-paper" : "bg-cream-dark/60 text-foreground"}`}>{m.content}</div>
           </div>
         ))}
         {busy && <div className="text-sm text-muted-foreground">L'agente sta pensando...</div>}
       </div>
 
-      {msgs.length <= 2 && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {SUGGESTIONS.map((s) => (
-            <button key={s} onClick={() => send(s)} className="rounded-full border border-border bg-card px-3 py-1.5 text-xs hover:bg-cream-dark">{s}</button>
+      <div className="mt-3 space-y-2">
+        <div className="flex flex-wrap gap-1.5">
+          {SUGGESTION_GROUPS.map((g) => (
+            <button
+              key={g.label}
+              onClick={() => setActiveGroup(g.label)}
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider transition ${
+                activeGroup === g.label
+                  ? "border-ink bg-ink text-paper"
+                  : "border-border bg-card text-muted-foreground hover:border-ink"
+              }`}
+            >
+              {g.icon} {g.label}
+            </button>
           ))}
         </div>
-      )}
+        <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {groupItems.map((s) => (
+            <button
+              key={s}
+              onClick={() => send(s)}
+              disabled={busy}
+              className="shrink-0 rounded-full border border-border bg-card px-3 py-1.5 text-xs hover:bg-cream-dark disabled:opacity-50"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="mt-3 flex gap-2">
         <input
@@ -290,9 +314,9 @@ function AgentPage() {
           onKeyDown={(e) => e.key === "Enter" && send()}
           placeholder="Scrivi un comando..."
           disabled={busy}
-          className="flex-1 rounded-lg border border-border bg-card px-4 py-3 text-sm"
+          className="min-w-0 flex-1 rounded-lg border border-border bg-card px-4 py-3 text-sm"
         />
-        <button onClick={() => send()} disabled={busy || !input.trim()} className="rounded-lg bg-terracotta px-5 py-3 text-sm font-medium text-paper disabled:opacity-40">Invia</button>
+        <button onClick={() => send()} disabled={busy || !input.trim()} className="shrink-0 rounded-lg bg-terracotta px-4 py-3 text-sm font-medium text-paper disabled:opacity-40 md:px-5">Invia</button>
       </div>
     </div>
   );
