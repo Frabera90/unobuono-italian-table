@@ -532,7 +532,9 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
       {wizardOpen && restaurant?.id && (
         <StyleWizard
           restaurantId={restaurant.id}
-          onApply={(style, extra) => enhance(style as EnhanceStyle, extra)}
+          initialStyle={lastStyle}
+          initialAddons={lastAddons}
+          onApply={(style, addons, extra) => enhance(style as EnhanceStyle, addons as AddonKey[], extra)}
           onClose={() => setWizardOpen(false)}
         />
       )}
