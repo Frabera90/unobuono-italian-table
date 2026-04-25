@@ -713,6 +713,44 @@ export type Database = {
           },
         ]
       }
+      social_style_presets: {
+        Row: {
+          created_at: string
+          extra_instructions: string | null
+          id: string
+          is_default: boolean
+          name: string
+          restaurant_id: string
+          style_key: string
+        }
+        Insert: {
+          created_at?: string
+          extra_instructions?: string | null
+          id?: string
+          is_default?: boolean
+          name: string
+          restaurant_id: string
+          style_key: string
+        }
+        Update: {
+          created_at?: string
+          extra_instructions?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          restaurant_id?: string
+          style_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_style_presets_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppressed_emails: {
         Row: {
           created_at: string
