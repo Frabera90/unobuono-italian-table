@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { BrandMark } from "@/components/brand";
 
 export const Route = createFileRoute("/staff")({
   head: () => ({
@@ -58,9 +59,10 @@ function StaffJoinPage() {
   return (
     <div className="grid min-h-screen place-items-center bg-ink px-5 py-10 text-paper">
       <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
-          <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-paper/50">UNOBUONO</p>
-          <h1 className="mt-2 font-display text-4xl uppercase tracking-tight text-yellow">Sala</h1>
+        <div className="mb-6 flex flex-col items-center text-center">
+          <BrandMark variant="yellow" className="h-12 w-12" />
+          <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.3em] text-paper/50">UNOBUONO</p>
+          <h1 className="mt-1 font-display text-4xl uppercase tracking-tight text-yellow">Sala</h1>
           <p className="mt-2 text-sm text-paper/60">Accesso staff con PIN ristorante</p>
         </div>
 

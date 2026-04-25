@@ -94,7 +94,7 @@ function DemoPage() {
 function Logo({ small }: { small?: boolean }) {
   return (
     <div className="flex items-center gap-2">
-      <span className={`grid place-items-center rounded-full bg-ink text-yellow ${small ? "h-7 w-7 text-xs" : "h-9 w-9 text-sm"} font-display`}>U</span>
+      <BrandMark variant="dark" className={small ? "h-7 w-7" : "h-9 w-9"} />
       <span className={`font-display uppercase tracking-tight ${small ? "text-lg" : "text-xl md:text-2xl"}`}>UNOBUONO</span>
     </div>
   );
