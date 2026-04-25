@@ -172,53 +172,58 @@ function ReservationsPage() {
             {active.length === 0 && <li className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">Nessuna prenotazione.</li>}
             {active.map((r) => {
               const compatible = tables.filter((t) => t.seats >= r.party_size);
+              const tb = r.table_id ? tables.find((t) => t.id === r.table_id) : null;
               return (
-                <li key={r.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
-                  <div className="flex flex-col items-center">
-                    <div className="font-display text-2xl text-terracotta leading-none">{r.time}</div>
-                    {!date && (
-                      <div className="mt-0.5 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
-                        {fmtDateShort(r.date)}
+                <li key={r.id} className="rounded-xl border border-border bg-card p-3 md:p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex shrink-0 flex-col items-center">
+                      <div className="font-display text-xl leading-none text-terracotta md:text-2xl">{r.time}</div>
+                      {!date && (
+                        <div className="mt-0.5 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+                          {fmtDateShort(r.date)}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-display text-base leading-tight">
+                        <span className="break-words">{r.customer_name}</span>
+                        <span className="text-muted-foreground"> · {r.party_size} pers</span>
                       </div>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-display text-base">{r.customer_name} · {r.party_size} pers</div>
-                    <div className="truncate text-xs text-muted-foreground">
-                      {r.zone_name}
-                      {r.table_id && (() => {
-                        const tb = tables.find((t) => t.id === r.table_id);
-                        return tb ? ` · 🪑 Tavolo ${tb.code}` : "";
-                      })()}
-                      {r.customer_phone ? ` · ${r.customer_phone}` : ""}
-                    </div>
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      {r.occasion && <Badge>🎂 {r.occasion}</Badge>}
-                      {r.allergies && <Badge tone="warn">⚠️ {r.allergies}</Badge>}
-                      {r.preorder_link_sent && <Badge>🛵 pre-ordine</Badge>}
+                      <div className="mt-0.5 break-words text-xs text-muted-foreground">
+                        {r.zone_name}
+                        {tb && ` · 🪑 ${tb.code}`}
+                        {r.customer_phone ? ` · ${r.customer_phone}` : ""}
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {r.occasion && <Badge>🎂 {r.occasion}</Badge>}
+                        {r.allergies && <Badge tone="warn">⚠️ {r.allergies}</Badge>}
+                        {r.preorder_link_sent && <Badge>🛵 pre-ordine</Badge>}
+                      </div>
                     </div>
                   </div>
-                  <select
-                    value={r.table_id ?? ""}
-                    onChange={(e) => moveTable(r.id, e.target.value || null)}
-                    className="rounded-md border border-border bg-background px-2 py-1.5 text-xs"
-                    title="Sposta tavolo"
-                  >
-                    <option value="">— Nessun tavolo —</option>
-                    {compatible.map((t) => (
-                      <option key={t.id} value={t.id}>{t.code} ({t.seats}p)</option>
-                    ))}
-                  </select>
-                  <button onClick={() => toggleArrived(r)} className={`rounded-md px-3 py-2 text-xs font-medium ${r.arrived ? "bg-emerald-600 text-white" : "border border-border"}`}>
-                    {r.arrived ? "✓ Arrivato" : "Segna arrivato"}
-                  </button>
-                  <button
-                    onClick={() => cancel(r)}
-                    className="rounded-md border border-destructive/40 px-2.5 py-2 text-[11px] font-medium uppercase tracking-wider text-destructive hover:bg-destructive hover:text-paper"
-                    title="Disdici prenotazione"
-                  >
-                    Disdici
-                  </button>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/60 pt-2">
+                    <select
+                      value={r.table_id ?? ""}
+                      onChange={(e) => moveTable(r.id, e.target.value || null)}
+                      className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-xs sm:flex-none"
+                      title="Sposta tavolo"
+                    >
+                      <option value="">— Nessun tavolo —</option>
+                      {compatible.map((t) => (
+                        <option key={t.id} value={t.id}>{t.code} ({t.seats}p)</option>
+                      ))}
+                    </select>
+                    <button onClick={() => toggleArrived(r)} className={`rounded-md px-3 py-1.5 text-xs font-medium ${r.arrived ? "bg-emerald-600 text-white" : "border border-border"}`}>
+                      {r.arrived ? "✓ Arrivato" : "Segna arrivato"}
+                    </button>
+                    <button
+                      onClick={() => cancel(r)}
+                      className="rounded-md border border-destructive/40 px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wider text-destructive hover:bg-destructive hover:text-paper"
+                      title="Disdici prenotazione"
+                    >
+                      Disdici
+                    </button>
+                  </div>
                 </li>
               );
             })}
