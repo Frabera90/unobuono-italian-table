@@ -344,8 +344,52 @@ function MenuPage() {
               <Field label="Descrizione"><textarea value={edit.description || ""} onChange={(e) => setEdit({ ...edit, description: e.target.value })} className="ed-input" rows={2} /></Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Prezzo €"><input type="number" step="0.5" value={edit.price ?? ""} onChange={(e) => setEdit({ ...edit, price: e.target.value === "" ? (null as any) : Number(e.target.value) })} className="ed-input" /></Field>
-                <Field label="Allergeni"><input value={edit.allergens || ""} onChange={(e) => setEdit({ ...edit, allergens: e.target.value })} className="ed-input" placeholder="glutine, latte" /></Field>
+                <Field label="Note allergeni (testo libero)"><input value={edit.allergens || ""} onChange={(e) => setEdit({ ...edit, allergens: e.target.value })} className="ed-input" placeholder="es. tracce di..." /></Field>
               </div>
+
+              <Field label="Allergeni (UE)">
+                <div className="flex flex-wrap gap-1.5">
+                  {ALLERGENS.map((a) => {
+                    const active = (edit.allergen_tags || []).includes(a.key);
+                    return (
+                      <button
+                        key={a.key}
+                        type="button"
+                        onClick={() => {
+                          const cur = new Set(edit.allergen_tags || []);
+                          if (active) cur.delete(a.key); else cur.add(a.key);
+                          setEdit({ ...edit, allergen_tags: Array.from(cur) as AllergenKey[] });
+                        }}
+                        className={`rounded-full border px-2 py-1 text-xs transition ${active ? "border-terracotta bg-terracotta/10 text-terracotta" : "border-border text-muted-foreground hover:bg-cream"}`}
+                      >
+                        {a.emoji} {a.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Field>
+
+              <Field label="Diete / opzioni">
+                <div className="flex flex-wrap gap-1.5">
+                  {DIETS.map((d) => {
+                    const active = (edit.diet_tags || []).includes(d.key);
+                    return (
+                      <button
+                        key={d.key}
+                        type="button"
+                        onClick={() => {
+                          const cur = new Set(edit.diet_tags || []);
+                          if (active) cur.delete(d.key); else cur.add(d.key);
+                          setEdit({ ...edit, diet_tags: Array.from(cur) as DietKey[] });
+                        }}
+                        className={`rounded-full border px-2 py-1 text-xs transition ${active ? "border-emerald-600 bg-emerald-600/10 text-emerald-700" : "border-border text-muted-foreground hover:bg-cream"}`}
+                      >
+                        {d.emoji} {d.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Field>
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={edit.available !== false} onChange={(e) => setEdit({ ...edit, available: e.target.checked })} />
                 Disponibile
