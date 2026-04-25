@@ -26,6 +26,8 @@ type Table = {
   zone_id: string | null;
   code: string;
   seats: number;
+  min_seats: number | null;
+  max_seats: number | null;
   notes: string | null;
   sort_order: number;
 };
@@ -125,6 +127,8 @@ function SalaPage() {
       zone_id: zoneId,
       code: tCode.trim().toUpperCase(),
       seats: tSeats,
+      min_seats: Math.max(1, tSeats - 1),
+      max_seats: tSeats,
       sort_order: tables.filter((x) => x.zone_id === zoneId).length,
     });
     if (error) {
@@ -146,10 +150,10 @@ function SalaPage() {
     await reload(restaurant.id);
   }
 
-  async function updateTableSeats(id: string, seats: number) {
-    const { error } = await supabase.from("tables").update({ seats }).eq("id", id);
+  async function updateTableField(id: string, patch: Partial<Pick<Table, "seats" | "min_seats" | "max_seats">>) {
+    const { error } = await supabase.from("tables").update(patch).eq("id", id);
     if (error) { toast.error(error.message); return; }
-    setTables((prev) => prev.map((t) => (t.id === id ? { ...t, seats } : t)));
+    setTables((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
   }
 
   function downloadQr() {
@@ -274,7 +278,10 @@ function SalaPage() {
 
               {/* Tavoli */}
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-                {zTables.map((t) => (
+                {zTables.map((t) => {
+                  const minS = t.min_seats ?? Math.max(1, t.seats - 1);
+                  const maxS = t.max_seats ?? t.seats;
+                  return (
                   <div key={t.id} className="rounded-lg border-2 border-ink bg-cream p-3">
                     <div className="flex items-start justify-between">
                       <span className="font-display text-lg text-ink">{t.code}</span>
@@ -292,19 +299,38 @@ function SalaPage() {
                         </button>
                       </div>
                     </div>
-                    <label className="mt-1 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-ink/60">
-                      Posti
-                      <input
-                        type="number"
-                        min={1}
-                        max={20}
-                        value={t.seats}
-                        onChange={(e) => updateTableSeats(t.id, Math.max(1, Number(e.target.value)))}
-                        className="w-12 rounded border border-ink/20 bg-paper px-1 py-0.5 text-center text-xs"
-                      />
-                    </label>
+                    <div className="mt-2 space-y-1.5">
+                      <label className="flex items-center justify-between gap-1 text-[10px] uppercase tracking-wider text-ink/60">
+                        <span>Posti</span>
+                        <input
+                          type="number" min={1} max={20} value={t.seats}
+                          onChange={(e) => {
+                            const s = Math.max(1, Number(e.target.value));
+                            updateTableField(t.id, { seats: s, max_seats: Math.max(maxS, s) });
+                          }}
+                          className="w-12 rounded border border-ink/20 bg-paper px-1 py-0.5 text-center text-xs"
+                        />
+                      </label>
+                      <label className="flex items-center justify-between gap-1 text-[10px] uppercase tracking-wider text-ink/60" title="Numero minimo di persone per occupare questo tavolo (evita che 2 persone occupino un tavolo da 6)">
+                        <span>Min</span>
+                        <input
+                          type="number" min={1} max={maxS} value={minS}
+                          onChange={(e) => updateTableField(t.id, { min_seats: Math.max(1, Math.min(maxS, Number(e.target.value))) })}
+                          className="w-12 rounded border border-ink/20 bg-paper px-1 py-0.5 text-center text-xs"
+                        />
+                      </label>
+                      <label className="flex items-center justify-between gap-1 text-[10px] uppercase tracking-wider text-ink/60" title="Numero massimo di persone (di default = posti)">
+                        <span>Max</span>
+                        <input
+                          type="number" min={minS} max={20} value={maxS}
+                          onChange={(e) => updateTableField(t.id, { max_seats: Math.max(minS, Number(e.target.value)) })}
+                          className="w-12 rounded border border-ink/20 bg-paper px-1 py-0.5 text-center text-xs"
+                        />
+                      </label>
+                    </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Aggiungi tavolo */}
