@@ -449,6 +449,20 @@ function SortableRow({
           {it.name}
         </div>
         {it.description && <div className="truncate text-xs text-muted-foreground">{it.description}</div>}
+        {((it.diet_tags?.length ?? 0) > 0 || (it.allergen_tags?.length ?? 0) > 0) && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {(it.diet_tags || []).slice(0, 3).map((t) => (
+              <span key={t} className="rounded-full bg-emerald-600/10 px-1.5 py-0.5 text-[10px] text-emerald-700" title="Dieta">
+                {DIETS.find((d) => d.key === t)?.emoji}
+              </span>
+            ))}
+            {(it.allergen_tags || []).slice(0, 5).map((t) => (
+              <span key={t} className="rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-700" title={ALLERGENS.find((a) => a.key === t)?.label || t}>
+                {ALLERGENS.find((a) => a.key === t)?.emoji}
+              </span>
+            ))}
+          </div>
+        )}
       </button>
       <div className="shrink-0 text-sm text-terracotta">{it.price != null ? `€ ${Number(it.price).toFixed(2)}` : "—"}</div>
       <button onClick={onToggleFeatured} title="In evidenza" className={`shrink-0 text-base transition ${it.featured ? "text-amber-500" : "text-muted-foreground/40 hover:text-amber-500"}`}>★</button>
