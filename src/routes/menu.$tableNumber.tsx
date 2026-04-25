@@ -72,15 +72,16 @@ function MenuPage() {
         .order("time");
       if (tid) resQ = resQ.eq("table_id", tid);
       const { data: rs } = await resQ;
-      // pick the closest in time
+      // pick the closest in time, but only if within ±3h (altrimenti walk-in)
       if (rs && rs.length) {
-        const now = new Date();
-        const closest = [...rs].sort((a, b) => {
-          const da = Math.abs(toMin(a.time) - (now.getHours() * 60 + now.getMinutes()));
-          const db = Math.abs(toMin(b.time) - (now.getHours() * 60 + now.getMinutes()));
-          return da - db;
-        })[0];
-        setActiveRes(closest as ActiveReservation);
+        const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+        const sorted = [...rs]
+          .map((r) => ({ r, diff: Math.abs(toMin(r.time) - nowMin) }))
+          .sort((a, b) => a.diff - b.diff);
+        const best = sorted[0];
+        if (best && best.diff <= 180) {
+          setActiveRes(best.r as ActiveReservation);
+        }
       }
 
       const ch = supabase
