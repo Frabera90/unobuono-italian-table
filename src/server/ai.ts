@@ -207,10 +207,16 @@ export const extractMenuFromImage = createServerFn({ method: "POST" })
     if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
 
     const prompt = `Analizza questa foto di un menu di ristorante italiano ed estrai TUTTI i piatti visibili.
-Per ogni piatto fornisci: nome, descrizione (se presente, altrimenti stringa vuota), prezzo in euro come numero (null se non visibile), categoria (es. Antipasti, Primi, Secondi, Pizze, Dolci, Bevande, Vini, Contorni — usa quella che vedi sul menu o deduci dal contesto).
-Mantieni l'ordine originale e raggruppa per categoria.
+Per ogni piatto fornisci:
+- name (string)
+- description (string, vuota se assente)
+- price (numero in euro, null se non visibile)
+- category (es. Antipasti, Primi, Secondi, Pizze, Dolci, Bevande, Vini, Contorni)
+- allergen_tags: array di chiavi tra: ["gluten","crustaceans","eggs","fish","peanuts","soy","milk","nuts","celery","mustard","sesame","sulphites","lupin","molluscs"] — DEDUCI dagli ingredienti tipici del piatto (es. carbonara: gluten, eggs, milk)
+- diet_tags: array di chiavi tra: ["vegetarian","vegan","gluten_free","lactose_free","spicy"] — assegna SOLO se evidente dal nome/descrizione
+Mantieni l'ordine originale.
 Rispondi SOLO con JSON valido, senza markdown:
-{"items":[{"name":"...","description":"...","price":12.5,"category":"Primi"}]}`;
+{"items":[{"name":"...","description":"...","price":12.5,"category":"Primi","allergen_tags":["gluten","eggs"],"diet_tags":["vegetarian"]}]}`;
 
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
