@@ -68,8 +68,9 @@ function AuthPage() {
   return (
     <div className="grid min-h-screen place-items-center bg-cream px-5 py-10">
       <div className="w-full max-w-md">
-        <Link to="/" className="mb-6 block text-center font-display text-3xl text-ink">
-          UNOBUONO
+        <Link to="/" className="mb-6 flex flex-col items-center gap-2 text-center">
+          <BrandMark variant="dark" className="h-12 w-12" />
+          <span className="font-display text-2xl text-ink">UNOBUONO</span>
         </Link>
 
         <div className="rounded-2xl border-2 border-ink bg-paper p-6 shadow-[8px_8px_0_0_hsl(var(--ink))]">
