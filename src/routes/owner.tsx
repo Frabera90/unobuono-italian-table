@@ -2,7 +2,8 @@ import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tansta
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyRestaurant, type Restaurant } from "@/lib/restaurant";
-import { Menu, X } from "lucide-react";
+import { X } from "lucide-react";
+import { BrandLockup, BrandMark } from "@/components/brand";
 
 export const Route = createFileRoute("/owner")({
   head: () => ({
@@ -71,12 +72,8 @@ function OwnerLayout() {
   return (
     <div className="min-h-screen bg-cream md:flex">
       <aside className="hidden w-64 shrink-0 flex-col border-r-2 border-ink bg-ink p-5 text-paper md:flex">
-        <div className="mb-8 flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-yellow font-display text-ink">U</span>
-          <div className="min-w-0">
-            <p className="font-display text-lg uppercase leading-none tracking-tight">UNOBUONO</p>
-            <p className="mt-1 truncate font-mono text-[9px] uppercase tracking-[0.2em] text-paper/50">{restaurant?.name || "—"}</p>
-          </div>
+        <div className="mb-8">
+          <BrandLockup variant="yellow" size="md" subtitle={restaurant?.name || "—"} />
         </div>
         <nav className="flex-1 space-y-1 overflow-y-auto">
           {NAV.map((n) => {
@@ -98,13 +95,7 @@ function OwnerLayout() {
       <main className="min-w-0 flex-1 pb-24 md:pb-0">
         {/* Header mobile (senza burger: il menu sta nel bottom nav "Altro") */}
         <div className="sticky top-0 z-20 flex items-center justify-between border-b-2 border-ink bg-ink px-4 py-3 text-paper md:hidden">
-          <div className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-yellow font-display text-ink">U</span>
-            <div className="min-w-0">
-              <p className="font-display text-sm uppercase leading-none tracking-tight">UNOBUONO</p>
-              <p className="mt-0.5 truncate font-mono text-[8px] uppercase tracking-[0.2em] text-paper/50">{restaurant?.name || "—"}</p>
-            </div>
-          </div>
+          <BrandLockup variant="yellow" size="sm" subtitle={restaurant?.name || "—"} />
         </div>
 
         <Outlet />
