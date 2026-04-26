@@ -153,25 +153,27 @@ export const enhanceImage = createServerFn({ method: "POST" })
   });
 
 export const planSocialCalendar = createServerFn({ method: "POST" })
-  .inputValidator((input: { range: "week" | "month"; restaurantName: string; bio: string; tone: string; startDateISO: string }) => input)
+  .inputValidator((input: { range: "week" | "month"; restaurantName: string; bio: string; tone: string; startDateISO: string; context?: string }) => input)
   .handler(async ({ data }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
 
     const days = data.range === "week" ? 7 : 30;
+    const contextBlock = data.context ? `\nDettagli dal proprietario: ${data.context}` : "";
     const prompt = `Sei il social media manager di ${data.restaurantName}.
 Bio: ${data.bio}
-Tono: ${data.tone}
+Tono: ${data.tone}${contextBlock}
 
 Genera un PIANO EDITORIALE Instagram per ${days} giorni a partire da ${data.startDateISO}.
-Mix variato (NON sempre piatto del giorno): piatto signature, dietro le quinte/cucina, ingrediente di stagione, storia/aneddoto, team/persona, ambiente sala, recensione cliente, citazione, evento weekend, behind-the-scenes pizzaiolo.
-Frequenza tipica: 3-5 post a settimana, mai due giorni di fila uguali, evita lunedì se chiuso.
+Mix variato (NON sempre piatto del giorno): piatto signature, dietro le quinte/cucina, ingrediente di stagione, storia/aneddoto, team/persona, ambiente sala, recensione cliente, citazione, evento weekend, behind-the-scenes.
+Frequenza: 3-5 post a settimana, mai due giorni di fila uguali.
 Orari ottimali: pranzo 12:30, aperitivo 18:30, sera 20:30.
+Tipi di contenuto disponibili: "Foto piatto", "Video cucina", "Storia staff", "Dietro le quinte", "Promozione", "Ingrediente", "Ambiente".
 
-Per ogni post fornisci: data (YYYY-MM-DD), ora (HH:MM), tema breve, idea_foto (cosa fotografare), caption (max 140 char, autentica), hashtags (8 hashtag separati da spazio).
+Per ogni post: data (YYYY-MM-DD), ora (HH:MM), tema breve, type (uno dei tipi sopra), photo_idea (cosa fotografare), caption (max 140 char, autentica, in italiano), hashtags (8 hashtag separati da spazio).
 
 Rispondi SOLO con JSON valido:
-{"posts":[{"date":"2026-04-25","time":"20:30","theme":"...","photo_idea":"...","caption":"...","hashtags":"#a #b ..."}]}`;
+{"posts":[{"date":"2026-04-25","time":"20:30","theme":"...","type":"Foto piatto","photo_idea":"...","caption":"...","hashtags":"#a #b ..."}]}`;
 
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

@@ -16,6 +16,7 @@ import { Route as OwnerRouteImport } from './routes/owner'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as KitchenRouteImport } from './routes/kitchen'
 import { Route as DemoRouteImport } from './routes/demo'
+import { Route as CallbackRouteImport } from './routes/callback'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OwnerIndexRouteImport } from './routes/owner.index'
@@ -77,6 +78,11 @@ const KitchenRoute = KitchenRouteImport.update({
 const DemoRoute = DemoRouteImport.update({
   id: '/demo',
   path: '/demo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CallbackRoute = CallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -222,6 +228,7 @@ const ApiPublicEmailBookingConfirmRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/callback': typeof CallbackRoute
   '/demo': typeof DemoRoute
   '/kitchen': typeof KitchenRoute
   '/onboarding': typeof OnboardingRoute
@@ -258,6 +265,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/callback': typeof CallbackRoute
   '/demo': typeof DemoRoute
   '/kitchen': typeof KitchenRoute
   '/onboarding': typeof OnboardingRoute
@@ -294,6 +302,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/callback': typeof CallbackRoute
   '/demo': typeof DemoRoute
   '/kitchen': typeof KitchenRoute
   '/onboarding': typeof OnboardingRoute
@@ -332,6 +341,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/callback'
     | '/demo'
     | '/kitchen'
     | '/onboarding'
@@ -368,6 +378,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/callback'
     | '/demo'
     | '/kitchen'
     | '/onboarding'
@@ -403,6 +414,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/auth'
+    | '/callback'
     | '/demo'
     | '/kitchen'
     | '/onboarding'
@@ -440,6 +452,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  CallbackRoute: typeof CallbackRoute
   DemoRoute: typeof DemoRoute
   KitchenRoute: typeof KitchenRoute
   OnboardingRoute: typeof OnboardingRoute
@@ -508,6 +521,13 @@ declare module '@tanstack/react-router' {
       path: '/demo'
       fullPath: '/demo'
       preLoaderRoute: typeof DemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/callback': {
+      id: '/callback'
+      path: '/callback'
+      fullPath: '/callback'
+      preLoaderRoute: typeof CallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -743,6 +763,7 @@ const OwnerRouteWithChildren = OwnerRoute._addFileChildren(OwnerRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  CallbackRoute: CallbackRoute,
   DemoRoute: DemoRoute,
   KitchenRoute: KitchenRoute,
   OnboardingRoute: OnboardingRoute,

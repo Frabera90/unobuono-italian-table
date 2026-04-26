@@ -56,26 +56,30 @@ function OwnerLayout() {
 
   useEffect(() => {
     let mounted = true;
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+
+    function handleSession(session: import("@supabase/supabase-js").Session | null) {
       if (!mounted) return;
       if (!session) { setAuthState("no"); nav({ to: "/auth" }); return; }
       setAuthState("ok");
       void getMyRestaurant().then((r) => {
         if (!mounted) return;
         setRestaurant(r);
-        if (r && !r.onboarding_complete && loc.pathname !== "/onboarding") nav({ to: "/onboarding" });
+        if (r && !r.onboarding_complete && window.location.pathname !== "/onboarding") {
+          nav({ to: "/onboarding" });
+        }
       });
-    });
-    void supabase.auth.getSession().then(({ data }) => {
+    }
+
+    // Initial session check — single source of truth on mount
+    void supabase.auth.getSession().then(({ data }) => handleSession(data.session));
+
+    // Listen only for SIGN_OUT and token changes after initial load
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
-      if (!data.session) { setAuthState("no"); nav({ to: "/auth" }); return; }
-      setAuthState("ok");
-      void getMyRestaurant().then((r) => {
-        if (!mounted) return;
-        setRestaurant(r);
-        if (r && !r.onboarding_complete && loc.pathname !== "/onboarding") nav({ to: "/onboarding" });
-      });
+      if (event === "SIGNED_OUT") { setAuthState("no"); nav({ to: "/auth" }); return; }
+      if (event === "TOKEN_REFRESHED" && !session) { setAuthState("no"); nav({ to: "/auth" }); }
     });
+
     return () => { mounted = false; sub.subscription.unsubscribe(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

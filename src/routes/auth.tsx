@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { toast } from "sonner";
 import { BrandMark } from "@/components/brand";
 
@@ -20,11 +19,17 @@ function AuthPage() {
 
   // If already logged in → go to owner area
   useEffect(() => {
+    let redirected = false;
+    function goOwner() {
+      if (redirected) return;
+      redirected = true;
+      nav({ to: "/owner/dashboard" });
+    }
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) nav({ to: "/owner/dashboard" });
+      if (data.session) goOwner();
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (session) nav({ to: "/owner/dashboard" });
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session) goOwner();
     });
     return () => sub.subscription.unsubscribe();
   }, [nav]);
@@ -38,7 +43,7 @@ function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin + "/onboarding",
+            emailRedirectTo: window.location.origin + "/callback",
             data: { full_name: name },
           },
         });
@@ -59,8 +64,13 @@ function AuthPage() {
   async function google() {
     setBusy(true);
     try {
-      const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/onboarding" });
-      if (r.error) toast.error("Errore Google login");
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.origin + "/callback" },
+      });
+      if (error) toast.error("Errore Google login: " + error.message);
+    } catch (e: any) {
+      toast.error(e.message || "Errore Google login");
     } finally {
       setBusy(false);
     }
