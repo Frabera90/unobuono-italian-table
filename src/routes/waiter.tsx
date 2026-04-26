@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { relTime, isoDate } from "@/lib/restaurant";
 import { playDing } from "@/lib/sounds";
 import { toast } from "sonner";
+import { TodoTab, AddTaskModal } from "@/components/waiter/TodoTab";
 
 export const Route = createFileRoute("/waiter")({
   head: () => ({
@@ -21,7 +22,7 @@ export const Route = createFileRoute("/waiter")({
   component: WaiterPage,
 });
 
-type Tab = "calls" | "reservations" | "preorders";
+type Tab = "calls" | "todo" | "reservations" | "preorders";
 
 type Call = { id: string; table_number: string; customer_name: string | null; message: string | null; status: string; created_at: string; restaurant_id: string };
 type Resv = {
@@ -42,6 +43,7 @@ function WaiterPage() {
   const [readCalls, setReadCalls] = useState(0);
   const [readPre, setReadPre] = useState(0);
   const [showInstall, setShowInstall] = useState(false);
+  const [taskFromCall, setTaskFromCall] = useState<Call | null>(null);
 
   const today = isoDate(new Date());
 
@@ -146,10 +148,11 @@ function WaiterPage() {
         <span className="text-paper/60">👤 {staffName || "Staff"}</span>
         <button onClick={logout} className="text-paper/50 underline hover:text-paper">Esci</button>
       </div>
-      <div className="sticky top-0 z-10 grid grid-cols-3 border-b-2 border-yellow bg-ink">
-        <TabBtn active={tab === "calls"} onClick={() => { setTab("calls"); setReadCalls(calls.length); }} badge={callsBadge}>🔔 Chiamate</TabBtn>
+      <div className="sticky top-0 z-10 grid grid-cols-4 border-b-2 border-yellow bg-ink">
+        <TabBtn active={tab === "calls"} onClick={() => { setTab("calls"); setReadCalls(calls.length); }} badge={callsBadge}>🔔 Call</TabBtn>
+        <TabBtn active={tab === "todo"} onClick={() => setTab("todo")}>✅ To-do</TabBtn>
         <TabBtn active={tab === "reservations"} onClick={() => setTab("reservations")}>📋 Oggi</TabBtn>
-        <TabBtn active={tab === "preorders"} onClick={() => { setTab("preorders"); setReadPre(preorders.length); }} badge={preBadge}>📦 Pre-ordini</TabBtn>
+        <TabBtn active={tab === "preorders"} onClick={() => { setTab("preorders"); setReadPre(preorders.length); }} badge={preBadge}>📦 Pre</TabBtn>
       </div>
 
       <div className="mx-auto max-w-2xl px-4 py-5">
@@ -158,18 +161,25 @@ function WaiterPage() {
             {calls.length === 0 && <li className="rounded-2xl border border-white/10 p-8 text-center text-paper/60">Nessuna chiamata in attesa.</li>}
             {calls.map((c) => (
               <li key={c.id} className="slide-in-right rounded-2xl border border-white/10 bg-white/5 p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="font-display text-5xl text-yellow">Tav. {c.table_number}</div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-display text-4xl text-yellow sm:text-5xl">Tav. {c.table_number}</div>
                     {c.customer_name && <div className="mt-1 text-sm text-paper/70">{c.customer_name}</div>}
                     <div className="mt-2 text-base">{c.message}</div>
                     <div className="mt-1 text-xs text-paper/50">{relTime(c.created_at)}</div>
                   </div>
-                  <button onClick={() => markCallSeen(c.id)} className="rounded-lg bg-emerald-600 px-4 py-3 text-sm font-medium hover:bg-emerald-500">✓ Visto</button>
+                  <div className="flex shrink-0 gap-2">
+                    <button onClick={() => setTaskFromCall(c)} className="rounded-lg border-2 border-yellow bg-transparent px-3 py-2 text-xs font-bold uppercase tracking-wider text-yellow hover:bg-yellow/10">+ Task</button>
+                    <button onClick={() => markCallSeen(c.id)} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold uppercase tracking-wider text-paper hover:bg-emerald-500">✓ Visto</button>
+                  </div>
                 </div>
               </li>
             ))}
           </ul>
+        )}
+
+        {tab === "todo" && (
+          <TodoTab restaurantId={restaurantId} pin={pin || ""} staffName={staffName} />
         )}
 
         {tab === "reservations" && (
@@ -210,6 +220,18 @@ function WaiterPage() {
           );
         })()}
       </div>
+
+      {taskFromCall && pin && (
+        <AddTaskModal
+          restaurantId={restaurantId}
+          pin={pin}
+          staffName={staffName}
+          defaultTableNumber={taskFromCall.table_number}
+          defaultDescription={taskFromCall.message ? `Tav. ${taskFromCall.table_number}: ${taskFromCall.message}` : `Tav. ${taskFromCall.table_number}`}
+          callId={taskFromCall.id}
+          onClose={() => setTaskFromCall(null)}
+        />
+      )}
     </main>
   );
 }
