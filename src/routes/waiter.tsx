@@ -22,7 +22,7 @@ export const Route = createFileRoute("/waiter")({
   component: WaiterPage,
 });
 
-type Tab = "calls" | "reservations" | "preorders";
+type Tab = "calls" | "todo" | "reservations" | "preorders";
 
 type Call = { id: string; table_number: string; customer_name: string | null; message: string | null; status: string; created_at: string; restaurant_id: string };
 type Resv = {
