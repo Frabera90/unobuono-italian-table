@@ -220,6 +220,18 @@ function WaiterPage() {
           );
         })()}
       </div>
+
+      {taskFromCall && pin && (
+        <AddTaskModal
+          restaurantId={restaurantId}
+          pin={pin}
+          staffName={staffName}
+          defaultTableNumber={taskFromCall.table_number}
+          defaultDescription={taskFromCall.message ? `Tav. ${taskFromCall.table_number}: ${taskFromCall.message}` : `Tav. ${taskFromCall.table_number}`}
+          callId={taskFromCall.id}
+          onClose={() => setTaskFromCall(null)}
+        />
+      )}
     </main>
   );
 }
