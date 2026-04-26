@@ -74,6 +74,7 @@ export type Reservation = {
   restaurant_id: string;
   customer_name: string;
   customer_phone: string | null;
+  customer_email: string | null;
   party_size: number;
   date: string;
   time: string;
@@ -81,11 +82,15 @@ export type Reservation = {
   zone_name: string | null;
   table_id: string | null;
   occasion: string | null;
+  occasion_type: string | null;
+  preferences: string[] | null;
   allergies: string | null;
   notes: string | null;
   status: string;
+  source: string | null;
   preorder_link_sent: boolean;
   reminder_sent: boolean;
+  followup_sent?: boolean;
   arrived: boolean;
   created_at: string;
 };

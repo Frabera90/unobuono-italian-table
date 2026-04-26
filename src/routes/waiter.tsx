@@ -23,11 +23,12 @@ export const Route = createFileRoute("/waiter")({
 });
 
 type Tab = "calls" | "todo" | "reservations" | "preorders";
+type TableLite = { id: string; code: string; seats: number };
 
 type Call = { id: string; table_number: string; customer_name: string | null; message: string | null; status: string; created_at: string; restaurant_id: string };
 type Resv = {
-  id: string; customer_name: string; party_size: number; date: string; time: string; zone_name: string | null;
-  occasion: string | null; allergies: string | null; arrived: boolean; restaurant_id: string;
+  id: string; customer_name: string; customer_phone: string | null; party_size: number; date: string; time: string; zone_name: string | null;
+  occasion: string | null; allergies: string | null; preferences: string[] | null; arrived: boolean; restaurant_id: string;
 };
 type Preo = { id: string; reservation_id: string | null; customer_name: string | null; items: any; total: number | null; status: string; created_at: string; restaurant_id: string };
 
@@ -44,6 +45,12 @@ function WaiterPage() {
   const [readPre, setReadPre] = useState(0);
   const [showInstall, setShowInstall] = useState(false);
   const [taskFromCall, setTaskFromCall] = useState<Call | null>(null);
+  const [tables, setTables] = useState<TableLite[]>([]);
+  const [walkinOpen, setWalkinOpen] = useState(false);
+  const [walkinName, setWalkinName] = useState("");
+  const [walkinSize, setWalkinSize] = useState(2);
+  const [walkinTable, setWalkinTable] = useState("");
+  const [walkinBusy, setWalkinBusy] = useState(false);
 
   const today = isoDate(new Date());
 
@@ -53,7 +60,7 @@ function WaiterPage() {
     const rid = localStorage.getItem("staff.restaurant_id");
     const p = localStorage.getItem("staff.pin");
     const n = localStorage.getItem("staff.name") || "";
-    if (!rid || !p) { nav({ to: "/staff" }); return; }
+    if (!rid || !p) { nav({ to: "/staff", search: { pin: undefined } }); return; }
     setRestaurantId(rid);
     setPin(p);
     setStaffName(n);
@@ -67,10 +74,11 @@ function WaiterPage() {
       setReadCalls((data || []).length);
     });
     void supabase.from("reservations").select("*").eq("restaurant_id", restaurantId).eq("date", today).order("time").then(({ data }) => setReservations((data || []) as Resv[]));
-    void supabase.from("preorders").select("*").eq("restaurant_id", restaurantId).order("created_at", { ascending: false }).then(({ data }) => {
+    void supabase.from("preorders").select("*").eq("restaurant_id", restaurantId).gte("created_at", today).order("created_at", { ascending: false }).then(({ data }) => {
       setPreorders((data || []) as Preo[]);
       setReadPre((data || []).length);
     });
+    void supabase.from("tables").select("id,code,seats").eq("restaurant_id", restaurantId).order("code").then(({ data }) => setTables((data || []) as TableLite[]));
 
     const c1 = supabase.channel(`w-calls-${restaurantId}`).on("postgres_changes", { event: "*", schema: "public", table: "waiter_calls", filter: `restaurant_id=eq.${restaurantId}` }, (p) => {
       if (p.eventType === "INSERT") {
@@ -128,7 +136,30 @@ function WaiterPage() {
     localStorage.removeItem("staff.restaurant_id");
     localStorage.removeItem("staff.pin");
     localStorage.removeItem("staff.name");
-    nav({ to: "/staff" });
+    nav({ to: "/staff", search: { pin: undefined } });
+  }
+
+  async function createWalkin(e: React.FormEvent) {
+    e.preventDefault();
+    if (!pin || !restaurantId) return;
+    setWalkinBusy(true);
+    try {
+      const { data, error } = await supabase.rpc("staff_create_walkin", {
+        _pin: pin,
+        _customer_name: walkinName.trim() || "Walk-in",
+        _party_size: walkinSize,
+        _table_id: walkinTable || undefined,
+      });
+      if (error) throw error;
+      if (!data) throw new Error("Errore");
+      toast.success(`Walk-in creato${walkinTable ? " · " + (tables.find(t => t.id === walkinTable)?.code || "") : ""}`);
+      setWalkinOpen(false);
+      setWalkinName(""); setWalkinSize(2); setWalkinTable("");
+    } catch (err: any) {
+      toast.error(err.message || "Errore creazione walk-in");
+    } finally {
+      setWalkinBusy(false);
+    }
   }
 
   if (!restaurantId) return <div className="grid min-h-screen place-items-center bg-ink text-paper/60 text-sm">Caricamento...</div>;
@@ -183,7 +214,17 @@ function WaiterPage() {
         )}
 
         {tab === "reservations" && (
-          <ResvList reservations={reservations} preorders={preorders} onToggle={toggleArrived} />
+          <>
+            <div className="mb-4 flex justify-end">
+              <button
+                onClick={() => setWalkinOpen(true)}
+                className="rounded-lg border-2 border-yellow bg-transparent px-4 py-2 text-sm font-bold uppercase tracking-wider text-yellow hover:bg-yellow/10"
+              >
+                + Walk-in
+              </button>
+            </div>
+            <ResvList reservations={reservations} preorders={preorders} onToggle={toggleArrived} />
+          </>
         )}
 
         {tab === "preorders" && (() => {
@@ -231,6 +272,71 @@ function WaiterPage() {
           callId={taskFromCall.id}
           onClose={() => setTaskFromCall(null)}
         />
+      )}
+
+      {walkinOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/60 p-4 sm:items-center" onClick={() => setWalkinOpen(false)}>
+          <form
+            onSubmit={createWalkin}
+            className="w-full max-w-sm rounded-2xl border border-white/15 bg-ink p-6 text-paper"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="mb-4 font-display text-2xl text-yellow">Nuovo Walk-in</h2>
+            <div className="space-y-3">
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-paper/70">Nome cliente (opzionale)</span>
+                <input
+                  value={walkinName}
+                  onChange={(e) => setWalkinName(e.target.value)}
+                  placeholder="Walk-in"
+                  className="w-full rounded-lg border-2 border-white/15 bg-white/5 px-3 py-2 text-paper placeholder:text-paper/30 focus:border-yellow focus:outline-none"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-paper/70">Numero persone *</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={walkinSize}
+                  onChange={(e) => setWalkinSize(Math.max(1, Number(e.target.value)))}
+                  required
+                  className="w-full rounded-lg border-2 border-white/15 bg-white/5 px-3 py-2 text-center font-display text-2xl text-yellow focus:border-yellow focus:outline-none"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-paper/70">Tavolo</span>
+                <select
+                  value={walkinTable}
+                  onChange={(e) => setWalkinTable(e.target.value)}
+                  className="w-full rounded-lg border-2 border-white/15 bg-ink px-3 py-2 text-paper focus:border-yellow focus:outline-none"
+                >
+                  <option value="">— Nessun tavolo —</option>
+                  {tables.map((t) => (
+                    <option key={t.id} value={t.id}>{t.code} ({t.seats}p)</option>
+                  ))}
+                </select>
+                <span className="mt-1 block text-[11px] text-paper/40">Assegna un tavolo per abilitare l'ordine dal QR</span>
+              </label>
+            </div>
+            <div className="mt-5 flex gap-2">
+              <button
+                type="submit"
+                disabled={walkinBusy}
+                className="flex-1 rounded-lg border-2 border-yellow bg-yellow py-3 text-sm font-bold uppercase tracking-wider text-ink hover:bg-yellow/80 disabled:opacity-50"
+              >
+                {walkinBusy ? "..." : "Crea walk-in"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setWalkinOpen(false)}
+                className="rounded-lg border-2 border-white/20 px-4 py-3 text-sm font-bold uppercase tracking-wider text-paper/70"
+              >
+                Annulla
+              </button>
+            </div>
+          </form>
+        </div>
       )}
     </main>
   );
@@ -288,9 +394,13 @@ function ResvList({ reservations, preorders, onToggle }: { reservations: Resv[];
               </label>
             </button>
             {exp && (
-              <div className="border-t border-white/10 p-4 text-sm">
+              <div className="border-t border-white/10 p-4 text-sm space-y-1">
                 {r.allergies && <p>⚠️ <span className="text-paper/70">Allergie:</span> {r.allergies}</p>}
                 {r.occasion && <p>🎉 <span className="text-paper/70">Occasione:</span> {r.occasion}</p>}
+                {Array.isArray((r as any).preferences) && (r as any).preferences.length > 0 && (
+                  <p>💺 <span className="text-paper/70">Preferenze:</span> {(r as any).preferences.join(", ")}</p>
+                )}
+                {r.customer_phone && <p>📞 <a href={`tel:${r.customer_phone}`} className="text-yellow underline">{r.customer_phone}</a></p>}
                 {pre && (
                   <div className="mt-2">
                     <p className="text-paper/70">Pre-ordine (€ {Number(pre.total).toFixed(2)}):</p>

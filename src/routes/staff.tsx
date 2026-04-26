@@ -5,6 +5,9 @@ import { toast } from "sonner";
 import { BrandMark } from "@/components/brand";
 
 export const Route = createFileRoute("/staff")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    pin: typeof search.pin === "string" ? search.pin.toUpperCase() : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Sala — Unobuono" },
@@ -22,15 +25,24 @@ export const Route = createFileRoute("/staff")({
 
 function StaffJoinPage() {
   const nav = useNavigate();
-  const [pin, setPin] = useState("");
+  const { pin: pinParam } = Route.useSearch();
+  const [pin, setPin] = useState(pinParam ?? "");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const existing = localStorage.getItem("staff.restaurant_id");
+    const existingPin = localStorage.getItem("staff.pin");
+    // If a PIN is in the URL and it differs from the stored one, force fresh login
+    if (pinParam && existingPin && existingPin !== pinParam) {
+      localStorage.removeItem("staff.restaurant_id");
+      localStorage.removeItem("staff.pin");
+      localStorage.removeItem("staff.name");
+      return;
+    }
     if (existing) nav({ to: "/waiter" });
-  }, [nav]);
+  }, [nav, pinParam]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -86,9 +98,10 @@ function StaffJoinPage() {
               maxLength={8}
               placeholder="ABC123"
               autoCapitalize="characters"
-              className="w-full rounded-lg border-2 border-white/15 bg-ink px-3 py-3 text-center font-mono text-2xl tracking-[0.4em] text-yellow placeholder:text-paper/20 focus:border-yellow focus:outline-none"
+              readOnly={!!pinParam}
+              className={`w-full rounded-lg border-2 bg-ink px-3 py-3 text-center font-mono text-2xl tracking-[0.4em] text-yellow placeholder:text-paper/20 focus:outline-none ${pinParam ? "border-yellow/60 opacity-80" : "border-white/15 focus:border-yellow"}`}
             />
-            <span className="mt-1 block text-[11px] text-paper/50">Chiedi il PIN al titolare</span>
+            <span className="mt-1 block text-[11px] text-paper/50">{pinParam ? "PIN ricevuto dal titolare" : "Chiedi il PIN al titolare"}</span>
           </label>
 
           <button

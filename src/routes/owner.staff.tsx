@@ -45,8 +45,10 @@ function OwnerStaffPage() {
     toast.success("Copiato!");
   }
 
-  const staffUrl = `${origin}/staff`;
-  const waMessage = `Ciao! Per accedere al pannello sala apri ${staffUrl} e usa il PIN: ${pin}`;
+  const staffUrl = pin ? `${origin}/staff?pin=${pin}` : `${origin}/staff`;
+  const waMessage = pin
+    ? `Ciao! Per accedere al pannello sala apri questo link: ${staffUrl}\nSi apre direttamente col PIN già inserito — devi solo mettere il tuo nome e toccare "Entra in sala".`
+    : `Ciao! Per accedere al pannello sala apri ${origin}/staff e usa il PIN: ${pin}`;
   const waLink = `https://wa.me/?text=${encodeURIComponent(waMessage)}`;
 
   if (loading) return <div className="p-8 text-sm text-muted-foreground">Caricamento...</div>;
@@ -74,8 +76,8 @@ function OwnerStaffPage() {
       <section className="mt-6 rounded-2xl border-2 border-ink bg-yellow/40 p-6">
         <h2 className="font-display text-xl uppercase tracking-tight">Come funziona</h2>
         <ol className="mt-3 space-y-2 text-sm">
-          <li><b>1.</b> Manda al cameriere il link: <code className="rounded bg-paper px-1.5 py-0.5 font-mono text-xs">{staffUrl}</code> e il PIN <code className="rounded bg-paper px-1.5 py-0.5 font-mono text-xs">{pin}</code></li>
-          <li><b>2.</b> Lui apre il link sul telefono, inserisce il suo nome + il PIN</li>
+          <li><b>1.</b> Manda al cameriere il link qui sotto (ha già il PIN incluso, univoco per il tuo ristorante):<br/><code className="mt-1 block break-all rounded bg-paper px-1.5 py-0.5 font-mono text-xs">{staffUrl}</code></li>
+          <li><b>2.</b> Il cameriere apre il link, inserisce solo il suo nome e tocca "Entra in sala" — il PIN è già pre-compilato</li>
           <li><b>3.</b> Da quel momento riceve in tempo reale le chiamate dei tavoli, le prenotazioni e i pre-ordini</li>
           <li><b>4.</b> Può aggiungere la pagina alla home del telefono per usarla come app</li>
         </ol>
