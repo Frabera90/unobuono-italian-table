@@ -766,6 +766,80 @@ export type Database = {
           },
         ]
       }
+      staff_tasks: {
+        Row: {
+          call_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          menu_item_id: string | null
+          menu_item_qty: number | null
+          reservation_id: string | null
+          restaurant_id: string
+          status: string
+          table_number: string | null
+        }
+        Insert: {
+          call_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          menu_item_id?: string | null
+          menu_item_qty?: number | null
+          reservation_id?: string | null
+          restaurant_id: string
+          status?: string
+          table_number?: string | null
+        }
+        Update: {
+          call_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          menu_item_id?: string | null
+          menu_item_qty?: number | null
+          reservation_id?: string | null
+          restaurant_id?: string
+          status?: string
+          table_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_tasks_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "waiter_calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_tasks_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_tasks_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_tasks_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppressed_emails: {
         Row: {
           created_at: string
@@ -1021,6 +1095,23 @@ export type Database = {
         }
         Returns: boolean
       }
+      staff_complete_task: {
+        Args: { _pin: string; _task_id: string }
+        Returns: boolean
+      }
+      staff_create_task: {
+        Args: {
+          _call_id?: string
+          _created_by?: string
+          _description: string
+          _menu_item_id?: string
+          _menu_item_qty?: number
+          _pin: string
+          _reservation_id?: string
+          _table_number?: string
+        }
+        Returns: string
+      }
       staff_create_walkin: {
         Args: {
           _customer_name: string
@@ -1031,8 +1122,16 @@ export type Database = {
         }
         Returns: string
       }
+      staff_delete_task: {
+        Args: { _pin: string; _task_id: string }
+        Returns: boolean
+      }
       staff_mark_call_seen: {
         Args: { _call_id: string; _pin: string }
+        Returns: boolean
+      }
+      staff_reopen_task: {
+        Args: { _pin: string; _task_id: string }
         Returns: boolean
       }
       staff_set_course_status: {
