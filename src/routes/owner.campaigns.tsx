@@ -96,6 +96,7 @@ function CampaignsPage() {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [sendingList, setSendingList] = useState<{ clients: Client[]; message: string; campaignName: string } | null>(null);
 
   useEffect(() => {
     void load();
@@ -133,7 +134,7 @@ function CampaignsPage() {
   async function sendCampaign() {
     if (!name.trim() || !message.trim()) { toast.error("Nome e messaggio sono obbligatori"); return; }
     if (recipients.length === 0) { toast.error("Nessun destinatario con questi filtri"); return; }
-    if (!confirm(`Inviare "${name}" a ${recipients.length} clienti via ${channel.toUpperCase()}?`)) return;
+    if (!confirm(`Preparare "${name}" per ${recipients.length} clienti via ${channel.toUpperCase()}?`)) return;
     setSending(true);
     try {
       const { data, error } = await supabase.from("campaigns").insert({
@@ -142,15 +143,19 @@ function CampaignsPage() {
         message,
         filter: filters as any,
         recipient_count: recipients.length,
-        sent_count: recipients.length,
+        sent_count: 0,
         failed_count: 0,
-        status: "sent",
+        status: channel === "whatsapp" ? "pending" : "saved",
         sent_at: new Date().toISOString(),
       }).select().single();
       if (error) throw error;
       setCampaigns((p) => [data as Campaign, ...p]);
-      toast.success(`Campagna registrata per ${recipients.length} clienti. Per l'invio reale via ${channel.toUpperCase()}, collega Twilio dalle Impostazioni.`);
-      setName(""); setMessage("");
+      if (channel === "whatsapp") {
+        setSendingList({ clients: recipients, message, campaignName: name });
+      } else {
+        toast.success(`Campagna SMS salvata. Per l'invio reale collega Twilio dalle Impostazioni.`);
+        setName(""); setMessage("");
+      }
     } catch (e: any) {
       toast.error(e.message || "Errore");
     } finally {
@@ -166,10 +171,18 @@ function CampaignsPage() {
         <p className="mt-1 text-sm text-muted-foreground">Invia offerte ai tuoi clienti via SMS o WhatsApp.</p>
       </header>
 
-      <div className="mb-6 rounded-2xl border-2 border-yellow bg-yellow/15 px-4 py-3 text-xs">
-        <strong className="font-bold uppercase tracking-wider">Modalità demo.</strong>{" "}
-        Le campagne vengono salvate ma non spedite davvero. Per attivare l'invio reale collega <strong>Twilio</strong> (SMS/WhatsApp) — chiedi all'agente "collega Twilio".
-      </div>
+      {channel === "sms" && (
+        <div className="mb-6 rounded-2xl border-2 border-yellow bg-yellow/15 px-4 py-3 text-xs">
+          <strong className="font-bold uppercase tracking-wider">SMS — modalità demo.</strong>{" "}
+          Le campagne SMS vengono salvate ma non spedite. Per l'invio reale collega <strong>Twilio</strong> — chiedi all'agente "collega Twilio".
+        </div>
+      )}
+      {channel === "whatsapp" && (
+        <div className="mb-6 rounded-2xl border-2 border-emerald-400/60 bg-emerald-50/30 px-4 py-3 text-xs text-emerald-900 dark:text-emerald-300">
+          <strong className="font-bold uppercase tracking-wider">WhatsApp — invio manuale.</strong>{" "}
+          Clicca "Invia" e ti mostreremo ogni cliente uno per uno. Apri la chat WhatsApp pre-compilata con un click.
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         {/* Composer */}
@@ -296,6 +309,15 @@ function CampaignsPage() {
         </aside>
       </div>
 
+      {sendingList && (
+        <WhatsAppSheet
+          clients={sendingList.clients}
+          message={sendingList.message}
+          campaignName={sendingList.campaignName}
+          onClose={() => { setSendingList(null); setName(""); setMessage(""); }}
+        />
+      )}
+
       {/* History */}
       <section className="mt-8">
         <h2 className="mb-3 font-display text-2xl uppercase tracking-tight">Storico</h2>
@@ -321,6 +343,83 @@ function CampaignsPage() {
           </ul>
         )}
       </section>
+    </div>
+  );
+}
+
+function WhatsAppSheet({ clients, message, campaignName, onClose }: {
+  clients: Client[];
+  message: string;
+  campaignName: string;
+  onClose: () => void;
+}) {
+  const [sent, setSent] = useState(new Set<string>());
+
+  function sendTo(c: Client) {
+    if (!c.phone) return;
+    const phone = c.phone.replace(/[^0-9]/g, "");
+    const text = `Ciao ${c.name}!\n\n${message}`;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, "_blank");
+    setSent((prev) => new Set(prev).add(c.id));
+  }
+
+  const sentCount = sent.size;
+  const total = clients.length;
+  const pct = total ? Math.round((sentCount / total) * 100) : 0;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-paper">
+      {/* Sticky header */}
+      <div className="sticky top-0 z-10 border-b-2 border-ink bg-paper px-5 py-4">
+        <div className="mx-auto flex max-w-2xl items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="font-display text-xl uppercase tracking-tight">💬 {campaignName}</h2>
+            <div className="mt-1 flex items-center gap-3">
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-ink/10">
+                <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${pct}%` }} />
+              </div>
+              <span className="shrink-0 font-mono text-xs text-ink/60">{sentCount}/{total}</span>
+            </div>
+          </div>
+          <button onClick={onClose} className="shrink-0 rounded-lg border-2 border-ink px-4 py-2 text-xs font-bold uppercase tracking-wider hover:bg-cream-dark">
+            {sentCount === total && total > 0 ? "✓ Fatto" : "Chiudi"}
+          </button>
+        </div>
+      </div>
+
+      {/* Message preview */}
+      <div className="mx-auto max-w-2xl px-5 pt-4">
+        <div className="rounded-xl border border-ink/15 bg-cream-dark/30 p-3 text-sm text-ink/70">
+          <span className="font-bold">Anteprima: </span>
+          Ciao [Nome]! {message}
+        </div>
+      </div>
+
+      {/* Recipients */}
+      <div className="mx-auto max-w-2xl space-y-2 px-5 py-4">
+        {clients.map((c) => {
+          const done = sent.has(c.id);
+          return (
+            <div key={c.id} className={`flex items-center gap-3 rounded-xl border-2 p-3 ${done ? "border-green-300/50 bg-green-50/30" : "border-ink bg-paper"}`}>
+              <div className="min-w-0 flex-1">
+                <div className="font-display text-base uppercase">{c.name}</div>
+                <div className="text-xs text-ink/50">{c.phone || "—"}{c.visit_count ? ` · ${c.visit_count} visite` : ""}</div>
+              </div>
+              {done ? (
+                <span className="shrink-0 rounded-full bg-green-500/15 px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-green-700">✓ Inviato</span>
+              ) : (
+                <button
+                  onClick={() => sendTo(c)}
+                  disabled={!c.phone}
+                  className="shrink-0 rounded-lg bg-green-600 px-4 py-2 text-xs font-bold uppercase tracking-wider text-paper hover:bg-green-500 disabled:opacity-40"
+                >
+                  💬 Apri
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

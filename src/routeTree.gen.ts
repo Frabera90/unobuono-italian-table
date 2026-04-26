@@ -14,6 +14,7 @@ import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as OwnerRouteImport } from './routes/owner'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as KitchenRouteImport } from './routes/kitchen'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
@@ -66,6 +67,11 @@ const OwnerRoute = OwnerRouteImport.update({
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KitchenRoute = KitchenRouteImport.update({
+  id: '/kitchen',
+  path: '/kitchen',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DemoRoute = DemoRouteImport.update({
@@ -217,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/demo': typeof DemoRoute
+  '/kitchen': typeof KitchenRoute
   '/onboarding': typeof OnboardingRoute
   '/owner': typeof OwnerRouteWithChildren
   '/staff': typeof StaffRoute
@@ -252,6 +259,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/demo': typeof DemoRoute
+  '/kitchen': typeof KitchenRoute
   '/onboarding': typeof OnboardingRoute
   '/staff': typeof StaffRoute
   '/unsubscribe': typeof UnsubscribeRoute
@@ -287,6 +295,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/demo': typeof DemoRoute
+  '/kitchen': typeof KitchenRoute
   '/onboarding': typeof OnboardingRoute
   '/owner': typeof OwnerRouteWithChildren
   '/staff': typeof StaffRoute
@@ -324,6 +333,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/demo'
+    | '/kitchen'
     | '/onboarding'
     | '/owner'
     | '/staff'
@@ -359,6 +369,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/demo'
+    | '/kitchen'
     | '/onboarding'
     | '/staff'
     | '/unsubscribe'
@@ -393,6 +404,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/demo'
+    | '/kitchen'
     | '/onboarding'
     | '/owner'
     | '/staff'
@@ -429,6 +441,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   DemoRoute: typeof DemoRoute
+  KitchenRoute: typeof KitchenRoute
   OnboardingRoute: typeof OnboardingRoute
   OwnerRoute: typeof OwnerRouteWithChildren
   StaffRoute: typeof StaffRoute
@@ -481,6 +494,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kitchen': {
+      id: '/kitchen'
+      path: '/kitchen'
+      fullPath: '/kitchen'
+      preLoaderRoute: typeof KitchenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/demo': {
@@ -724,6 +744,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   DemoRoute: DemoRoute,
+  KitchenRoute: KitchenRoute,
   OnboardingRoute: OnboardingRoute,
   OwnerRoute: OwnerRouteWithChildren,
   StaffRoute: StaffRoute,
