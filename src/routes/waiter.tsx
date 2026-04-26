@@ -43,6 +43,7 @@ function WaiterPage() {
   const [readCalls, setReadCalls] = useState(0);
   const [readPre, setReadPre] = useState(0);
   const [showInstall, setShowInstall] = useState(false);
+  const [taskFromCall, setTaskFromCall] = useState<Call | null>(null);
 
   const today = isoDate(new Date());
 
