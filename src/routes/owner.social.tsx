@@ -380,15 +380,6 @@ Rispondi SOLO con JSON valido: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #t
                 </div>
               </div>
 
-              <div>
-                <label className="mb-1 block text-xs uppercase tracking-wider text-muted-foreground">Aggiungi contesto (opzionale)</label>
-                <input
-                  value={extraContext}
-                  onChange={(e) => setExtraContext(e.target.value)}
-                  placeholder="es. nuovo piatto estivo"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                />
-              </div>
 
               <button
                 onClick={regenerate}
