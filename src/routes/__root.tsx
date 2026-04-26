@@ -1,5 +1,6 @@
 import { Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
+import { SplashScreen } from "@/components/SplashScreen";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -44,6 +45,7 @@ export const Route = createRootRoute({
   shellComponent: RootShell,
   component: () => (
     <>
+      <SplashScreen />
       <Outlet />
       <Toaster position="top-center" richColors />
     </>
