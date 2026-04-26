@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { relTime, isoDate } from "@/lib/restaurant";
 import { playDing } from "@/lib/sounds";
 import { toast } from "sonner";
+import { TodoTab, AddTaskModal } from "@/components/waiter/TodoTab";
 
 export const Route = createFileRoute("/waiter")({
   head: () => ({
