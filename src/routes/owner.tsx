@@ -2,8 +2,23 @@ import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tansta
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyRestaurant, type Restaurant } from "@/lib/restaurant";
-import { X } from "lucide-react";
-import { BrandLockup, BrandMark } from "@/components/brand";
+import {
+  X,
+  LayoutDashboard,
+  CalendarDays,
+  UtensilsCrossed,
+  Armchair,
+  QrCode,
+  Users,
+  ChefHat,
+  Camera,
+  Store,
+  Sparkles,
+  Menu as MenuIcon,
+  LogOut,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { BrandLockup } from "@/components/brand";
 
 export const Route = createFileRoute("/owner")({
   head: () => ({
@@ -12,29 +27,23 @@ export const Route = createFileRoute("/owner")({
   component: OwnerLayout,
 });
 
-const NAV = [
-  { to: "/owner/dashboard", label: "Dashboard", short: "Home", icon: "📊" },
-  { to: "/owner/reservations", label: "Prenotazioni", short: "Preno", icon: "📅" },
-  { to: "/owner/agent", label: "Agente AI", short: "AI", icon: "✨" },
-  { to: "/owner/menu", label: "Menu", short: "Menu", icon: "🍕" },
-  { to: "/owner/sala", label: "Sala & Tavoli", short: "Sala", icon: "🪑" },
-  { to: "/owner/qr", label: "QR Code", short: "QR", icon: "📱" },
-  { to: "/owner/staff", label: "Staff", short: "Staff", icon: "👨‍🍳" },
-  { to: "/owner/crm", label: "Clienti", short: "Clienti", icon: "👥" },
-  { to: "/owner/social", label: "Social", short: "Social", icon: "📸" },
-  { to: "/owner/settings", label: "Il mio locale", short: "Locale", icon: "🏠" },
-  { to: "/owner/pro", label: "Pro / Prossimamente", short: "Pro", icon: "✨" },
-] as const;
+type NavItem = { to: string; label: string; short: string; Icon: LucideIcon };
 
-// Bottom nav mobile: 2 voci sx + AI al centro (FAB) + 2 voci dx
-const BOTTOM_LEFT = [
-  { to: "/owner/dashboard", label: "Home", icon: "📊" },
-  { to: "/owner/reservations", label: "Preno", icon: "📅" },
-] as const;
-const BOTTOM_RIGHT = [
-  { to: "/owner/menu", label: "Menu", icon: "🍕" },
-  { to: "/owner/sala", label: "Sala", icon: "🪑" },
-] as const;
+const NAV: NavItem[] = [
+  { to: "/owner/dashboard", label: "Dashboard", short: "Home", Icon: LayoutDashboard },
+  { to: "/owner/reservations", label: "Prenotazioni", short: "Preno", Icon: CalendarDays },
+  { to: "/owner/menu", label: "Menu", short: "Menu", Icon: UtensilsCrossed },
+  { to: "/owner/sala", label: "Sala & Tavoli", short: "Sala", Icon: Armchair },
+  { to: "/owner/qr", label: "QR Code", short: "QR", Icon: QrCode },
+  { to: "/owner/staff", label: "Staff", short: "Staff", Icon: ChefHat },
+  { to: "/owner/crm", label: "Clienti", short: "Clienti", Icon: Users },
+  { to: "/owner/social", label: "Social", short: "Social", Icon: Camera },
+  { to: "/owner/settings", label: "Il mio locale", short: "Locale", Icon: Store },
+  { to: "/owner/pro", label: "Pro / Prossimamente", short: "Pro", Icon: Sparkles },
+];
+
+// Bottom nav mobile: 4 voci principali + "Altro" (drawer). Esattamente 5 slot.
+const BOTTOM: NavItem[] = NAV.slice(0, 4);
 
 function OwnerLayout() {
   const loc = useLocation();
@@ -43,7 +52,6 @@ function OwnerLayout() {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // chiudi burger menu al cambio rotta
   useEffect(() => { setMenuOpen(false); }, [loc.pathname]);
 
   useEffect(() => {
@@ -92,84 +100,60 @@ function OwnerLayout() {
             return (
               <Link key={n.to} to={n.to}
                 className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${active ? "bg-yellow text-ink" : "text-paper/80 hover:bg-paper/10 hover:text-paper"}`}>
-                <span className="text-base">{n.icon}</span>
-                {n.label}
+                <n.Icon className="h-4 w-4 shrink-0" strokeWidth={2.25} />
+                <span className="truncate">{n.label}</span>
               </Link>
             );
           })}
         </nav>
-        <button onClick={logout} className="mt-4 rounded-xl border-2 border-paper/20 px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-paper/70 hover:border-yellow hover:text-yellow">
-          Esci
+        <button onClick={logout} className="mt-4 flex items-center gap-2 rounded-xl border-2 border-paper/20 px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-paper/70 hover:border-yellow hover:text-yellow">
+          <LogOut className="h-4 w-4" strokeWidth={2.25} /> Esci
         </button>
       </aside>
 
-      <main className="min-w-0 flex-1 overflow-x-hidden pb-28 md:pb-0">
-        {/* Header mobile (senza burger: il menu sta nel bottom nav "Altro") */}
+      <main className="min-w-0 flex-1 overflow-x-hidden pb-24 md:pb-0">
         <div className="sticky top-0 z-20 flex items-center justify-between border-b-2 border-ink bg-ink px-4 py-3 text-paper md:hidden">
           <BrandLockup variant="yellow" size="sm" subtitle={restaurant?.name || "—"} />
         </div>
-
         <Outlet />
       </main>
 
-      {/* Bottom nav mobile: 2 + AI (FAB) + 2 + Altro */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-ink bg-ink text-paper md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-        <div className="relative grid grid-cols-5">
-          {BOTTOM_LEFT.map((n) => {
+      {/* Bottom nav mobile: 5 slot fissi, niente wrap */}
+      <nav
+        className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-ink bg-ink text-paper md:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="grid grid-cols-5">
+          {BOTTOM.map((n) => {
             const active = loc.pathname.startsWith(n.to);
             return (
-              <Link key={n.to} to={n.to}
-                className={`flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-2 text-center ${active ? "bg-yellow text-ink" : "text-paper/70"}`}>
-                <span className="text-[18px] leading-none">{n.icon}</span>
-                <span className="block w-full truncate text-[10px] font-bold uppercase leading-none tracking-wide">{n.label}</span>
-              </Link>
-            );
-          })}
-          {/* FAB centrale: Agente AI */}
-          <Link
-            to="/owner/agent"
-            className="flex min-w-0 flex-col items-center justify-end px-1 pb-1.5 pt-0 text-center"
-            aria-label="Agente AI"
-          >
-            <span
-              className={`-mt-6 grid h-14 w-14 place-items-center rounded-full border-2 border-ink shadow-lg ${
-                loc.pathname.startsWith("/owner/agent")
-                  ? "bg-terracotta text-paper"
-                  : "bg-yellow text-ink"
-              }`}
-            >
-              <span className="text-2xl leading-none">✨</span>
-            </span>
-            <span className="mt-0.5 block w-full truncate text-[10px] font-bold uppercase leading-none tracking-wide text-paper/80">AI</span>
-          </Link>
-          {BOTTOM_RIGHT.map((n) => {
-            const active = loc.pathname.startsWith(n.to);
-            return (
-              <Link key={n.to} to={n.to}
-                className={`flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-2 text-center ${active ? "bg-yellow text-ink" : "text-paper/70"}`}>
-                <span className="text-[18px] leading-none">{n.icon}</span>
-                <span className="block w-full truncate text-[10px] font-bold uppercase leading-none tracking-wide">{n.label}</span>
+              <Link
+                key={n.to}
+                to={n.to}
+                className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-center ${active ? "bg-yellow text-ink" : "text-paper/75"}`}
+              >
+                <n.Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2.25} />
+                <span className="block w-full truncate text-[10px] font-bold uppercase leading-none tracking-wide">{n.short}</span>
               </Link>
             );
           })}
           <button
             onClick={() => setMenuOpen(true)}
-            className={`flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-2 text-center ${menuOpen ? "bg-yellow text-ink" : "text-paper/70"}`}
+            className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-center ${menuOpen ? "bg-yellow text-ink" : "text-paper/75"}`}
+            aria-label="Altro"
           >
-            <span className="text-[18px] leading-none">☰</span>
+            <MenuIcon className="h-[18px] w-[18px] shrink-0" strokeWidth={2.25} />
             <span className="block w-full truncate text-[10px] font-bold uppercase leading-none tracking-wide">Altro</span>
           </button>
         </div>
       </nav>
 
-      {/* Drawer burger menu */}
       {menuOpen && (
         <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-ink/60" onClick={() => setMenuOpen(false)} />
           <div className="absolute right-0 top-0 flex h-full w-[82%] max-w-sm flex-col border-l-2 border-ink bg-ink p-5 text-paper shadow-2xl">
             <div className="mb-6 flex items-center justify-between">
               <BrandLockup variant="yellow" size="sm" />
-              <span className="sr-only">Menu</span>
               <button onClick={() => setMenuOpen(false)} className="grid h-9 w-9 place-items-center rounded-lg border border-paper/20" aria-label="Chiudi menu">
                 <X className="h-5 w-5" />
               </button>
@@ -180,14 +164,14 @@ function OwnerLayout() {
                 return (
                   <Link key={n.to} to={n.to}
                     className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${active ? "bg-yellow text-ink" : "text-paper/80 hover:bg-paper/10 hover:text-paper"}`}>
-                    <span className="text-base">{n.icon}</span>
-                    {n.label}
+                    <n.Icon className="h-4 w-4 shrink-0" strokeWidth={2.25} />
+                    <span className="truncate">{n.label}</span>
                   </Link>
                 );
               })}
             </nav>
-            <button onClick={logout} className="mt-4 rounded-xl border-2 border-paper/20 px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-paper/70 hover:border-yellow hover:text-yellow">
-              Esci
+            <button onClick={logout} className="mt-4 flex items-center gap-2 rounded-xl border-2 border-paper/20 px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-paper/70 hover:border-yellow hover:text-yellow">
+              <LogOut className="h-4 w-4" strokeWidth={2.25} /> Esci
             </button>
           </div>
         </div>
