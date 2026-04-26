@@ -234,12 +234,12 @@ export function AddTaskModal({
     const payload = {
       _pin: pin,
       _description: description.trim(),
-      _table_number: tableNumber.trim() || null,
-      _reservation_id: reservationId,
-      _call_id: callId || null,
-      _menu_item_id: linkMenu ? selectedMenuId : null,
+      _table_number: tableNumber.trim() || undefined,
+      _reservation_id: reservationId || undefined,
+      _call_id: callId || undefined,
+      _menu_item_id: linkMenu && selectedMenuId ? selectedMenuId : undefined,
       _menu_item_qty: linkMenu ? selectedQty : 1,
-      _created_by: staffName || null,
+      _created_by: staffName || undefined,
     };
     const { data, error } = await supabase.rpc("staff_create_task", payload);
     setSaving(false);
