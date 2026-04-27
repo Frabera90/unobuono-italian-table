@@ -31,12 +31,12 @@ type NavItem = { to: string; label: string; short: string; Icon: LucideIcon };
 
 const NAV: NavItem[] = [
   { to: "/owner/dashboard", label: "Dashboard", short: "Home", Icon: LayoutDashboard },
+  { to: "/kitchen", label: "Cucina (KDS)", short: "Cucina", Icon: ChefHat },
   { to: "/owner/reservations", label: "Prenotazioni", short: "Preno", Icon: CalendarDays },
   { to: "/owner/menu", label: "Menu", short: "Menu", Icon: UtensilsCrossed },
   { to: "/owner/sala", label: "Sala & Tavoli", short: "Sala", Icon: Armchair },
   { to: "/owner/qr", label: "QR Code", short: "QR", Icon: QrCode },
-  { to: "/owner/staff", label: "Staff", short: "Staff", Icon: ChefHat },
-  { to: "/kitchen", label: "Cucina (KDS)", short: "Cucina", Icon: UtensilsCrossed },
+  { to: "/owner/staff", label: "Staff", short: "Staff", Icon: Users },
   { to: "/owner/crm", label: "Clienti", short: "Clienti", Icon: Users },
   { to: "/owner/social", label: "Social", short: "Social", Icon: Camera },
   { to: "/owner/settings", label: "Il mio locale", short: "Locale", Icon: Store },
