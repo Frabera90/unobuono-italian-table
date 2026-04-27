@@ -20,6 +20,7 @@ import { Route as CallbackRouteImport } from './routes/callback'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OwnerIndexRouteImport } from './routes/owner.index'
+import { Route as StaffSlugRouteImport } from './routes/staff.$slug'
 import { Route as RSlugRouteImport } from './routes/r.$slug'
 import { Route as OwnerStatsRouteImport } from './routes/owner.stats'
 import { Route as OwnerStaffRouteImport } from './routes/owner.staff'
@@ -99,6 +100,11 @@ const OwnerIndexRoute = OwnerIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => OwnerRoute,
+} as any)
+const StaffSlugRoute = StaffSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => StaffRoute,
 } as any)
 const RSlugRoute = RSlugRouteImport.update({
   id: '/r/$slug',
@@ -233,7 +239,7 @@ export interface FileRoutesByFullPath {
   '/kitchen': typeof KitchenRoute
   '/onboarding': typeof OnboardingRoute
   '/owner': typeof OwnerRouteWithChildren
-  '/staff': typeof StaffRoute
+  '/staff': typeof StaffRouteWithChildren
   '/unsubscribe': typeof UnsubscribeRoute
   '/waiter': typeof WaiterRoute
   '/book/$restaurantId': typeof BookRestaurantIdRoute
@@ -255,6 +261,7 @@ export interface FileRoutesByFullPath {
   '/owner/staff': typeof OwnerStaffRoute
   '/owner/stats': typeof OwnerStatsRoute
   '/r/$slug': typeof RSlugRoute
+  '/staff/$slug': typeof StaffSlugRoute
   '/owner/': typeof OwnerIndexRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/email/booking-confirm': typeof ApiPublicEmailBookingConfirmRoute
@@ -269,7 +276,7 @@ export interface FileRoutesByTo {
   '/demo': typeof DemoRoute
   '/kitchen': typeof KitchenRoute
   '/onboarding': typeof OnboardingRoute
-  '/staff': typeof StaffRoute
+  '/staff': typeof StaffRouteWithChildren
   '/unsubscribe': typeof UnsubscribeRoute
   '/waiter': typeof WaiterRoute
   '/book/$restaurantId': typeof BookRestaurantIdRoute
@@ -291,6 +298,7 @@ export interface FileRoutesByTo {
   '/owner/staff': typeof OwnerStaffRoute
   '/owner/stats': typeof OwnerStatsRoute
   '/r/$slug': typeof RSlugRoute
+  '/staff/$slug': typeof StaffSlugRoute
   '/owner': typeof OwnerIndexRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/email/booking-confirm': typeof ApiPublicEmailBookingConfirmRoute
@@ -307,7 +315,7 @@ export interface FileRoutesById {
   '/kitchen': typeof KitchenRoute
   '/onboarding': typeof OnboardingRoute
   '/owner': typeof OwnerRouteWithChildren
-  '/staff': typeof StaffRoute
+  '/staff': typeof StaffRouteWithChildren
   '/unsubscribe': typeof UnsubscribeRoute
   '/waiter': typeof WaiterRoute
   '/book/$restaurantId': typeof BookRestaurantIdRoute
@@ -329,6 +337,7 @@ export interface FileRoutesById {
   '/owner/staff': typeof OwnerStaffRoute
   '/owner/stats': typeof OwnerStatsRoute
   '/r/$slug': typeof RSlugRoute
+  '/staff/$slug': typeof StaffSlugRoute
   '/owner/': typeof OwnerIndexRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/email/booking-confirm': typeof ApiPublicEmailBookingConfirmRoute
@@ -368,6 +377,7 @@ export interface FileRouteTypes {
     | '/owner/staff'
     | '/owner/stats'
     | '/r/$slug'
+    | '/staff/$slug'
     | '/owner/'
     | '/lovable/email/suppression'
     | '/api/public/email/booking-confirm'
@@ -404,6 +414,7 @@ export interface FileRouteTypes {
     | '/owner/staff'
     | '/owner/stats'
     | '/r/$slug'
+    | '/staff/$slug'
     | '/owner'
     | '/lovable/email/suppression'
     | '/api/public/email/booking-confirm'
@@ -441,6 +452,7 @@ export interface FileRouteTypes {
     | '/owner/staff'
     | '/owner/stats'
     | '/r/$slug'
+    | '/staff/$slug'
     | '/owner/'
     | '/lovable/email/suppression'
     | '/api/public/email/booking-confirm'
@@ -457,7 +469,7 @@ export interface RootRouteChildren {
   KitchenRoute: typeof KitchenRoute
   OnboardingRoute: typeof OnboardingRoute
   OwnerRoute: typeof OwnerRouteWithChildren
-  StaffRoute: typeof StaffRoute
+  StaffRoute: typeof StaffRouteWithChildren
   UnsubscribeRoute: typeof UnsubscribeRoute
   WaiterRoute: typeof WaiterRoute
   BookRestaurantIdRoute: typeof BookRestaurantIdRoute
@@ -550,6 +562,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/owner/'
       preLoaderRoute: typeof OwnerIndexRouteImport
       parentRoute: typeof OwnerRoute
+    }
+    '/staff/$slug': {
+      id: '/staff/$slug'
+      path: '/$slug'
+      fullPath: '/staff/$slug'
+      preLoaderRoute: typeof StaffSlugRouteImport
+      parentRoute: typeof StaffRoute
     }
     '/r/$slug': {
       id: '/r/$slug'
@@ -760,6 +779,16 @@ const OwnerRouteChildren: OwnerRouteChildren = {
 
 const OwnerRouteWithChildren = OwnerRoute._addFileChildren(OwnerRouteChildren)
 
+interface StaffRouteChildren {
+  StaffSlugRoute: typeof StaffSlugRoute
+}
+
+const StaffRouteChildren: StaffRouteChildren = {
+  StaffSlugRoute: StaffSlugRoute,
+}
+
+const StaffRouteWithChildren = StaffRoute._addFileChildren(StaffRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
@@ -768,7 +797,7 @@ const rootRouteChildren: RootRouteChildren = {
   KitchenRoute: KitchenRoute,
   OnboardingRoute: OnboardingRoute,
   OwnerRoute: OwnerRouteWithChildren,
-  StaffRoute: StaffRoute,
+  StaffRoute: StaffRouteWithChildren,
   UnsubscribeRoute: UnsubscribeRoute,
   WaiterRoute: WaiterRoute,
   BookRestaurantIdRoute: BookRestaurantIdRoute,

@@ -12,17 +12,22 @@ export const Route = createFileRoute("/owner/reservations")({
 type Waitlist = { id: string; customer_name: string; customer_phone: string | null; party_size: number; date: string; preferred_time: string | null; status: string; created_at: string };
 type TableLite = { id: string; code: string; seats: number; zone_id: string | null };
 type Preorder = { id: string; customer_name: string | null; reservation_id: string | null; total: number | null; status: string | null; items: Array<{ name: string; qty: number; price: number }> | null; created_at: string };
+type WaiterCall = { id: string; table_number: string; message: string; status: string; created_at: string };
 
 const EMPTY_FORM = { name: "", phone: "", email: "", partySize: 2, date: isoDate(new Date()), time: "20:00", notes: "" };
 
 function ReservationsPage() {
   const today = isoDate(new Date());
-  const [date, setDate] = useState<string | null>(null); // null = "tutte le prossime"
+  const [showHistory, setShowHistory] = useState(false);
+  const [date, setDate] = useState<string | null>(null); // null = "da oggi in poi" (o tutte se showHistory)
   const [list, setList] = useState<Reservation[]>([]);
   const [waitlist, setWaitlist] = useState<Waitlist[]>([]);
   const [tables, setTables] = useState<TableLite[]>([]);
   const [preorders, setPreorders] = useState<Preorder[]>([]);
-  const [tab, setTab] = useState<"list" | "waitlist" | "preorders" | "tables">("list");
+  const [waitercalls, setWaitercalls] = useState<WaiterCall[]>([]);
+  const [awaitingBill, setAwaitingBill] = useState<Set<string>>(new Set());
+  const [billModal, setBillModal] = useState<{ reservation: Reservation; preorders: Preorder[]; tableCode: string } | null>(null);
+  const [tab, setTab] = useState<"list" | "waitlist" | "preorders" | "tables">("tables");
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [newOpen, setNewOpen] = useState(false);
   const [newForm, setNewForm] = useState({ ...EMPTY_FORM });
@@ -37,52 +42,63 @@ function ReservationsPage() {
 
     let resvQuery = supabase.from("reservations").select("*").eq("restaurant_id", rest.id);
     let waitQuery = supabase.from("waitlist").select("*").eq("restaurant_id", rest.id).eq("status", "waiting");
+
     if (date) {
-      resvQuery = resvQuery.eq("date", date);
-      waitQuery = waitQuery.eq("date", date);
-    } else {
-      // Tutte le prossime (da oggi in poi), max 200
-      resvQuery = resvQuery.gte("date", today).order("date").order("time").limit(200);
+      resvQuery = resvQuery.eq("date", date).order("time");
+      waitQuery = waitQuery.eq("date", date).order("created_at");
+    } else if (!showHistory) {
+      // Default: oggi e futuro
+      resvQuery = resvQuery.gte("date", today).order("date").order("time").limit(300);
       waitQuery = waitQuery.gte("date", today).order("date").limit(100);
-    }
-    if (date) {
-      resvQuery = resvQuery.order("time");
-      waitQuery = waitQuery.order("created_at");
+    } else {
+      // Storico: tutto, passato + futuro
+      resvQuery = resvQuery.order("date", { ascending: false }).order("time", { ascending: false }).limit(500);
+      waitQuery = waitQuery.order("date", { ascending: false }).limit(200);
     }
 
-    // Pre-orders: filter by date context to avoid showing old history
+    // Pre-orders
     let preoQuery = supabase.from("preorders").select("id,customer_name,reservation_id,total,status,items,created_at").eq("restaurant_id", rest.id).order("created_at", { ascending: false });
     if (date) {
-      // Show pre-orders from that specific day (created on the same day)
-      preoQuery = preoQuery.gte("created_at", date).lt("created_at", date + "T23:59:59");
-    } else {
-      // Default: show only today and future (not past orders)
-      preoQuery = preoQuery.gte("created_at", today);
+      preoQuery = preoQuery.gte("created_at", date + "T00:00:00").lte("created_at", date + "T23:59:59");
+    } else if (!showHistory) {
+      preoQuery = preoQuery.gte("created_at", today + "T00:00:00");
     }
-    preoQuery = preoQuery.limit(100);
+    preoQuery = preoQuery.limit(200);
 
-    const [{ data: r }, { data: w }, { data: t }, { data: p }] = await Promise.all([
+    // Waiter calls — solo pendenti di oggi
+    const callsQuery = supabase
+      .from("waiter_calls")
+      .select("id,table_number,message,status,created_at")
+      .eq("restaurant_id", rest.id)
+      .eq("status", "pending")
+      .gte("created_at", today + "T00:00:00")
+      .order("created_at", { ascending: false });
+
+    const [{ data: r }, { data: w }, { data: t }, { data: p }, { data: c }] = await Promise.all([
       resvQuery,
       waitQuery,
       supabase.from("tables").select("id,code,seats,zone_id").eq("restaurant_id", rest.id).order("code"),
       preoQuery,
+      callsQuery,
     ]);
     setList((r || []) as Reservation[]);
     setWaitlist((w || []) as Waitlist[]);
     setTables((t || []) as TableLite[]);
     setPreorders((p || []) as Preorder[]);
+    setWaitercalls((c || []) as WaiterCall[]);
   }
 
   useEffect(() => {
     load();
-    const ch = supabase.channel("o-resv-" + (date ?? "all"))
+    const ch = supabase.channel("o-resv-" + (date ?? "all") + (showHistory ? "-h" : ""))
       .on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "waitlist" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "preorders" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "waiter_calls" }, load)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date]);
+  }, [date, showHistory]);
 
   const active = useMemo(() => list.filter((r) => r.status !== "cancelled"), [list]);
   const cancelled = useMemo(() => list.filter((r) => r.status === "cancelled"), [list]);
@@ -171,7 +187,7 @@ function ReservationsPage() {
         <div>
           <h1 className="font-display text-3xl">Prenotazioni</h1>
           <p className="text-sm text-muted-foreground capitalize">
-            {date ? fmtDate(date) : "Tutte le prossime prenotazioni"}
+            {date ? fmtDate(date) : showHistory ? "Tutto lo storico" : "Oggi e prossime"}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -183,7 +199,7 @@ function ReservationsPage() {
           </button>
           <div className="rounded-lg border-2 border-ink bg-yellow/40 px-2 py-1.5">
             <label className="mb-0.5 block text-[9px] font-bold uppercase tracking-widest text-ink/70">
-              📅 Filtra per giorno (opzionale)
+              📅 Filtra per giorno
             </label>
             <div className="flex items-center gap-1.5">
               <input
@@ -196,13 +212,18 @@ function ReservationsPage() {
                 <button
                   onClick={() => setDate(null)}
                   className="rounded-md border border-ink bg-paper px-2 py-1 text-[10px] font-bold uppercase tracking-wider hover:bg-ink hover:text-paper"
-                  title="Mostra tutte"
                 >
-                  ✕ tutte
+                  ✕
                 </button>
               )}
             </div>
           </div>
+          <button
+            onClick={() => { setShowHistory((h) => !h); setDate(null); }}
+            className={`rounded-lg border-2 px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${showHistory ? "border-ink bg-ink text-paper" : "border-ink bg-paper text-ink hover:bg-cream-dark"}`}
+          >
+            {showHistory ? "📜 Nascondi storico" : "📜 Storico"}
+          </button>
           <div className="rounded-lg border border-border bg-card px-3 py-2 text-xs">
             <span className="font-display text-base">{totals.covers}</span>
             <span className="text-muted-foreground"> coperti · </span>
@@ -348,7 +369,26 @@ function ReservationsPage() {
       )}
 
       {tab === "tables" && (
-        <TablesView tables={tables} reservations={list} preorders={preorders} today={today} onMoveTable={moveTable} />
+        <TablesView
+          tables={tables}
+          reservations={list}
+          preorders={preorders}
+          waitercalls={waitercalls}
+          awaitingBill={awaitingBill}
+          onToggleBill={(id) => setAwaitingBill((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; })}
+          onOpenBill={(reservation, preorders, tableCode) => setBillModal({ reservation, preorders, tableCode })}
+          today={today}
+          onMoveTable={moveTable}
+        />
+      )}
+
+      {billModal && (
+        <BillModal
+          reservation={billModal.reservation}
+          preorders={billModal.preorders}
+          tableCode={billModal.tableCode}
+          onClose={() => setBillModal(null)}
+        />
       )}
 
       {newOpen && (
@@ -447,22 +487,73 @@ function occasionEmoji(type: string | null | undefined): string {
   return m[type] ?? "🎉";
 }
 
+function BillModal({ reservation, preorders, tableCode, onClose }: { reservation: Reservation; preorders: Preorder[]; tableCode: string; onClose: () => void }) {
+  const allItems: { name: string; qty: number; price: number }[] = preorders.flatMap((p) => Array.isArray(p.items) ? p.items : []);
+  const total = preorders.reduce((s, p) => s + Number(p.total ?? 0), 0);
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-2xl border-2 border-ink bg-paper p-6 shadow-[8px_8px_0_0_hsl(var(--ink))]" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-4 flex items-start justify-between">
+          <div>
+            <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Conto tavolo {tableCode}</p>
+            <p className="font-display text-2xl">{reservation.customer_name}</p>
+            <p className="text-sm text-muted-foreground">{reservation.party_size} pers · ore {reservation.time}</p>
+          </div>
+          <button onClick={onClose} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-muted">✕</button>
+        </div>
+        {allItems.length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted-foreground italic">Nessun ordine registrato</p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {allItems.map((it, i) => (
+              <li key={i} className="flex items-center justify-between py-2 text-sm">
+                <span><span className="mr-1.5 font-mono text-xs text-muted-foreground">{it.qty}×</span>{it.name}</span>
+                <span className="font-medium">€{(Number(it.price) * it.qty).toFixed(2)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="mt-4 flex items-center justify-between border-t-2 border-ink pt-3">
+          <span className="font-bold uppercase tracking-wider">Totale</span>
+          <span className="font-display text-3xl text-terracotta">€{total.toFixed(2)}</span>
+        </div>
+        <button onClick={() => window.print()} className="mt-4 w-full rounded-lg border-2 border-ink bg-yellow py-2 text-sm font-bold uppercase tracking-wider text-ink hover:bg-yellow/80">
+          🖨 Stampa conto
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function TablesView({
   tables,
   reservations,
   preorders,
+  waitercalls,
+  awaitingBill,
+  onToggleBill,
+  onOpenBill,
   today,
   onMoveTable,
 }: {
   tables: { id: string; code: string; seats: number; zone_id: string | null }[];
   reservations: Reservation[];
   preorders: Preorder[];
+  waitercalls: WaiterCall[];
+  awaitingBill: Set<string>;
+  onToggleBill: (reservationId: string) => void;
+  onOpenBill: (reservation: Reservation, preorders: Preorder[], tableCode: string) => void;
   today: string;
   onMoveTable: (reservationId: string, tableId: string | null) => void;
 }) {
   // Only look at today's active reservations
   const todayActive = reservations.filter((r) => r.date === today && r.status !== "cancelled");
   const hasToday = todayActive.length > 0 || tables.length > 0;
+  // Pending waiter calls indexed by table code
+  const callsByTable = waitercalls.reduce<Record<string, WaiterCall[]>>((acc, c) => {
+    (acc[c.table_number] = acc[c.table_number] || []).push(c);
+    return acc;
+  }, {});
 
   if (tables.length === 0) {
     return (
@@ -497,11 +588,16 @@ function TablesView({
         Vista in tempo reale dei tavoli di oggi — ideale per fare il conto a fine servizio.
       </p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {tableRows.map(({ table, occupied, reserved, activeResv, tablePreos, total }) => (
+        {tableRows.map(({ table, occupied, reserved, activeResv, tablePreos, total }) => {
+          const pendingCalls = callsByTable[table.code] ?? [];
+          const isAwaitingBill = activeResv ? awaitingBill.has(activeResv.id) : false;
+          return (
           <div
             key={table.id}
             className={`rounded-xl border-2 p-4 transition ${
-              occupied
+              isAwaitingBill
+                ? "border-purple-500 bg-purple-50/30 dark:bg-purple-900/10"
+                : occupied
                 ? "border-terracotta bg-terracotta/5"
                 : reserved
                 ? "border-amber-400/70 bg-amber-50/20 dark:bg-amber-900/10"
@@ -510,22 +606,33 @@ function TablesView({
           >
             {/* Header */}
             <div className="flex items-start justify-between">
-              <div>
+              <div className="flex items-center gap-2">
                 <div className="font-display text-2xl leading-none">{table.code}</div>
-                <div className="mt-0.5 text-xs text-muted-foreground">{table.seats} posti</div>
+                {pendingCalls.length > 0 && (
+                  <span className="animate-pulse rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-bold text-white">🔔 {pendingCalls.length}</span>
+                )}
               </div>
               <span
                 className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                  occupied
+                  isAwaitingBill
+                    ? "bg-purple-500 text-white"
+                    : occupied
                     ? "bg-terracotta text-paper"
                     : reserved
                     ? "bg-amber-400 text-ink"
                     : "bg-emerald-500/15 text-emerald-700"
                 }`}
               >
-                {occupied ? "Occupato" : reserved ? "Prenotato" : "Libero"}
+                {isAwaitingBill ? "🧾 Conto" : occupied ? "Occupato" : reserved ? "Prenotato" : "Libero"}
               </span>
             </div>
+
+            {/* Pending calls */}
+            {pendingCalls.length > 0 && (
+              <div className="mt-2 rounded-lg bg-red-50 dark:bg-red-900/20 px-2 py-1.5 text-xs text-red-700 dark:text-red-300">
+                {pendingCalls.map((c) => <div key={c.id}>🔔 {c.message}</div>)}
+              </div>
+            )}
 
             {/* Reservation info */}
             {activeResv && (
@@ -533,7 +640,7 @@ function TablesView({
                 <div className="font-medium">{activeResv.customer_name}</div>
                 <div className="text-xs text-muted-foreground">
                   {activeResv.party_size} pers · ore {activeResv.time}
-                  {activeResv.source === "walkin" && " · walk-in"}
+                  {activeResv.source === "walkin" && " · 🚶 walk-in"}
                 </div>
                 {activeResv.occasion && <div className="mt-1 text-xs">{occasionEmoji(activeResv.occasion_type)} {activeResv.occasion}</div>}
                 {activeResv.allergies && <div className="text-xs text-amber-700">⚠️ {activeResv.allergies}</div>}
@@ -600,8 +707,28 @@ function TablesView({
             {activeResv && tablePreos.length === 0 && (
               <div className="mt-2 text-xs italic text-muted-foreground">Nessun ordine registrato</div>
             )}
+
+            {/* Actions for occupied tables */}
+            {activeResv && (occupied || (activeResv.source === "walkin")) && (
+              <div className="mt-3 flex gap-2 border-t border-border/40 pt-2">
+                <button
+                  onClick={() => onOpenBill(activeResv, tablePreos, table.code)}
+                  className="flex-1 rounded-lg border border-ink bg-paper py-1.5 text-[11px] font-bold uppercase tracking-wider hover:bg-cream-dark"
+                >
+                  🧾 Apri conto
+                </button>
+                <button
+                  onClick={() => onToggleBill(activeResv.id)}
+                  className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider transition ${isAwaitingBill ? "border-purple-500 bg-purple-100 text-purple-700" : "border-border hover:bg-muted"}`}
+                  title="Segna in attesa conto"
+                >
+                  {isAwaitingBill ? "✓ Conto" : "In attesa conto"}
+                </button>
+              </div>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Walk-ins / unassigned reservations */}

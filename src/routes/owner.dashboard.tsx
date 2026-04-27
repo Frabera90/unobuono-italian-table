@@ -94,19 +94,27 @@ async function checkAndSendEmails() {
 
 function DashboardPage() {
   const today = isoDate(new Date());
-  const [stats, setStats] = useState({ resv: 0, preo: 0, reviews: 0, waitlist: 0 });
+  const [stats, setStats] = useState({ resv: 0, preo: 0, reviews: 0, waitlist: 0, occupiedTables: 0, totalTables: 0 });
   const [activity, setActivity] = useState<Activity[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
 
   async function loadStats() {
-    const [r, p, rv, wl] = await Promise.all([
-      // Solo prenotazioni NON cancellate per oggi
+    const restaurant = await getMyRestaurant();
+    const restId = restaurant?.id;
+    const [r, p, rv, wl, occupied, total] = await Promise.all([
       supabase.from("reservations").select("id", { count: "exact", head: true }).eq("date", today).neq("status", "cancelled"),
       supabase.from("preorders").select("id", { count: "exact", head: true }).gte("created_at", today + "T00:00:00").neq("status", "cancelled"),
       supabase.from("reviews").select("id", { count: "exact", head: true }).eq("status", "new"),
       supabase.from("waitlist").select("id", { count: "exact", head: true }).eq("status", "waiting"),
+      // Tavoli occupati oggi: prenotazioni arrivate con tavolo assegnato
+      restId
+        ? supabase.from("reservations").select("id", { count: "exact", head: true }).eq("restaurant_id", restId).eq("date", today).eq("arrived", true).neq("status", "cancelled").not("table_id", "is", null)
+        : Promise.resolve({ count: 0 }),
+      restId
+        ? supabase.from("tables").select("id", { count: "exact", head: true }).eq("restaurant_id", restId)
+        : Promise.resolve({ count: 0 }),
     ]);
-    setStats({ resv: r.count || 0, preo: p.count || 0, reviews: rv.count || 0, waitlist: wl.count || 0 });
+    setStats({ resv: r.count || 0, preo: p.count || 0, reviews: rv.count || 0, waitlist: wl.count || 0, occupiedTables: (occupied as any).count || 0, totalTables: (total as any).count || 0 });
   }
 
   useEffect(() => {
@@ -170,6 +178,27 @@ function DashboardPage() {
         <StatLink to="/owner/reviews" icon="⭐" label="Recensioni nuove" value={stats.reviews} alert={stats.reviews > 0} />
         <StatLink to="/owner/reservations" icon="⏳" label="Lista d'attesa" value={stats.waitlist} />
       </section>
+
+      {/* Sala Live — accesso rapido */}
+      <Link
+        to="/owner/reservations"
+        className="mt-3 flex items-center justify-between gap-4 rounded-2xl border-2 border-ink bg-ink px-5 py-4 text-paper transition hover:bg-ink/90 md:mt-4"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">🍽️</span>
+          <div>
+            <p className="font-display text-lg leading-tight text-yellow">Sala Live</p>
+            <p className="text-xs text-paper/60">Tavoli, ordini e conti in tempo reale</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <p className="font-display text-2xl text-yellow">{stats.occupiedTables}<span className="text-base text-paper/50">/{stats.totalTables}</span></p>
+            <p className="text-[10px] uppercase tracking-wider text-paper/50">tavoli occupati</p>
+          </div>
+          <span className="font-mono text-sm text-paper/40">→</span>
+        </div>
+      </Link>
 
       <div className="mt-4 grid gap-3 md:mt-7 md:gap-5 lg:grid-cols-3">
         <section className="min-w-0 rounded-2xl border border-border bg-card p-3 md:p-5 lg:col-span-2">
