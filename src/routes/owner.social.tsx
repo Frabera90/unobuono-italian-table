@@ -73,6 +73,11 @@ function SocialPage() {
   const [todayTime, setTodayTime]       = useState("19:30");
   const [publishing, setPublishing]     = useState(false);
   const [confetti, setConfetti]         = useState(false);
+  // wizard state
+  const [showWizard, setShowWizard]     = useState(false);
+  const [currentStyle, setCurrentStyle] = useState<string>("auto");
+  const [currentAddons, setCurrentAddons] = useState<string[]>([]);
+  const [currentExtra, setCurrentExtra]   = useState<string>("");
 
   // ── Plan flow ────────────────────────────────────────
   const [planStep, setPlanStep]         = useState<PlanStep>("questions");
