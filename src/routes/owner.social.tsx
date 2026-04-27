@@ -961,6 +961,24 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
             />
           </section>
 
+          {posts.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 py-2">
+              <span className="text-xs text-muted-foreground">
+                {posts.length} post · {posts.filter((p) => p.status === "scheduled").length} programmati
+              </span>
+              <div className="flex gap-2">
+                <button onClick={clearScheduled}
+                  className="rounded-md border border-red-400 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50">
+                  🗑 Cancella programmati
+                </button>
+                <button onClick={clearHistory}
+                  className="rounded-md border-2 border-red-500 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100">
+                  🗑 Svuota tutto
+                </button>
+              </div>
+            </div>
+          )}
+
           <ul className="space-y-3">
             {posts.map((p) => (
               <li key={p.id} className="flex gap-3 rounded-xl border border-border bg-card p-3">
@@ -977,6 +995,12 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                   <p className="mt-0.5 line-clamp-2 text-sm">{p.caption}</p>
                   <p className="mt-1 line-clamp-1 text-xs text-terracotta">{p.hashtags}</p>
                 </div>
+                <button
+                  onClick={() => deletePost(p.id)}
+                  className="self-start rounded-md border border-red-300 px-2 py-1 text-[11px] text-red-600 opacity-70 transition hover:opacity-100 hover:bg-red-50"
+                  title="Elimina post">
+                  🗑
+                </button>
               </li>
             ))}
             {posts.length === 0 && (
