@@ -179,11 +179,19 @@ function WaiterPage() {
         <span className="text-paper/60">👤 {staffName || "Staff"}</span>
         <button onClick={logout} className="text-paper/50 underline hover:text-paper">Esci</button>
       </div>
-      <div className="sticky top-0 z-10 grid grid-cols-4 border-b-2 border-yellow bg-ink">
+      <div className="sticky top-0 z-10 grid grid-cols-5 border-b-2 border-yellow bg-ink">
         <TabBtn active={tab === "calls"} onClick={() => { setTab("calls"); setReadCalls(calls.length); }} badge={callsBadge}>🔔 Call</TabBtn>
         <TabBtn active={tab === "todo"} onClick={() => setTab("todo")}>✅ To-do</TabBtn>
         <TabBtn active={tab === "reservations"} onClick={() => setTab("reservations")}>📋 Oggi</TabBtn>
         <TabBtn active={tab === "preorders"} onClick={() => { setTab("preorders"); setReadPre(preorders.length); }} badge={preBadge}>📦 Pre</TabBtn>
+        <a
+          href="/kitchen"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-1 border-l border-white/10 px-2 py-3 text-center text-xs font-bold uppercase tracking-wider text-paper/70 hover:bg-white/5 hover:text-yellow"
+        >
+          👨‍🍳 Cucina
+        </a>
       </div>
 
       <div className="mx-auto max-w-2xl px-4 py-5">
