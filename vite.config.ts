@@ -6,5 +6,4 @@
 // You can pass additional config via defineConfig({ vite: { ... } }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
-// cloudflare: false → skips @cloudflare/vite-plugin, produces a standard Node.js ESM server bundle
-export default defineConfig({ cloudflare: false });
+export default defineConfig();
