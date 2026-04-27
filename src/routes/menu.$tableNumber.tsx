@@ -339,8 +339,8 @@ function PreorderOverlay({ items, restaurantId, reservationId, tableNumber, defa
         <>
           <div className="mx-auto max-w-2xl px-5 py-6 pb-40">
             {!reservationId && (
-              <div className="mb-4 rounded-lg bg-amber-100 p-3 text-xs text-amber-900">
-                ⚠ Nessuna prenotazione attiva trovata su questo tavolo. Per pre-ordinare devi prima prenotare.
+              <div className="mb-4 rounded-lg border border-border bg-paper p-3 text-xs text-ink/70">
+                ℹ️ Stai ordinando come <b>walk-in</b> dal tavolo <b>{tableNumber}</b>. Lo staff riceverà l'ordine subito.
               </div>
             )}
             {grouped.map(([cat, list]) => (
