@@ -101,9 +101,51 @@ function SocialPage() {
     setPosts((data || []) as Post[]);
   }
 
+  // ── Instagram connection ────────────────────────────
+  const [igStatus, setIgStatus] = useState<{ connected: boolean; ig_username?: string | null; fb_page_name?: string | null } | null>(null);
+  const [igBusy, setIgBusy] = useState(false);
+  const [igPublishing, setIgPublishing] = useState<string | null>(null);
+
+  async function refreshIgStatus() {
+    try {
+      const r = await getInstagramStatus();
+      setIgStatus(r as any);
+    } catch { setIgStatus({ connected: false }); }
+  }
+
+  async function connectIg() {
+    setIgBusy(true);
+    try {
+      const r = await startInstagramOAuth({ data: { origin: window.location.origin } });
+      if ("error" in r && r.error) { toast.error(r.error); return; }
+      if ("url" in r && r.url) window.location.href = r.url;
+    } finally { setIgBusy(false); }
+  }
+
+  async function disconnectIg() {
+    if (!confirm("Scollegare Instagram?")) return;
+    setIgBusy(true);
+    try {
+      await disconnectInstagram();
+      toast.success("Instagram scollegato");
+      await refreshIgStatus();
+    } finally { setIgBusy(false); }
+  }
+
+  async function publishIgNow(postId: string) {
+    setIgPublishing(postId);
+    try {
+      const r = await publishToInstagram({ data: { postId } });
+      if (!r.ok) { toast.error(r.error || "Errore"); return; }
+      toast.success("📸 Pubblicato su Instagram!");
+    } catch (e: any) {
+      toast.error(e?.message || "Errore");
+    } finally { setIgPublishing(null); }
+  }
+
   useEffect(() => {
     let mounted = true;
-    void Promise.all([getMySettings(), getMyRestaurant()]).then(([s, r]) => {
+    void Promise.all([getMySettings(), getMyRestaurant(), refreshIgStatus()]).then(([s, r]) => {
       if (!mounted) return;
       setSettings(s);
       setRestaurant(r);
