@@ -6,6 +6,12 @@ import { getMySettings, getMyRestaurant, type RestaurantSettings, type Restauran
 import { CalendarGrid } from "@/components/social/CalendarGrid";
 import { StyleWizard, type AddonKey } from "@/components/social/StyleWizard";
 import { EditChips } from "@/components/social/EditChips";
+import {
+  getInstagramStatus,
+  startInstagramOAuth,
+  disconnectInstagram,
+  publishToInstagram,
+} from "@/server/instagram";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/owner/social")({
