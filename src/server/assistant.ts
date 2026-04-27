@@ -96,8 +96,12 @@ async function buildContext(supabase: any, restaurantId: string) {
 export const getAssistantInsights = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase } = context;
-    const { data: restaurant } = await supabase.from("restaurants").select("id").maybeSingle();
+    const { supabase, userId } = context;
+    const { data: restaurant } = await supabase
+      .from("restaurants")
+      .select("id")
+      .eq("owner_id", userId)
+      .maybeSingle();
     if (!restaurant) return { alerts: [], chips: [] };
 
     const ctx = await buildContext(supabase, restaurant.id);
@@ -197,8 +201,12 @@ export const askAssistant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { messages: { role: "user" | "assistant"; content: string }[] }) => input)
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: restaurant } = await supabase.from("restaurants").select("id").maybeSingle();
+    const { supabase, userId } = context;
+    const { data: restaurant } = await supabase
+      .from("restaurants")
+      .select("id")
+      .eq("owner_id", userId)
+      .maybeSingle();
     if (!restaurant) return { content: "", error: "no_restaurant" as const };
 
     const ctx = await buildContext(supabase, restaurant.id);
