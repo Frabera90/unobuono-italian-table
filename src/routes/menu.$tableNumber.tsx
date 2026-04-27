@@ -212,11 +212,11 @@ function MenuPage() {
             🙋 Cameriere
           </button>
           <button
-            onClick={() => activeRes ? setPreorderOpen(true) : toast.info("Pre-ordine disponibile solo con prenotazione")}
-            className={`flex-1 rounded-xl border-2 border-ink py-3.5 text-sm font-bold uppercase tracking-wider text-ink shadow-brut-sm transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-brut ${activeRes ? "bg-yellow" : "bg-cream-dark/40 opacity-70"}`}
-            title={activeRes ? "Fai preparare i piatti in anticipo. Quando arrivi mangi subito — puoi sempre aggiungere altro al tavolo." : "Disponibile solo se hai una prenotazione attiva"}
+            onClick={() => setPreorderOpen(true)}
+            className="flex-1 rounded-xl border-2 border-ink bg-yellow py-3.5 text-sm font-bold uppercase tracking-wider text-ink shadow-brut-sm transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-brut"
+            title={activeRes ? "Fai preparare i piatti in anticipo." : "Pre-ordina anche senza prenotazione: lo staff lo riceve subito."}
           >
-            🛵 Pre-ordina{!activeRes && " 🔒"}
+            🛵 {activeRes ? "Pre-ordina" : "Ordina"}
           </button>
         </div>
       </div>
