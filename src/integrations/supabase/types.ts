@@ -345,6 +345,7 @@ export type Database = {
         Row: {
           allergies: string | null
           arrived: boolean | null
+          booking_code: string | null
           cancelled_at: string | null
           confirmation_sent: boolean | null
           created_at: string | null
@@ -374,6 +375,7 @@ export type Database = {
         Insert: {
           allergies?: string | null
           arrived?: boolean | null
+          booking_code?: string | null
           cancelled_at?: string | null
           confirmation_sent?: boolean | null
           created_at?: string | null
@@ -403,6 +405,7 @@ export type Database = {
         Update: {
           allergies?: string | null
           arrived?: boolean | null
+          booking_code?: string | null
           cancelled_at?: string | null
           confirmation_sent?: boolean | null
           created_at?: string | null
