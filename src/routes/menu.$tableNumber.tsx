@@ -372,7 +372,7 @@ function PreorderOverlay({ items, restaurantId, reservationId, tableNumber, defa
                   <div className="text-xs text-muted-foreground">Totale</div>
                   <div className="font-display text-2xl text-terracotta">€ {total.toFixed(2).replace(".", ",")}</div>
                 </div>
-                <button onClick={submit} disabled={busy || !name.trim() || total === 0 || !reservationId} className="rounded-md bg-terracotta px-6 py-3 font-medium text-paper hover:bg-terracotta-dark disabled:opacity-40">{busy ? "Invio..." : "Manda ordine"}</button>
+                <button onClick={submit} disabled={busy || !name.trim() || total === 0} className="rounded-md bg-terracotta px-6 py-3 font-medium text-paper hover:bg-terracotta-dark disabled:opacity-40">{busy ? "Invio..." : (reservationId ? "Manda pre-ordine" : "Manda ordine")}</button>
               </div>
             </div>
           </div>
