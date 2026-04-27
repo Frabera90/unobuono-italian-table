@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Sparkles, X, Send, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { askAssistant, getAssistantInsights } from "@/server/assistant";
 import { parseAction, needsConfirm, describeAction, executeAction } from "@/lib/assistant-actions";
 
@@ -12,6 +13,12 @@ type Msg = {
 };
 
 type Insights = { alerts: { level: "red" | "yellow" | "green"; text: string }[]; chips: string[] };
+
+async function getAuthHeaders(): Promise<HeadersInit | null> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  return token ? { Authorization: `Bearer ${token}` } : null;
+}
 
 export function FloatingAssistant() {
   const nav = useNavigate();
@@ -29,7 +36,9 @@ export function FloatingAssistant() {
     let timer: ReturnType<typeof setInterval> | null = null;
     async function load() {
       try {
-        const r = await getAssistantInsights();
+        const headers = await getAuthHeaders();
+        if (!headers) return;
+        const r = await getAssistantInsights({ headers });
         if (mounted) setInsights({ alerts: r.alerts || [], chips: r.chips || [] });
       } catch {}
     }
@@ -62,7 +71,9 @@ export function FloatingAssistant() {
       const history = newMsgs
         .filter((m) => !m.pendingAction)
         .map((m) => ({ role: m.role, content: m.content }));
-      const r = await askAssistant({ data: { messages: history } });
+      const headers = await getAuthHeaders();
+      if (!headers) { toast.error("Sessione scaduta, accedi di nuovo."); return; }
+      const r = await askAssistant({ data: { messages: history }, headers });
       if (r.error === "rate_limit") { toast.error("Troppe richieste, riprova tra poco."); return; }
       if (r.error === "credits") { toast.error("Crediti AI esauriti."); return; }
       if (r.error === "no_restaurant") { toast.error("Ristorante non trovato."); return; }
