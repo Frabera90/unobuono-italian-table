@@ -222,7 +222,7 @@ function MenuPage() {
       </div>
 
       {callOpen && <WaiterCallSheet table={tableNumber} restaurantId={restaurantId} reservationId={activeRes?.id ?? null} defaultName={activeRes?.customer_name ?? ""} onClose={() => setCallOpen(false)} />}
-      {preorderOpen && <PreorderOverlay items={items} restaurantId={restaurantId} reservationId={activeRes?.id ?? null} defaultName={activeRes?.customer_name ?? ""} onClose={() => setPreorderOpen(false)} />}
+      {preorderOpen && <PreorderOverlay items={items} restaurantId={restaurantId} reservationId={activeRes?.id ?? null} tableNumber={tableNumber} defaultName={activeRes?.customer_name ?? ""} onClose={() => setPreorderOpen(false)} />}
     </main>
   );
 }
