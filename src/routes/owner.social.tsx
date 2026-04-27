@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { callAI, callAIVision, enhanceImage, planSocialCalendar } from "@/server/ai";
 import { getMySettings, getMyRestaurant, type RestaurantSettings, type Restaurant } from "@/lib/restaurant";
 import { CalendarGrid } from "@/components/social/CalendarGrid";
+import { StyleWizard, type AddonKey } from "@/components/social/StyleWizard";
+import { EditChips } from "@/components/social/EditChips";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/owner/social")({
@@ -38,12 +40,6 @@ type PlanPost = {
   editing: boolean;
 };
 
-const PHOTO_STYLES = [
-  { key: "rustic",  label: "Rustico caldo",      emoji: "🌾", desc: "Legno, luce dorata, atmosfera trattoria" },
-  { key: "minimal", label: "Minimal elegante",   emoji: "🤍", desc: "Sfondo pulito, editoriale, fine dining" },
-  { key: "pop",     label: "Vivace e colorato",  emoji: "🎨", desc: "Colori brillanti, fresco, social-first" },
-  { key: "moody",   label: "Dark & moody",       emoji: "🌑", desc: "Scuro, cinematico, premium" },
-];
 
 const CUISINE_CHIPS = ["Italiana", "Pizza", "Pesce", "Carne", "Vegetariana", "Fusion", "Regionale"];
 const GOAL_CHIPS    = ["Nuovi clienti", "Fidelizzare", "Mostrare il team", "Lanciare un piatto", "Promuovere un evento"];
@@ -71,6 +67,11 @@ function SocialPage() {
   const [todayTime, setTodayTime]       = useState("19:30");
   const [publishing, setPublishing]     = useState(false);
   const [confetti, setConfetti]         = useState(false);
+  // wizard state
+  const [showWizard, setShowWizard]     = useState(false);
+  const [currentStyle, setCurrentStyle] = useState<string>("auto");
+  const [currentAddons, setCurrentAddons] = useState<string[]>([]);
+  const [currentExtra, setCurrentExtra]   = useState<string>("");
 
   // ── Plan flow ────────────────────────────────────────
   const [planStep, setPlanStep]         = useState<PlanStep>("questions");
@@ -132,17 +133,22 @@ function SocialPage() {
     reader.readAsDataURL(file);
   }
 
-  async function applyStyle(styleKey: string) {
+  async function applyStyle(styleKey: string, addons: string[] = currentAddons, extra: string = currentExtra) {
     if (!imageDataUrl || enhancing) return;
     setEnhancing(true);
     setPhotoStep("enhancing");
+    setCurrentStyle(styleKey);
+    setCurrentAddons(addons);
+    setCurrentExtra(extra);
     try {
-      const base64 = imageDataUrl.split(",")[1] || "";
-      const r = await enhanceImage({ data: { imageBase64: base64, mimeType: imageMime, style: styleKey } });
+      // Always re-enhance starting from the ORIGINAL when available, so edits don't compound.
+      const sourceImg = originalImage || imageDataUrl;
+      const base64 = sourceImg.split(",")[1] || "";
+      const r = await enhanceImage({ data: { imageBase64: base64, mimeType: imageMime, style: styleKey, addons, extraInstructions: extra } });
       if (r.error === "rate_limit") { toast.error("Troppe richieste. Riprova tra poco."); setPhotoStep("style"); return; }
       if (r.error === "credits")    { toast.error("Crediti AI esauriti.");                setPhotoStep("style"); return; }
       if (r.error || !r.imageUrl)  { toast.error("Ritocco non riuscito. Riprova.");       setPhotoStep("style"); return; }
-      setOriginalImage(imageDataUrl);
+      if (!originalImage) setOriginalImage(imageDataUrl);
       setImageDataUrl(r.imageUrl);
       setImageMime("image/png");
       setPhotoStep("compare");
@@ -152,6 +158,19 @@ function SocialPage() {
     } finally {
       setEnhancing(false);
     }
+  }
+
+  // contextual edit: tweak tone/light without changing style
+  async function applyToneTweak(instruction: string) {
+    const merged = (currentExtra ? currentExtra + ". " : "") + instruction;
+    await applyStyle(currentStyle, currentAddons, merged.slice(0, 280));
+  }
+  function addAddon(k: AddonKey) {
+    if (currentAddons.includes(k)) return;
+    void applyStyle(currentStyle, [...currentAddons, k], currentExtra);
+  }
+  function removeAddon(k: AddonKey) {
+    void applyStyle(currentStyle, currentAddons.filter((x) => x !== k), currentExtra);
   }
 
   async function generateCaption() {
@@ -224,6 +243,10 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
     setScheduleMode("now");
     setScheduledAt("");
     setPlatform("instagram");
+    setCurrentStyle("auto");
+    setCurrentAddons([]);
+    setCurrentExtra("");
+    setShowWizard(false);
   }
 
   // ── Plan handlers ────────────────────────────────────
@@ -358,33 +381,35 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
             </>
           )}
 
-          {/* style selection */}
-          {photoStep === "style" && imageDataUrl && (
+          {/* style selection — full wizard */}
+          {photoStep === "style" && imageDataUrl && restaurant?.id && (
             <div>
               <div className="mb-5 flex items-center gap-4">
                 <img src={imageDataUrl} alt="Foto" className="h-20 w-20 rounded-xl object-cover shadow-md" />
-                <div>
-                  <p className="font-bold text-lg">Scegli uno stile</p>
-                  <p className="text-sm text-muted-foreground">L'AI ritocca luce, colori e sfondo. Il piatto resta identico.</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-lg font-bold">Scegli stile e contesto</p>
+                  <p className="text-sm text-muted-foreground">12 stili visivi + contesto (mani, piatto, persone…) + ritocchi guidati.</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                {PHOTO_STYLES.map((s) => (
-                  <button
-                    key={s.key}
-                    onClick={() => applyStyle(s.key)}
-                    className="flex flex-col items-start rounded-xl border-2 border-ink bg-cream p-4 text-left shadow-brut transition hover:-translate-y-0.5 hover:bg-yellow/40 hover:shadow-none"
-                  >
-                    <span className="mb-2 text-3xl">{s.emoji}</span>
-                    <span className="font-bold text-sm">{s.label}</span>
-                    <span className="mt-0.5 text-xs text-muted-foreground">{s.desc}</span>
-                  </button>
-                ))}
-              </div>
+              <button
+                onClick={() => setShowWizard(true)}
+                className="w-full rounded-xl border-2 border-ink bg-yellow py-4 text-sm font-bold uppercase tracking-wider shadow-brut transition hover:-translate-y-0.5 hover:shadow-none"
+              >
+                🎨 Apri wizard stile
+              </button>
               <button onClick={resetPhoto}
-                className="mt-4 w-full rounded-lg border border-border py-2 text-sm text-muted-foreground hover:bg-cream-dark/40">
+                className="mt-3 w-full rounded-lg border border-border py-2 text-sm text-muted-foreground hover:bg-cream-dark/40">
                 ← Cambia foto
               </button>
+              {showWizard && (
+                <StyleWizard
+                  restaurantId={restaurant.id}
+                  initialStyle={currentStyle}
+                  initialAddons={currentAddons}
+                  onApply={(s, a, e) => { void applyStyle(s, a, e); }}
+                  onClose={() => setShowWizard(false)}
+                />
+              )}
             </div>
           )}
 
@@ -400,8 +425,8 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
             </div>
           )}
 
-          {/* before / after compare */}
-          {photoStep === "compare" && originalImage && imageDataUrl && (
+          {/* before / after compare + contextual editing */}
+          {photoStep === "compare" && originalImage && imageDataUrl && restaurant?.id && (
             <div>
               <h2 className="mb-4 font-display text-xl">Prima / Dopo</h2>
               <div className="mb-5 grid grid-cols-2 gap-3">
@@ -414,12 +439,31 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                   <img src={imageDataUrl} alt="Migliorata" className="aspect-square w-full rounded-xl object-cover ring-2 ring-terracotta" />
                 </div>
               </div>
-              <div className="flex gap-2">
+
+              {/* contextual editing chips */}
+              <div className="mb-4 rounded-xl border-2 border-dashed border-ink/30 bg-cream/40 p-3">
+                <div className="mb-2 text-xs font-bold uppercase tracking-wider text-ink/70">🪄 Ritocca al volo</div>
+                <EditChips
+                  activeAddons={currentAddons as AddonKey[]}
+                  onAdd={addAddon}
+                  onRemove={removeAddon}
+                  onTone={(instr) => void applyToneTweak(instr)}
+                  disabled={enhancing}
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => { setImageDataUrl(originalImage); setOriginalImage(null); setPhotoStep("style"); }}
-                  className="flex-1 rounded-xl border-2 border-ink py-3 text-sm font-bold hover:bg-cream-dark/30"
+                  onClick={() => setShowWizard(true)}
+                  className="flex-1 rounded-xl border-2 border-ink bg-paper py-3 text-sm font-bold hover:bg-cream-dark/30"
                 >
-                  ← Prova altro stile
+                  🎨 Cambia stile
+                </button>
+                <button
+                  onClick={() => { if (originalImage) { setImageDataUrl(originalImage); setOriginalImage(null); setPhotoStep("style"); } }}
+                  className="rounded-xl border-2 border-ink py-3 px-3 text-sm font-bold hover:bg-cream-dark/30"
+                >
+                  ↺ Originale
                 </button>
                 <button
                   onClick={generateCaption}
@@ -429,6 +473,15 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                   ✓ Continua →
                 </button>
               </div>
+              {showWizard && (
+                <StyleWizard
+                  restaurantId={restaurant.id}
+                  initialStyle={currentStyle}
+                  initialAddons={currentAddons}
+                  onApply={(s, a, e) => { void applyStyle(s, a, e); }}
+                  onClose={() => setShowWizard(false)}
+                />
+              )}
             </div>
           )}
 

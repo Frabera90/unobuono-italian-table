@@ -15,9 +15,28 @@ const DAYS = [
   { key: "fri", label: "Venerdì" }, { key: "sat", label: "Sabato" }, { key: "sun", label: "Domenica" },
 ];
 
+const INTRO_SLIDES = [
+  {
+    emoji: "📅",
+    title: "Prenotazioni intelligenti",
+    body: "Ricevi prenotazioni online 24/7, gestisci tavoli, pre-ordini e cancellazioni — tutto in un posto. L'AI ti avvisa via email per ogni evento.",
+  },
+  {
+    emoji: "👨‍🍳",
+    title: "Cucina, sala e cameriere connessi",
+    body: "Display cucina (KDS), gestione sala in tempo reale, tasks per il personale e chiamate cameriere dal QR del tavolo. Sincronizzato live.",
+  },
+  {
+    emoji: "✨",
+    title: "AI per social, menu e clienti",
+    body: "Foto piatti ritoccate con AI, piano editoriale automatico, menu trascritto da una foto, risposte alle recensioni e CRM clienti.",
+  },
+];
+
 function OnboardingPage() {
   const nav = useNavigate();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
+  const [introIdx, setIntroIdx] = useState(0);
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -26,6 +45,7 @@ function OnboardingPage() {
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("+39 ");
   const [bio, setBio] = useState("");
+  const [notificationEmail, setNotificationEmail] = useState("");
 
   // Step 2
   const [hours, setHours] = useState<Record<string, { open: boolean; value: string }>>({
@@ -49,14 +69,29 @@ function OnboardingPage() {
       setRestaurant(r);
       if (r.onboarding_complete) nav({ to: "/owner/dashboard" });
       setName(r.name === "Il mio ristorante" ? "" : r.name);
+      // Skip intro if already seen
+      if ((r as any).intro_seen) setStep(1);
+      // pre-fill notification email with the user's auth email
+      setNotificationEmail(data.session.user.email || "");
     })();
   }, [nav]);
 
+  async function finishIntro() {
+    if (!restaurant) return;
+    await supabase.from("restaurants").update({ intro_seen: true }).eq("id", restaurant.id);
+    setStep(1);
+  }
+
   async function saveStep1() {
     if (!restaurant || !name.trim()) { toast.error("Inserisci il nome"); return; }
+    if (!notificationEmail.trim() || !/.+@.+\..+/.test(notificationEmail)) {
+      toast.error("Inserisci un'email valida per ricevere notifiche"); return;
+    }
     setBusy(true);
     const { error: e1 } = await supabase.from("restaurants").update({ name }).eq("id", restaurant.id);
-    const { error: e2 } = await supabase.from("restaurant_settings").update({ name, address, phone, bio }).eq("restaurant_id", restaurant.id);
+    const { error: e2 } = await supabase.from("restaurant_settings").update({
+      name, address, phone, bio, notification_email: notificationEmail.trim(),
+    }).eq("restaurant_id", restaurant.id);
     setBusy(false);
     if (e1 || e2) { toast.error((e1 || e2)?.message); return; }
     setStep(2);
@@ -85,23 +120,61 @@ function OnboardingPage() {
   return (
     <div className="min-h-screen bg-cream px-5 py-8">
       <div className="mx-auto max-w-xl">
-        <div className="mb-6 text-center">
-          <h1 className="font-display text-3xl text-ink">Setup ristorante</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Step {step} di 3</p>
-          <div className="mt-3 flex justify-center gap-1.5">
-            {[1, 2, 3].map((s) => (
-              <div key={s} className={`h-1.5 w-12 rounded-full ${s <= step ? "bg-terracotta" : "bg-border"}`} />
-            ))}
+        {step > 0 && (
+          <div className="mb-6 text-center">
+            <h1 className="font-display text-3xl text-ink">Setup ristorante</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Step {step} di 3</p>
+            <div className="mt-3 flex justify-center gap-1.5">
+              {[1, 2, 3].map((s) => (
+                <div key={s} className={`h-1.5 w-12 rounded-full ${s <= step ? "bg-terracotta" : "bg-border"}`} />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="rounded-2xl border-2 border-ink bg-paper p-6 shadow-[8px_8px_0_0_hsl(var(--ink))]">
+          {step === 0 && (
+            <div className="space-y-5 text-center">
+              <p className="text-xs font-bold uppercase tracking-widest text-terracotta">Benvenuto in Unobuono</p>
+              <div className="text-7xl">{INTRO_SLIDES[introIdx].emoji}</div>
+              <h2 className="font-display text-2xl text-ink">{INTRO_SLIDES[introIdx].title}</h2>
+              <p className="px-2 text-sm leading-relaxed text-ink/70">{INTRO_SLIDES[introIdx].body}</p>
+              <div className="flex justify-center gap-2 pt-1">
+                {INTRO_SLIDES.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setIntroIdx(i)}
+                    className={`h-2 rounded-full transition-all ${i === introIdx ? "w-8 bg-terracotta" : "w-2 bg-border hover:bg-ink/40"}`}
+                    aria-label={`Slide ${i + 1}`}
+                  />
+                ))}
+              </div>
+              <div className="flex gap-2 pt-2">
+                {introIdx > 0 ? (
+                  <SecondaryBtn onClick={() => setIntroIdx(introIdx - 1)}>← Indietro</SecondaryBtn>
+                ) : (
+                  <button onClick={finishIntro} className="rounded-lg px-4 py-2.5 text-xs uppercase tracking-wider text-muted-foreground hover:text-ink">
+                    Salta intro
+                  </button>
+                )}
+                {introIdx < INTRO_SLIDES.length - 1 ? (
+                  <PrimaryBtn onClick={() => setIntroIdx(introIdx + 1)} busy={false}>Avanti →</PrimaryBtn>
+                ) : (
+                  <PrimaryBtn onClick={finishIntro} busy={false}>Inizia setup →</PrimaryBtn>
+                )}
+              </div>
+            </div>
+          )}
+
           {step === 1 && (
             <div className="space-y-4">
               <h2 className="font-display text-xl text-terracotta">Identità del ristorante</h2>
               <Field label="Nome del ristorante *"><input className="ob-in" value={name} onChange={(e) => setName(e.target.value)} placeholder="Trattoria del Borgo" /></Field>
               <Field label="Indirizzo"><input className="ob-in" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Via Roma 12, Pescara" /></Field>
               <Field label="Telefono"><input className="ob-in" value={phone} onChange={(e) => setPhone(e.target.value)} /></Field>
+              <Field label="Email per notifiche * (prenotazioni, pre-ordini, disdette)">
+                <input className="ob-in" type="email" value={notificationEmail} onChange={(e) => setNotificationEmail(e.target.value)} placeholder="info@iltuoristorante.it" />
+              </Field>
               <Field label="Breve descrizione"><textarea className="ob-in" rows={3} value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Cucina di pesce, ambiente familiare..." /></Field>
               <PrimaryBtn onClick={saveStep1} busy={busy}>Continua →</PrimaryBtn>
             </div>
