@@ -207,6 +207,45 @@ export type Database = {
         }
         Relationships: []
       }
+      instagram_connections: {
+        Row: {
+          access_token: string
+          created_at: string
+          fb_page_id: string
+          fb_page_name: string | null
+          id: string
+          ig_user_id: string
+          ig_username: string | null
+          restaurant_id: string
+          token_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          fb_page_id: string
+          fb_page_name?: string | null
+          id?: string
+          ig_user_id: string
+          ig_username?: string | null
+          restaurant_id: string
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          fb_page_id?: string
+          fb_page_name?: string | null
+          id?: string
+          ig_user_id?: string
+          ig_username?: string | null
+          restaurant_id?: string
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       menu_items: {
         Row: {
           allergen_tags: string[] | null
