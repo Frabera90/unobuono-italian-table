@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import { BrandMark } from "@/components/brand";
 
@@ -64,14 +65,21 @@ function AuthPage() {
   async function google() {
     setBusy(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: window.location.origin + "/callback" },
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin + "/callback",
       });
-      if (error) toast.error("Errore Google login: " + error.message);
+      if (result.error) {
+        toast.error("Errore Google login: " + (result.error.message || "riprova"));
+        setBusy(false);
+        return;
+      }
+      if (result.redirected) {
+        // Browser sta reindirizzando a Google, niente da fare
+        return;
+      }
+      // Sessione già impostata: il listener onAuthStateChange farà il redirect
     } catch (e: any) {
       toast.error(e.message || "Errore Google login");
-    } finally {
       setBusy(false);
     }
   }
