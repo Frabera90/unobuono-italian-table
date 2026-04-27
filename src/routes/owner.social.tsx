@@ -1079,12 +1079,24 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                   <p className="mt-0.5 line-clamp-2 text-sm">{p.caption}</p>
                   <p className="mt-1 line-clamp-1 text-xs text-terracotta">{p.hashtags}</p>
                 </div>
-                <button
-                  onClick={() => deletePost(p.id)}
-                  className="self-start rounded-md border border-red-300 px-2 py-1 text-[11px] text-red-600 opacity-70 transition hover:opacity-100 hover:bg-red-50"
-                  title="Elimina post">
-                  🗑
-                </button>
+                <div className="flex flex-col items-end gap-1">
+                  {igStatus?.connected && p.image_url && p.status !== "published" && p.platform.includes("instagram") && (
+                    <button
+                      onClick={() => publishIgNow(p.id)}
+                      disabled={igPublishing === p.id}
+                      className="rounded-md border-2 border-ink bg-yellow px-2 py-1 text-[11px] font-bold uppercase shadow-brut hover:translate-y-[1px] hover:shadow-none disabled:opacity-50"
+                      title="Pubblica ora su Instagram"
+                    >
+                      {igPublishing === p.id ? "..." : "📸 IG"}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => deletePost(p.id)}
+                    className="rounded-md border border-red-300 px-2 py-1 text-[11px] text-red-600 opacity-70 transition hover:opacity-100 hover:bg-red-50"
+                    title="Elimina post">
+                    🗑
+                  </button>
+                </div>
               </li>
             ))}
             {posts.length === 0 && (
