@@ -232,6 +232,23 @@ function BookingPage() {
       }
     }
 
+    // Notifica owner (best-effort)
+    if (data?.id && resolvedRestaurantId) {
+      try {
+        const { notifyOwner } = await import("@/lib/email/notify-owner");
+        void notifyOwner({
+          restaurantId: resolvedRestaurantId,
+          reservationId: data.id,
+          eventType: "new_booking",
+          customerName: `${firstName.trim()} ${lastName.trim()}`.trim(),
+          date,
+          time: time || undefined,
+          partySize,
+          details: notes ? `Note: ${notes}` : undefined,
+        });
+      } catch {}
+    }
+
     setConfirmedRes({ id: data!.id, manage_token: data!.manage_token as string, booking_code: (data as any).booking_code ?? null });
     setStep("done");
     setSubmitting(false);

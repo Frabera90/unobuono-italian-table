@@ -36,6 +36,7 @@ const NAV: NavItem[] = [
   { to: "/owner/sala", label: "Sala & Tavoli", short: "Sala", Icon: Armchair },
   { to: "/owner/qr", label: "QR Code", short: "QR", Icon: QrCode },
   { to: "/owner/staff", label: "Staff", short: "Staff", Icon: ChefHat },
+  { to: "/kitchen", label: "Cucina (KDS)", short: "Cucina", Icon: UtensilsCrossed },
   { to: "/owner/crm", label: "Clienti", short: "Clienti", Icon: Users },
   { to: "/owner/social", label: "Social", short: "Social", Icon: Camera },
   { to: "/owner/settings", label: "Il mio locale", short: "Locale", Icon: Store },

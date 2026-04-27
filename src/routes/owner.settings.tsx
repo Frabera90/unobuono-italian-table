@@ -41,6 +41,9 @@ function SettingsPage() {
           <Field label="Telefono"><input className="set-in" value={s.phone || ""} onChange={(e) => setS({ ...s, phone: e.target.value })} /></Field>
           <Field label="Bio"><textarea className="set-in" rows={3} value={s.bio || ""} onChange={(e) => setS({ ...s, bio: e.target.value })} /></Field>
           <Field label="Tono di voce"><input className="set-in" value={s.tone || ""} onChange={(e) => setS({ ...s, tone: e.target.value })} /></Field>
+          <Field label="📧 Email per notifiche (prenotazioni, pre-ordini, disdette)">
+            <input type="email" className="set-in" value={s.notification_email || ""} onChange={(e) => setS({ ...s, notification_email: e.target.value })} placeholder="proprietario@ristorante.it" />
+          </Field>
         </Section>
 
         <Section title="Capacità">

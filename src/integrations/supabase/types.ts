@@ -353,6 +353,7 @@ export type Database = {
           customer_name: string
           customer_phone: string | null
           date: string
+          followup_sent: boolean | null
           id: string
           joined_table_ids: string[] | null
           manage_token: string | null
@@ -383,6 +384,7 @@ export type Database = {
           customer_name: string
           customer_phone?: string | null
           date: string
+          followup_sent?: boolean | null
           id?: string
           joined_table_ids?: string[] | null
           manage_token?: string | null
@@ -413,6 +415,7 @@ export type Database = {
           customer_name?: string
           customer_phone?: string | null
           date?: string
+          followup_sent?: boolean | null
           id?: string
           joined_table_ids?: string[] | null
           manage_token?: string | null
@@ -475,6 +478,7 @@ export type Database = {
           max_covers: number | null
           min_age: number | null
           name: string | null
+          notification_email: string | null
           opening_hours: Json | null
           parking_available: boolean | null
           pets_allowed: boolean | null
@@ -507,6 +511,7 @@ export type Database = {
           max_covers?: number | null
           min_age?: number | null
           name?: string | null
+          notification_email?: string | null
           opening_hours?: Json | null
           parking_available?: boolean | null
           pets_allowed?: boolean | null
@@ -539,6 +544,7 @@ export type Database = {
           max_covers?: number | null
           min_age?: number | null
           name?: string | null
+          notification_email?: string | null
           opening_hours?: Json | null
           parking_available?: boolean | null
           pets_allowed?: boolean | null
@@ -567,6 +573,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          intro_seen: boolean
           name: string
           onboarding_complete: boolean
           owner_id: string
@@ -576,6 +583,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          intro_seen?: boolean
           name?: string
           onboarding_complete?: boolean
           owner_id: string
@@ -585,6 +593,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          intro_seen?: boolean
           name?: string
           onboarding_complete?: boolean
           owner_id?: string

@@ -95,26 +95,36 @@ async function checkAndSendEmails() {
 function DashboardPage() {
   const today = isoDate(new Date());
   const [stats, setStats] = useState({ resv: 0, preo: 0, reviews: 0, waitlist: 0, occupiedTables: 0, totalTables: 0 });
+  const [kitchen, setKitchen] = useState({ pending: 0, cooking: 0, ready: 0 });
   const [activity, setActivity] = useState<Activity[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
 
   async function loadStats() {
     const restaurant = await getMyRestaurant();
     const restId = restaurant?.id;
-    const [r, p, rv, wl, occupied, total] = await Promise.all([
+    const [r, p, rv, wl, occupied, total, kpending, kcooking, kready] = await Promise.all([
       supabase.from("reservations").select("id", { count: "exact", head: true }).eq("date", today).neq("status", "cancelled"),
       supabase.from("preorders").select("id", { count: "exact", head: true }).gte("created_at", today + "T00:00:00").neq("status", "cancelled"),
       supabase.from("reviews").select("id", { count: "exact", head: true }).eq("status", "new"),
       supabase.from("waitlist").select("id", { count: "exact", head: true }).eq("status", "waiting"),
-      // Tavoli occupati oggi: prenotazioni arrivate con tavolo assegnato
       restId
         ? supabase.from("reservations").select("id", { count: "exact", head: true }).eq("restaurant_id", restId).eq("date", today).eq("arrived", true).neq("status", "cancelled").not("table_id", "is", null)
         : Promise.resolve({ count: 0 }),
       restId
         ? supabase.from("tables").select("id", { count: "exact", head: true }).eq("restaurant_id", restId)
         : Promise.resolve({ count: 0 }),
+      restId
+        ? supabase.from("preorders").select("id", { count: "exact", head: true }).eq("restaurant_id", restId).gte("created_at", today + "T00:00:00").eq("course_status", "pending")
+        : Promise.resolve({ count: 0 }),
+      restId
+        ? supabase.from("preorders").select("id", { count: "exact", head: true }).eq("restaurant_id", restId).gte("created_at", today + "T00:00:00").eq("course_status", "cooking")
+        : Promise.resolve({ count: 0 }),
+      restId
+        ? supabase.from("preorders").select("id", { count: "exact", head: true }).eq("restaurant_id", restId).gte("created_at", today + "T00:00:00").eq("course_status", "ready")
+        : Promise.resolve({ count: 0 }),
     ]);
     setStats({ resv: r.count || 0, preo: p.count || 0, reviews: rv.count || 0, waitlist: wl.count || 0, occupiedTables: (occupied as any).count || 0, totalTables: (total as any).count || 0 });
+    setKitchen({ pending: (kpending as any).count || 0, cooking: (kcooking as any).count || 0, ready: (kready as any).count || 0 });
   }
 
   useEffect(() => {
@@ -200,6 +210,30 @@ function DashboardPage() {
         </div>
       </Link>
 
+      {/* Cucina — KDS */}
+      <Link
+        to="/kitchen"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-3 flex items-center justify-between gap-4 rounded-2xl border-2 border-terracotta bg-terracotta px-5 py-4 text-paper transition hover:bg-terracotta/90"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">👨‍🍳</span>
+          <div>
+            <p className="font-display text-lg leading-tight">Cucina (KDS)</p>
+            <p className="text-xs text-paper/80">Apri il display di cucina in una nuova scheda</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="hidden gap-3 sm:flex">
+            <KitchenChip label="Da fare" value={kitchen.pending} />
+            <KitchenChip label="In cottura" value={kitchen.cooking} />
+            <KitchenChip label="Pronti" value={kitchen.ready} highlight={kitchen.ready > 0} />
+          </div>
+          <span className="font-mono text-sm text-paper/70">↗</span>
+        </div>
+      </Link>
+
       <div className="mt-4 grid gap-3 md:mt-7 md:gap-5 lg:grid-cols-3">
         <section className="min-w-0 rounded-2xl border border-border bg-card p-3 md:p-5 lg:col-span-2">
           <div className="mb-3 flex items-center justify-between gap-2">
@@ -259,5 +293,14 @@ function StatLink({ to, icon, label, value, alert }: { to: string; icon: string;
       </div>
       <div className="mt-1 truncate text-[10px] uppercase tracking-wider text-muted-foreground md:text-xs">{label}</div>
     </Link>
+  );
+}
+
+function KitchenChip({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
+  return (
+    <div className={`min-w-[60px] rounded-lg px-2.5 py-1 text-center ${highlight ? "bg-yellow text-ink" : "bg-paper/15 text-paper"}`}>
+      <p className="font-display text-lg leading-none">{value}</p>
+      <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wider opacity-80">{label}</p>
+    </div>
   );
 }
