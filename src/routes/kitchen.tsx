@@ -48,9 +48,33 @@ function KitchenPage() {
   const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
-    const rid = localStorage.getItem("staff.restaurant_id");
-    if (rid) setRestaurantId(rid);
-    setAuthChecked(true);
+    (async () => {
+      const rid = localStorage.getItem("staff.restaurant_id");
+      if (rid) { setRestaurantId(rid); setAuthChecked(true); return; }
+
+      // Se l'owner è loggato, auto-recupera il suo ristorante e PIN — niente schermata PIN
+      const { data: sess } = await supabase.auth.getSession();
+      if (sess.session) {
+        const { data: rest } = await supabase
+          .from("restaurants")
+          .select("id")
+          .eq("owner_id", sess.session.user.id)
+          .maybeSingle();
+        if (rest?.id) {
+          const { data: settings } = await supabase
+            .from("restaurant_settings")
+            .select("staff_pin")
+            .eq("restaurant_id", rest.id)
+            .maybeSingle();
+          if (settings?.staff_pin) {
+            localStorage.setItem("staff.restaurant_id", rest.id);
+            localStorage.setItem("staff.pin", settings.staff_pin);
+            setRestaurantId(rest.id);
+          }
+        }
+      }
+      setAuthChecked(true);
+    })();
   }, []);
 
   const loadOrders = useCallback(async (rid: string) => {
