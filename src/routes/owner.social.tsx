@@ -304,10 +304,68 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
     }
   }
 
+  function addManualPost() {
+    const today = new Date();
+    const d = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    const dateISO = d.toISOString().slice(0, 10);
+    setPlanPosts((arr) => [
+      ...arr,
+      {
+        date: dateISO,
+        time: "19:30",
+        theme: "Idea personale",
+        type: "custom",
+        photo_idea: "",
+        caption: "",
+        hashtags: "",
+        approved: true,
+        editing: true,
+      },
+    ]);
+    if (planStep !== "results") setPlanStep("results");
+  }
+
+  function removePlanPost(index: number) {
+    setPlanPosts((arr) => arr.filter((_, i) => i !== index));
+  }
+
+  async function deletePost(id: string) {
+    if (!confirm("Eliminare questo post?")) return;
+    const { error } = await supabase.from("social_posts").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Post eliminato");
+    await loadPosts();
+  }
+
+  async function clearHistory() {
+    if (!restaurant?.id) return;
+    if (!confirm("Cancellare TUTTO lo storico social? L'azione è irreversibile.")) return;
+    const { error } = await supabase
+      .from("social_posts")
+      .delete()
+      .eq("restaurant_id", restaurant.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Storico svuotato");
+    await loadPosts();
+  }
+
+  async function clearScheduled() {
+    if (!restaurant?.id) return;
+    if (!confirm("Cancellare tutti i post programmati (non pubblicati)?")) return;
+    const { error } = await supabase
+      .from("social_posts")
+      .delete()
+      .eq("restaurant_id", restaurant.id)
+      .eq("status", "scheduled");
+    if (error) { toast.error(error.message); return; }
+    toast.success("Post programmati eliminati");
+    await loadPosts();
+  }
+
   async function saveApproved() {
     if (!restaurant?.id) return;
-    const approved = planPosts.filter((p) => p.approved);
-    if (!approved.length) { toast.error("Approva almeno un post."); return; }
+    const approved = planPosts.filter((p) => p.approved && p.caption.trim());
+    if (!approved.length) { toast.error("Approva almeno un post con caption."); return; }
     const rows = approved.map((p) => ({
       restaurant_id: restaurant!.id,
       caption:       p.caption,
@@ -713,6 +771,10 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                 className="w-full rounded-xl border-2 border-ink bg-ink py-3 font-bold uppercase tracking-wider text-paper shadow-brut transition hover:-translate-y-0.5 hover:bg-yellow hover:text-ink hover:shadow-none">
                 ✨ Genera piano editoriale
               </button>
+              <button onClick={addManualPost}
+                className="w-full rounded-xl border-2 border-dashed border-ink py-3 text-sm font-bold hover:bg-yellow/30">
+                ➕ Aggiungi idea manualmente (senza AI)
+              </button>
             </div>
           )}
 
@@ -774,6 +836,11 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                           title="Rigenera">
                           🔄
                         </button>
+                        <button onClick={() => removePlanPost(i)}
+                          className="rounded-md border border-red-400 px-2 py-1 text-[11px] text-red-600 hover:bg-red-50"
+                          title="Rimuovi">
+                          🗑
+                        </button>
                         <button
                           onClick={() => setPlanPosts((arr) => arr.map((pp, j) => j === i ? { ...pp, approved: !pp.approved } : pp))}
                           className={`rounded-md px-3 py-1 text-[11px] font-bold transition ${
@@ -794,10 +861,37 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
 
                     {p.editing ? (
                       <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            type="date"
+                            value={p.date}
+                            onChange={(e) => setPlanPosts((arr) => arr.map((pp, j) => j === i ? { ...pp, date: e.target.value } : pp))}
+                            className="rounded-lg border border-border bg-background px-2 py-1 text-xs"
+                          />
+                          <input
+                            type="time"
+                            value={p.time}
+                            onChange={(e) => setPlanPosts((arr) => arr.map((pp, j) => j === i ? { ...pp, time: e.target.value } : pp))}
+                            className="rounded-lg border border-border bg-background px-2 py-1 text-xs"
+                          />
+                        </div>
+                        <input
+                          value={p.theme}
+                          onChange={(e) => setPlanPosts((arr) => arr.map((pp, j) => j === i ? { ...pp, theme: e.target.value } : pp))}
+                          placeholder="Tema (es. Pasta fresca della casa)"
+                          className="w-full rounded-lg border border-border bg-background px-2 py-1 text-xs"
+                        />
+                        <input
+                          value={p.photo_idea}
+                          onChange={(e) => setPlanPosts((arr) => arr.map((pp, j) => j === i ? { ...pp, photo_idea: e.target.value } : pp))}
+                          placeholder="Cosa fotografare (opzionale)"
+                          className="w-full rounded-lg border border-border bg-background px-2 py-1 text-xs"
+                        />
                         <textarea
                           value={p.caption}
                           onChange={(e) => setPlanPosts((arr) => arr.map((pp, j) => j === i ? { ...pp, caption: e.target.value } : pp))}
                           rows={3}
+                          placeholder="Caption del post…"
                           className="w-full rounded-lg border border-border bg-background p-2 text-sm"
                         />
                         <input
@@ -814,7 +908,7 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                       </div>
                     ) : (
                       <div>
-                        <p className="text-sm">{p.caption}</p>
+                        <p className="text-sm">{p.caption || <em className="text-muted-foreground">Nessuna caption — clicca ✏️ per scriverla</em>}</p>
                         <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">{p.hashtags}</p>
                       </div>
                     )}
@@ -822,14 +916,25 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                 ))}
               </div>
 
-              <div className="mt-5 flex gap-2">
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button onClick={addManualPost}
+                  className="flex-1 rounded-xl border-2 border-dashed border-ink py-3 text-sm font-bold hover:bg-yellow/30">
+                  ➕ Aggiungi idea
+                </button>
+                <button onClick={() => { if (confirm("Svuotare il piano corrente?")) { setPlanPosts([]); setPlanStep("questions"); } }}
+                  className="rounded-xl border-2 border-red-400 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50">
+                  🗑 Svuota piano
+                </button>
+              </div>
+
+              <div className="mt-3 flex gap-2">
                 <button onClick={() => { setPlanStep("questions"); setPlanPosts([]); }}
                   className="flex-1 rounded-xl border-2 border-ink py-3 text-sm font-bold hover:bg-cream-dark/30">
                   ← Rigenera tutto
                 </button>
-                <button onClick={saveApproved} disabled={!planPosts.some((p) => p.approved)}
+                <button onClick={saveApproved} disabled={!planPosts.some((p) => p.approved && p.caption.trim())}
                   className="flex-1 rounded-xl bg-terracotta py-3 text-sm font-bold text-paper disabled:opacity-40">
-                  ✓ Salva {planPosts.filter((p) => p.approved).length} post
+                  ✓ Salva {planPosts.filter((p) => p.approved && p.caption.trim()).length} post
                 </button>
               </div>
             </div>
@@ -856,6 +961,24 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
             />
           </section>
 
+          {posts.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 py-2">
+              <span className="text-xs text-muted-foreground">
+                {posts.length} post · {posts.filter((p) => p.status === "scheduled").length} programmati
+              </span>
+              <div className="flex gap-2">
+                <button onClick={clearScheduled}
+                  className="rounded-md border border-red-400 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50">
+                  🗑 Cancella programmati
+                </button>
+                <button onClick={clearHistory}
+                  className="rounded-md border-2 border-red-500 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100">
+                  🗑 Svuota tutto
+                </button>
+              </div>
+            </div>
+          )}
+
           <ul className="space-y-3">
             {posts.map((p) => (
               <li key={p.id} className="flex gap-3 rounded-xl border border-border bg-card p-3">
@@ -872,6 +995,12 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                   <p className="mt-0.5 line-clamp-2 text-sm">{p.caption}</p>
                   <p className="mt-1 line-clamp-1 text-xs text-terracotta">{p.hashtags}</p>
                 </div>
+                <button
+                  onClick={() => deletePost(p.id)}
+                  className="self-start rounded-md border border-red-300 px-2 py-1 text-[11px] text-red-600 opacity-70 transition hover:opacity-100 hover:bg-red-50"
+                  title="Elimina post">
+                  🗑
+                </button>
               </li>
             ))}
             {posts.length === 0 && (
