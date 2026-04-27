@@ -210,6 +210,6 @@ export const askAssistant = createServerFn({ method: "POST" })
       { role: "system" as const, content: `CONTESTO LIVE (snapshot di ${new Date().toLocaleString("it-IT")}):\n${JSON.stringify(ctx, null, 2)}` },
     ];
 
-    const r = await callAI({ data: { messages: [...systemMessages, ...data.messages], model } });
+    const r = await callGatewayDirect([...systemMessages, ...data.messages], model);
     return { content: r.content, error: r.error, model_used: model };
   });
