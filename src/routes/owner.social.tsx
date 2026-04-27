@@ -857,10 +857,37 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
 
                     {p.editing ? (
                       <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            type="date"
+                            value={p.date}
+                            onChange={(e) => setPlanPosts((arr) => arr.map((pp, j) => j === i ? { ...pp, date: e.target.value } : pp))}
+                            className="rounded-lg border border-border bg-background px-2 py-1 text-xs"
+                          />
+                          <input
+                            type="time"
+                            value={p.time}
+                            onChange={(e) => setPlanPosts((arr) => arr.map((pp, j) => j === i ? { ...pp, time: e.target.value } : pp))}
+                            className="rounded-lg border border-border bg-background px-2 py-1 text-xs"
+                          />
+                        </div>
+                        <input
+                          value={p.theme}
+                          onChange={(e) => setPlanPosts((arr) => arr.map((pp, j) => j === i ? { ...pp, theme: e.target.value } : pp))}
+                          placeholder="Tema (es. Pasta fresca della casa)"
+                          className="w-full rounded-lg border border-border bg-background px-2 py-1 text-xs"
+                        />
+                        <input
+                          value={p.photo_idea}
+                          onChange={(e) => setPlanPosts((arr) => arr.map((pp, j) => j === i ? { ...pp, photo_idea: e.target.value } : pp))}
+                          placeholder="Cosa fotografare (opzionale)"
+                          className="w-full rounded-lg border border-border bg-background px-2 py-1 text-xs"
+                        />
                         <textarea
                           value={p.caption}
                           onChange={(e) => setPlanPosts((arr) => arr.map((pp, j) => j === i ? { ...pp, caption: e.target.value } : pp))}
                           rows={3}
+                          placeholder="Caption del post…"
                           className="w-full rounded-lg border border-border bg-background p-2 text-sm"
                         />
                         <input
@@ -877,7 +904,7 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                       </div>
                     ) : (
                       <div>
-                        <p className="text-sm">{p.caption}</p>
+                        <p className="text-sm">{p.caption || <em className="text-muted-foreground">Nessuna caption — clicca ✏️ per scriverla</em>}</p>
                         <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">{p.hashtags}</p>
                       </div>
                     )}
@@ -885,14 +912,25 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                 ))}
               </div>
 
-              <div className="mt-5 flex gap-2">
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button onClick={addManualPost}
+                  className="flex-1 rounded-xl border-2 border-dashed border-ink py-3 text-sm font-bold hover:bg-yellow/30">
+                  ➕ Aggiungi idea
+                </button>
+                <button onClick={() => { if (confirm("Svuotare il piano corrente?")) { setPlanPosts([]); setPlanStep("questions"); } }}
+                  className="rounded-xl border-2 border-red-400 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50">
+                  🗑 Svuota piano
+                </button>
+              </div>
+
+              <div className="mt-3 flex gap-2">
                 <button onClick={() => { setPlanStep("questions"); setPlanPosts([]); }}
                   className="flex-1 rounded-xl border-2 border-ink py-3 text-sm font-bold hover:bg-cream-dark/30">
                   ← Rigenera tutto
                 </button>
-                <button onClick={saveApproved} disabled={!planPosts.some((p) => p.approved)}
+                <button onClick={saveApproved} disabled={!planPosts.some((p) => p.approved && p.caption.trim())}
                   className="flex-1 rounded-xl bg-terracotta py-3 text-sm font-bold text-paper disabled:opacity-40">
-                  ✓ Salva {planPosts.filter((p) => p.approved).length} post
+                  ✓ Salva {planPosts.filter((p) => p.approved && p.caption.trim()).length} post
                 </button>
               </div>
             </div>
