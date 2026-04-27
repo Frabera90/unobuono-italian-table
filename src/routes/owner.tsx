@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { BrandLockup } from "@/components/brand";
+import { FloatingAssistant } from "@/components/FloatingAssistant";
 
 export const Route = createFileRoute("/owner")({
   head: () => ({
@@ -181,6 +182,9 @@ function OwnerLayout() {
           </div>
         </div>
       )}
+
+      {/* Floating AI assistant — visibile su tutte le route /owner/* */}
+      <FloatingAssistant />
     </div>
   );
 }
