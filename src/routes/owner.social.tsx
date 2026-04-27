@@ -139,17 +139,22 @@ function SocialPage() {
     reader.readAsDataURL(file);
   }
 
-  async function applyStyle(styleKey: string) {
+  async function applyStyle(styleKey: string, addons: string[] = currentAddons, extra: string = currentExtra) {
     if (!imageDataUrl || enhancing) return;
     setEnhancing(true);
     setPhotoStep("enhancing");
+    setCurrentStyle(styleKey);
+    setCurrentAddons(addons);
+    setCurrentExtra(extra);
     try {
-      const base64 = imageDataUrl.split(",")[1] || "";
-      const r = await enhanceImage({ data: { imageBase64: base64, mimeType: imageMime, style: styleKey } });
+      // Always re-enhance starting from the ORIGINAL when available, so edits don't compound.
+      const sourceImg = originalImage || imageDataUrl;
+      const base64 = sourceImg.split(",")[1] || "";
+      const r = await enhanceImage({ data: { imageBase64: base64, mimeType: imageMime, style: styleKey, addons, extraInstructions: extra } });
       if (r.error === "rate_limit") { toast.error("Troppe richieste. Riprova tra poco."); setPhotoStep("style"); return; }
       if (r.error === "credits")    { toast.error("Crediti AI esauriti.");                setPhotoStep("style"); return; }
       if (r.error || !r.imageUrl)  { toast.error("Ritocco non riuscito. Riprova.");       setPhotoStep("style"); return; }
-      setOriginalImage(imageDataUrl);
+      if (!originalImage) setOriginalImage(imageDataUrl);
       setImageDataUrl(r.imageUrl);
       setImageMime("image/png");
       setPhotoStep("compare");
@@ -159,6 +164,19 @@ function SocialPage() {
     } finally {
       setEnhancing(false);
     }
+  }
+
+  // contextual edit: tweak tone/light without changing style
+  async function applyToneTweak(instruction: string) {
+    const merged = (currentExtra ? currentExtra + ". " : "") + instruction;
+    await applyStyle(currentStyle, currentAddons, merged.slice(0, 280));
+  }
+  function addAddon(k: AddonKey) {
+    if (currentAddons.includes(k)) return;
+    void applyStyle(currentStyle, [...currentAddons, k], currentExtra);
+  }
+  function removeAddon(k: AddonKey) {
+    void applyStyle(currentStyle, currentAddons.filter((x) => x !== k), currentExtra);
   }
 
   async function generateCaption() {
