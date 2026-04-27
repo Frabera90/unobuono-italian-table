@@ -6,12 +6,6 @@ import { getMySettings, getMyRestaurant, type RestaurantSettings, type Restauran
 import { CalendarGrid } from "@/components/social/CalendarGrid";
 import { StyleWizard, type AddonKey } from "@/components/social/StyleWizard";
 import { EditChips } from "@/components/social/EditChips";
-import {
-  getInstagramStatus,
-  startInstagramOAuth,
-  disconnectInstagram,
-  publishToInstagram,
-} from "@/server/instagram";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/owner/social")({
@@ -101,46 +95,14 @@ function SocialPage() {
     setPosts((data || []) as Post[]);
   }
 
-  // ── Instagram connection ────────────────────────────
-  const [igStatus, setIgStatus] = useState<{ connected: boolean; ig_username?: string | null; fb_page_name?: string | null } | null>(null);
-  const [igBusy, setIgBusy] = useState(false);
-  const [igPublishing, setIgPublishing] = useState<string | null>(null);
-
-  async function refreshIgStatus() {
-    try {
-      const r = await getInstagramStatus();
-      setIgStatus(r as any);
-    } catch { setIgStatus({ connected: false }); }
-  }
-
-  async function connectIg() {
-    setIgBusy(true);
-    try {
-      const r = await startInstagramOAuth({ data: { origin: window.location.origin } });
-      if ("error" in r && r.error) { toast.error(r.error); return; }
-      if ("url" in r && r.url) window.location.href = r.url;
-    } finally { setIgBusy(false); }
-  }
-
-  async function disconnectIg() {
-    if (!confirm("Scollegare Instagram?")) return;
-    setIgBusy(true);
-    try {
-      await disconnectInstagram();
-      toast.success("Instagram scollegato");
-      await refreshIgStatus();
-    } finally { setIgBusy(false); }
-  }
-
-  async function publishIgNow(postId: string) {
-    setIgPublishing(postId);
-    try {
-      const r = await publishToInstagram({ data: { postId } });
-      if (!r.ok) { toast.error(r.error || "Errore"); return; }
-      toast.success("📸 Pubblicato su Instagram!");
-    } catch (e: any) {
-      toast.error(e?.message || "Errore");
-    } finally { setIgPublishing(null); }
+  // ── Instagram connection (DISABLED: OAuth removed) ──
+  const igStatus: { connected: boolean; ig_username?: string | null; fb_page_name?: string | null } | null = null;
+  const igBusy = false;
+  const igPublishing: string | null = null;
+  // Stubs kept for compatibility
+  async function refreshIgStatus() { /* no-op */ }
+  async function publishIgNow(_postId: string) {
+    toast.info("Pubblicazione automatica Instagram non disponibile. Copia caption e pubblica manualmente.");
   }
 
   useEffect(() => {
@@ -471,40 +433,9 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
         <p className="text-sm text-muted-foreground">Foto, piano editoriale e calendario — tutto in un posto.</p>
       </header>
 
-      {/* Instagram connection bar */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border-2 border-ink bg-paper p-3 shadow-brut">
-        {igStatus?.connected ? (
-          <>
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-lg">📸</span>
-              <span>
-                Instagram collegato: <b>@{igStatus.ig_username || "—"}</b>
-                {igStatus.fb_page_name && <span className="text-muted-foreground"> · {igStatus.fb_page_name}</span>}
-              </span>
-            </div>
-            <button
-              onClick={disconnectIg}
-              disabled={igBusy}
-              className="rounded-md border border-red-400 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
-            >
-              Scollega
-            </button>
-          </>
-        ) : (
-          <>
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-lg">📸</span>
-              <span>Instagram <b>non collegato</b> — collega per pubblicare in automatico.</span>
-            </div>
-            <button
-              onClick={connectIg}
-              disabled={igBusy}
-              className="rounded-md border-2 border-ink bg-yellow px-3 py-1.5 text-xs font-bold uppercase shadow-brut hover:translate-y-[1px] hover:shadow-none disabled:opacity-50"
-            >
-              {igBusy ? "..." : "Collega Instagram"}
-            </button>
-          </>
-        )}
+      {/* Instagram connection: rimossa, pubblicazione manuale */}
+      <div className="mb-4 rounded-xl border-2 border-ink bg-paper p-3 text-sm shadow-brut">
+        <span className="text-lg">📸</span> Genera foto e caption qui, poi <b>copia e pubblica</b> dal tuo account social.
       </div>
 
       {/* Tab bar */}
@@ -1106,7 +1037,7 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                   <p className="mt-1 line-clamp-1 text-xs text-terracotta">{p.hashtags}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1">
-                  {igStatus?.connected && p.image_url && p.status !== "published" && p.platform.includes("instagram") && (
+                  {false && igStatus?.connected && p.image_url && p.status !== "published" && p.platform.includes("instagram") && (
                     <button
                       onClick={() => publishIgNow(p.id)}
                       disabled={igPublishing === p.id}
