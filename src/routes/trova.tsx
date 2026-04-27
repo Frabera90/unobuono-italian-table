@@ -42,7 +42,7 @@ function TrovaPage() {
     <div className="grid min-h-screen place-items-center bg-cream px-5 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <BrandMark variant="ink" className="h-12 w-12" />
+          <BrandMark variant="dark" className="h-12 w-12" />
           <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.3em] text-ink/50">UNOBUONO</p>
           <h1 className="mt-1 font-display text-4xl uppercase tracking-tight text-ink">Trova prenotazione</h1>
           <p className="mt-2 text-sm text-ink/60">Inserisci il codice di 6 caratteri ricevuto alla prenotazione.</p>
