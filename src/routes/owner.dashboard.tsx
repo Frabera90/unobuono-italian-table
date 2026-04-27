@@ -95,26 +95,36 @@ async function checkAndSendEmails() {
 function DashboardPage() {
   const today = isoDate(new Date());
   const [stats, setStats] = useState({ resv: 0, preo: 0, reviews: 0, waitlist: 0, occupiedTables: 0, totalTables: 0 });
+  const [kitchen, setKitchen] = useState({ pending: 0, cooking: 0, ready: 0 });
   const [activity, setActivity] = useState<Activity[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
 
   async function loadStats() {
     const restaurant = await getMyRestaurant();
     const restId = restaurant?.id;
-    const [r, p, rv, wl, occupied, total] = await Promise.all([
+    const [r, p, rv, wl, occupied, total, kpending, kcooking, kready] = await Promise.all([
       supabase.from("reservations").select("id", { count: "exact", head: true }).eq("date", today).neq("status", "cancelled"),
       supabase.from("preorders").select("id", { count: "exact", head: true }).gte("created_at", today + "T00:00:00").neq("status", "cancelled"),
       supabase.from("reviews").select("id", { count: "exact", head: true }).eq("status", "new"),
       supabase.from("waitlist").select("id", { count: "exact", head: true }).eq("status", "waiting"),
-      // Tavoli occupati oggi: prenotazioni arrivate con tavolo assegnato
       restId
         ? supabase.from("reservations").select("id", { count: "exact", head: true }).eq("restaurant_id", restId).eq("date", today).eq("arrived", true).neq("status", "cancelled").not("table_id", "is", null)
         : Promise.resolve({ count: 0 }),
       restId
         ? supabase.from("tables").select("id", { count: "exact", head: true }).eq("restaurant_id", restId)
         : Promise.resolve({ count: 0 }),
+      restId
+        ? supabase.from("preorders").select("id", { count: "exact", head: true }).eq("restaurant_id", restId).gte("created_at", today + "T00:00:00").eq("course_status", "pending")
+        : Promise.resolve({ count: 0 }),
+      restId
+        ? supabase.from("preorders").select("id", { count: "exact", head: true }).eq("restaurant_id", restId).gte("created_at", today + "T00:00:00").eq("course_status", "cooking")
+        : Promise.resolve({ count: 0 }),
+      restId
+        ? supabase.from("preorders").select("id", { count: "exact", head: true }).eq("restaurant_id", restId).gte("created_at", today + "T00:00:00").eq("course_status", "ready")
+        : Promise.resolve({ count: 0 }),
     ]);
     setStats({ resv: r.count || 0, preo: p.count || 0, reviews: rv.count || 0, waitlist: wl.count || 0, occupiedTables: (occupied as any).count || 0, totalTables: (total as any).count || 0 });
+    setKitchen({ pending: (kpending as any).count || 0, cooking: (kcooking as any).count || 0, ready: (kready as any).count || 0 });
   }
 
   useEffect(() => {
