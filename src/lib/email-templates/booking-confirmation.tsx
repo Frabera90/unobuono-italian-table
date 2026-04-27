@@ -8,9 +8,10 @@ interface Props {
   time?: string
   partySize?: number
   manageUrl?: string
+  bookingCode?: string
 }
 
-const BookingConfirmation = ({ customerName, restaurantName, date, time, partySize, manageUrl }: Props) => (
+const BookingConfirmation = ({ customerName, restaurantName, date, time, partySize, manageUrl, bookingCode }: Props) => (
   <Html lang="it" dir="ltr">
     <Head />
     <Preview>{`Prenotazione confermata${restaurantName ? ` da ${restaurantName}` : ''}`}</Preview>
@@ -24,6 +25,9 @@ const BookingConfirmation = ({ customerName, restaurantName, date, time, partySi
         <Section style={card}>
           <Text style={row}><strong>Quando:</strong> {date} alle {time}</Text>
           <Text style={row}><strong>Persone:</strong> {partySize}</Text>
+          {bookingCode && (
+            <Text style={codeRow}><strong>Codice:</strong> <span style={codeSpan}>{bookingCode}</span></Text>
+          )}
         </Section>
         {manageUrl && (
           <>
@@ -59,5 +63,7 @@ const text = { fontSize: '14px', color: '#333', lineHeight: '1.55', margin: '0 0
 const card = { backgroundColor: '#fdf6e3', border: '1px solid #eee', borderRadius: '10px', padding: '14px 16px', margin: '12px 0 18px' }
 const row = { fontSize: '14px', color: '#0a0a0a', margin: '4px 0' }
 const button = { backgroundColor: '#0a0a0a', color: '#ffe66d', padding: '12px 18px', borderRadius: '8px', fontWeight: 'bold' as const, textDecoration: 'none', display: 'inline-block' }
+const codeRow = { fontSize: '14px', color: '#0a0a0a', margin: '8px 0 0', borderTop: '1px solid #eee', paddingTop: '8px' }
+const codeSpan = { fontFamily: 'monospace', fontSize: '18px', fontWeight: 'bold', letterSpacing: '0.25em', color: '#c0392b' }
 const hr = { borderColor: '#eee', margin: '24px 0 12px' }
 const footer = { fontSize: '12px', color: '#888' }

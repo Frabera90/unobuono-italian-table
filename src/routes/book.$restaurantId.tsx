@@ -56,7 +56,7 @@ function BookingPage() {
   const [preferences, setPreferences] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [confirmedRes, setConfirmedRes] = useState<{ id: string; manage_token: string } | null>(null);
+  const [confirmedRes, setConfirmedRes] = useState<{ id: string; manage_token: string; booking_code: string | null } | null>(null);
 
   const [wlName, setWlName] = useState("");
   const [wlPhone, setWlPhone] = useState("+39 ");
@@ -196,7 +196,7 @@ function BookingPage() {
         allergies: hasAllergies && allergies ? allergies : null,
         notes: notes || null,
       } as any)
-      .select("id, manage_token")
+      .select("id, manage_token, booking_code")
       .single();
     if (error) {
       toast.error("Errore: " + error.message);
@@ -223,6 +223,7 @@ function BookingPage() {
               time,
               partySize,
               manageUrl,
+              bookingCode: (data as any).booking_code || undefined,
             },
           }),
         });
@@ -231,7 +232,7 @@ function BookingPage() {
       }
     }
 
-    setConfirmedRes({ id: data!.id, manage_token: data!.manage_token as string });
+    setConfirmedRes({ id: data!.id, manage_token: data!.manage_token as string, booking_code: (data as any).booking_code ?? null });
     setStep("done");
     setSubmitting(false);
   }
@@ -702,6 +703,14 @@ function BookingPage() {
               <p className="mt-0.5 text-sm font-medium capitalize">{fmtDate(date)} · ore <span className="text-terracotta font-bold">{time}</span></p>
               <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-ink/60">👥 Per</p>
               <p className="mt-0.5 text-sm font-medium">{firstName} {lastName} · {partySize} {partySize === 1 ? "persona" : "persone"}</p>
+              {confirmedRes?.booking_code && (
+                <>
+                  <hr className="my-3 border-ink/10" />
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-ink/60">🔑 Codice prenotazione</p>
+                  <p className="mt-1 font-mono text-2xl font-bold tracking-[0.3em] text-terracotta">{confirmedRes.booking_code}</p>
+                  <p className="mt-0.5 text-[11px] text-ink/50">Usalo su <a href="/trova" className="underline">unobuono.xyz/trova</a> per accedere senza email</p>
+                </>
+              )}
             </div>
 
             <button
