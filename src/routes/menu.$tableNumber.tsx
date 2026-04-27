@@ -281,7 +281,7 @@ function WaiterCallSheet({ table, restaurantId, reservationId, defaultName, onCl
   );
 }
 
-function PreorderOverlay({ items, restaurantId, reservationId, defaultName, onClose }: { items: MenuItem[]; restaurantId: string; reservationId: string | null; defaultName: string; onClose: () => void }) {
+function PreorderOverlay({ items, restaurantId, reservationId, tableNumber, defaultName, onClose }: { items: MenuItem[]; restaurantId: string; reservationId: string | null; tableNumber: string; defaultName: string; onClose: () => void }) {
   const [qty, setQty] = useState<Record<string, number>>({});
   const [name, setName] = useState(defaultName);
   const [busy, setBusy] = useState(false);
@@ -302,12 +302,13 @@ function PreorderOverlay({ items, restaurantId, reservationId, defaultName, onCl
     if (!name.trim()) { toast.error("Inserisci il tuo nome"); return; }
     const selected = items.filter((i) => qty[i.id]).map((i) => ({ id: i.id, name: i.name, qty: qty[i.id], price: Number(i.price) }));
     if (selected.length === 0) { toast.error("Aggiungi almeno un piatto"); return; }
-    if (!reservationId) { toast.error("Per pre-ordinare devi avere una prenotazione attiva su questo tavolo."); return; }
     setBusy(true);
+    // Walk-in: prefisso "Tav. X — Nome" così lo staff vede subito da quale tavolo arriva
+    const customerLabel = reservationId ? name : `Tav. ${tableNumber} — ${name}`;
     const { error } = await supabase.from("preorders").insert({
       restaurant_id: restaurantId,
       reservation_id: reservationId,
-      customer_name: name,
+      customer_name: customerLabel,
       items: selected,
       total,
       status: "pending",
