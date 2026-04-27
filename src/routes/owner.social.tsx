@@ -266,12 +266,38 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
       if (!scheduledAt) { toast.error("Scegli data e ora."); setPublishing(false); return; }
       scheduledISO = new Date(scheduledAt).toISOString();
     }
+    // Upload image to public bucket so Instagram can fetch it via https URL
+    let publicImageUrl = imageDataUrl;
+    try {
+      const m = imageDataUrl.match(/^data:(.+);base64,(.+)$/);
+      if (m) {
+        const mime = m[1];
+        const b64 = m[2];
+        const ext = mime.split("/")[1] || "jpg";
+        const bin = atob(b64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        const blob = new Blob([bytes], { type: mime });
+        const path = `${restaurant.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const up = await supabase.storage.from("social-posts").upload(path, blob, {
+          contentType: mime,
+          upsert: false,
+        });
+        if (up.error) { toast.error(`Upload immagine: ${up.error.message}`); setPublishing(false); return; }
+        publicImageUrl = supabase.storage.from("social-posts").getPublicUrl(path).data.publicUrl;
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Errore upload immagine");
+      setPublishing(false);
+      return;
+    }
+
     const { error } = await supabase.from("social_posts").insert({
       restaurant_id: restaurant.id,
       caption,
       hashtags: hashtags.join(" "),
       platform: platform === "both" ? "instagram,facebook" : platform,
-      image_url: imageDataUrl,
+      image_url: publicImageUrl,
       status: scheduleMode === "now" ? "published" : "scheduled",
       scheduled_at: scheduledISO,
     });
