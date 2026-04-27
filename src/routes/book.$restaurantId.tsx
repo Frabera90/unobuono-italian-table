@@ -713,7 +713,7 @@ function BookingPage() {
           <div className="rounded-2xl border-2 border-ink bg-paper p-7 text-center shadow-[6px_6px_0_0_hsl(var(--ink))]">
             <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-terracotta text-3xl text-paper">✓</div>
             <h2 className="mt-4 font-display text-3xl uppercase">Prenotazione confermata!</h2>
-            <p className="mt-2 text-sm text-ink/70">Salva il link qui sotto: lo userai per modificare, pre-ordinare o disdire.</p>
+            <p className="mt-2 text-sm text-ink/70">Riceverai un'email di conferma con il tuo codice.</p>
 
             <div className="mx-auto mt-5 max-w-sm rounded-xl bg-cream-dark/40 p-4 text-left">
               <p className="font-mono text-[10px] uppercase tracking-wider text-ink/60">📅 Quando</p>
@@ -723,24 +723,30 @@ function BookingPage() {
               {confirmedRes?.booking_code && (
                 <>
                   <hr className="my-3 border-ink/10" />
-                  <p className="font-mono text-[10px] uppercase tracking-wider text-ink/60">🔑 Codice prenotazione</p>
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-ink/60">🔑 Il tuo codice prenotazione</p>
                   <p className="mt-1 font-mono text-2xl font-bold tracking-[0.3em] text-terracotta">{confirmedRes.booking_code}</p>
-                  <p className="mt-0.5 text-[11px] text-ink/50">Usalo su <a href="/trova" className="underline">unobuono.xyz/trova</a> per accedere senza email</p>
+                  <p className="mt-1 text-[11px] text-ink/50">Tienilo a portata di mano: ti serve per gestire la prenotazione.</p>
                 </>
               )}
             </div>
 
-            <button
-              onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/manage/${confirmedRes.manage_token}`); toast.success("Link copiato"); }}
-              className="mt-5 w-full rounded-xl border-2 border-ink bg-yellow px-4 py-3 text-sm font-bold uppercase tracking-wider shadow-[3px_3px_0_0_hsl(var(--ink))] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
+            <a
+              href="https://unobuono.xyz"
+              className="mt-5 inline-flex w-full items-center justify-center rounded-xl border-2 border-ink bg-yellow px-4 py-3 text-sm font-bold uppercase tracking-wider shadow-[3px_3px_0_0_hsl(var(--ink))] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
             >
-              📋 Copia link gestione
-            </button>
+              🏠 Vai a unobuono.xyz
+            </a>
             <button
               onClick={() => navigate({ to: "/manage/$token", params: { token: confirmedRes.manage_token } })}
               className="mt-3 w-full rounded-xl border-2 border-ink bg-paper px-4 py-3 text-sm font-bold uppercase tracking-wider hover:bg-cream-dark"
             >
-              Apri la mia prenotazione →
+              Hai già prenotato? Gestisci qui →
+            </button>
+            <button
+              onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/manage/${confirmedRes.manage_token}`); toast.success("Link copiato"); }}
+              className="mt-2 w-full text-xs text-ink/50 underline hover:text-ink"
+            >
+              copia link diretto di gestione
             </button>
           </div>
         )}
