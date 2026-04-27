@@ -15,9 +15,28 @@ const DAYS = [
   { key: "fri", label: "Venerdì" }, { key: "sat", label: "Sabato" }, { key: "sun", label: "Domenica" },
 ];
 
+const INTRO_SLIDES = [
+  {
+    emoji: "📅",
+    title: "Prenotazioni intelligenti",
+    body: "Ricevi prenotazioni online 24/7, gestisci tavoli, pre-ordini e cancellazioni — tutto in un posto. L'AI ti avvisa via email per ogni evento.",
+  },
+  {
+    emoji: "👨‍🍳",
+    title: "Cucina, sala e cameriere connessi",
+    body: "Display cucina (KDS), gestione sala in tempo reale, tasks per il personale e chiamate cameriere dal QR del tavolo. Sincronizzato live.",
+  },
+  {
+    emoji: "✨",
+    title: "AI per social, menu e clienti",
+    body: "Foto piatti ritoccate con AI, piano editoriale automatico, menu trascritto da una foto, risposte alle recensioni e CRM clienti.",
+  },
+];
+
 function OnboardingPage() {
   const nav = useNavigate();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
+  const [introIdx, setIntroIdx] = useState(0);
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -26,6 +45,7 @@ function OnboardingPage() {
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("+39 ");
   const [bio, setBio] = useState("");
+  const [notificationEmail, setNotificationEmail] = useState("");
 
   // Step 2
   const [hours, setHours] = useState<Record<string, { open: boolean; value: string }>>({
@@ -49,8 +69,18 @@ function OnboardingPage() {
       setRestaurant(r);
       if (r.onboarding_complete) nav({ to: "/owner/dashboard" });
       setName(r.name === "Il mio ristorante" ? "" : r.name);
+      // Skip intro if already seen
+      if ((r as any).intro_seen) setStep(1);
+      // pre-fill notification email with the user's auth email
+      setNotificationEmail(data.session.user.email || "");
     })();
   }, [nav]);
+
+  async function finishIntro() {
+    if (!restaurant) return;
+    await supabase.from("restaurants").update({ intro_seen: true }).eq("id", restaurant.id);
+    setStep(1);
+  }
 
   async function saveStep1() {
     if (!restaurant || !name.trim()) { toast.error("Inserisci il nome"); return; }
