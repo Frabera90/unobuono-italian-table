@@ -323,8 +323,8 @@ function PreorderOverlay({ items, restaurantId, reservationId, tableNumber, defa
     <div className="fixed inset-0 z-40 overflow-y-auto bg-cream">
       <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-cream/95 px-5 py-4 backdrop-blur">
         <div>
-          <h2 className="font-display text-xl leading-none">Pre-ordina</h2>
-          <p className="mt-1 text-[11px] text-muted-foreground">Aiuta la cucina a prepararsi: arrivi, ti siedi e mangi subito.</p>
+          <h2 className="font-display text-xl leading-none">{reservationId ? "Pre-ordina" : "Ordina al tavolo"}</h2>
+          <p className="mt-1 text-[11px] text-muted-foreground">{reservationId ? "Aiuta la cucina a prepararsi: arrivi, ti siedi e mangi subito." : `Tavolo ${tableNumber} · l'ordine arriva subito allo staff.`}</p>
         </div>
         <button onClick={onClose} className="text-2xl text-muted-foreground">×</button>
       </div>
