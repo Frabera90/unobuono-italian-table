@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { callAI, callAIVision, enhanceImage, planSocialCalendar } from "@/server/ai";
 import { getMySettings, getMyRestaurant, type RestaurantSettings, type Restaurant } from "@/lib/restaurant";
 import { CalendarGrid } from "@/components/social/CalendarGrid";
+import { StyleWizard, type AddonKey } from "@/components/social/StyleWizard";
+import { EditChips } from "@/components/social/EditChips";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/owner/social")({
