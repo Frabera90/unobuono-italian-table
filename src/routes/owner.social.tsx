@@ -304,10 +304,68 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
     }
   }
 
+  function addManualPost() {
+    const today = new Date();
+    const d = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    const dateISO = d.toISOString().slice(0, 10);
+    setPlanPosts((arr) => [
+      ...arr,
+      {
+        date: dateISO,
+        time: "19:30",
+        theme: "Idea personale",
+        type: "custom",
+        photo_idea: "",
+        caption: "",
+        hashtags: "",
+        approved: true,
+        editing: true,
+      },
+    ]);
+    if (planStep !== "results") setPlanStep("results");
+  }
+
+  function removePlanPost(index: number) {
+    setPlanPosts((arr) => arr.filter((_, i) => i !== index));
+  }
+
+  async function deletePost(id: string) {
+    if (!confirm("Eliminare questo post?")) return;
+    const { error } = await supabase.from("social_posts").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Post eliminato");
+    await loadPosts();
+  }
+
+  async function clearHistory() {
+    if (!restaurant?.id) return;
+    if (!confirm("Cancellare TUTTO lo storico social? L'azione è irreversibile.")) return;
+    const { error } = await supabase
+      .from("social_posts")
+      .delete()
+      .eq("restaurant_id", restaurant.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Storico svuotato");
+    await loadPosts();
+  }
+
+  async function clearScheduled() {
+    if (!restaurant?.id) return;
+    if (!confirm("Cancellare tutti i post programmati (non pubblicati)?")) return;
+    const { error } = await supabase
+      .from("social_posts")
+      .delete()
+      .eq("restaurant_id", restaurant.id)
+      .eq("status", "scheduled");
+    if (error) { toast.error(error.message); return; }
+    toast.success("Post programmati eliminati");
+    await loadPosts();
+  }
+
   async function saveApproved() {
     if (!restaurant?.id) return;
-    const approved = planPosts.filter((p) => p.approved);
-    if (!approved.length) { toast.error("Approva almeno un post."); return; }
+    const approved = planPosts.filter((p) => p.approved && p.caption.trim());
+    if (!approved.length) { toast.error("Approva almeno un post con caption."); return; }
     const rows = approved.map((p) => ({
       restaurant_id: restaurant!.id,
       caption:       p.caption,
