@@ -832,6 +832,11 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                           title="Rigenera">
                           🔄
                         </button>
+                        <button onClick={() => removePlanPost(i)}
+                          className="rounded-md border border-red-400 px-2 py-1 text-[11px] text-red-600 hover:bg-red-50"
+                          title="Rimuovi">
+                          🗑
+                        </button>
                         <button
                           onClick={() => setPlanPosts((arr) => arr.map((pp, j) => j === i ? { ...pp, approved: !pp.approved } : pp))}
                           className={`rounded-md px-3 py-1 text-[11px] font-bold transition ${
