@@ -2,26 +2,44 @@ import { createServerFn } from "@tanstack/react-start";
 
 type Msg = { role: "system" | "user" | "assistant"; content: string };
 
+// The Worker SSR runtime does NOT receive LOVABLE_API_KEY (it's a Supabase-managed secret
+// only available to Edge Functions). We proxy all gateway calls through the `ai-proxy`
+// edge function, which holds the key.
+function getProxyUrl(): string {
+  const base =
+    process.env.SUPABASE_URL ||
+    process.env.VITE_SUPABASE_URL ||
+    "https://eaydgypewphfnenkemvn.supabase.co";
+  return `${base.replace(/\/$/, "")}/functions/v1/ai-proxy`;
+}
+
+const ANON_KEY =
+  process.env.SUPABASE_PUBLISHABLE_KEY ||
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVheWRneXBld3BoZm5lbmtlbXZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NDI2MzEsImV4cCI6MjA5MjUxODYzMX0.xqZEL-WXXVwjYtJ5eqXQlmLHZ-yvsehLQLcu9f2uNMk";
+
+async function callGateway(path: string, body: Record<string, unknown>): Promise<Response> {
+  return fetch(getProxyUrl(), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: ANON_KEY,
+      Authorization: `Bearer ${ANON_KEY}`,
+    },
+    body: JSON.stringify({ path, body }),
+  });
+}
+
 export const callAI = createServerFn({ method: "POST" })
   .inputValidator((input: { messages: Msg[]; model?: string; json?: boolean }) => input)
   .handler(async ({ data }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
-
     const body: Record<string, unknown> = {
       model: data.model || "google/gemini-3-flash-preview",
       messages: data.messages,
     };
     if (data.json) body.response_format = { type: "json_object" };
 
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
+    const r = await callGateway("/v1/chat/completions", body);
 
     if (r.status === 429) return { content: "", error: "rate_limit" as const };
     if (r.status === 402) return { content: "", error: "credits" as const };
@@ -38,27 +56,17 @@ export const callAI = createServerFn({ method: "POST" })
 export const callAIVision = createServerFn({ method: "POST" })
   .inputValidator((input: { imageBase64: string; mimeType: string; prompt: string }) => input)
   .handler(async ({ data }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
-
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: data.prompt },
-              { type: "image_url", image_url: { url: `data:${data.mimeType};base64,${data.imageBase64}` } },
-            ],
-          },
-        ],
-      }),
+    const r = await callGateway("/v1/chat/completions", {
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: data.prompt },
+            { type: "image_url", image_url: { url: `data:${data.mimeType};base64,${data.imageBase64}` } },
+          ],
+        },
+      ],
     });
     if (r.status === 429) return { content: "", error: "rate_limit" as const };
     if (r.status === 402) return { content: "", error: "credits" as const };
@@ -75,9 +83,6 @@ export const callAIVision = createServerFn({ method: "POST" })
 export const enhanceImage = createServerFn({ method: "POST" })
   .inputValidator((input: { imageBase64: string; mimeType: string; style?: string; addons?: string[]; extraInstructions?: string }) => input)
   .handler(async ({ data }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
-
     // STILE VISIVO (uno solo) — descrive luce, colori, sfondo, mood. NON aggiunge oggetti/persone.
     const STYLES: Record<string, string> = {
       auto: "Professional food photography enhancement: improve lighting, sharpness, color balance and appetizing look. Keep the dish authentic and recognizable. Realistic.",
@@ -119,25 +124,18 @@ export const enhanceImage = createServerFn({ method: "POST" })
     const extraBlock = extra ? ` ADDITIONAL USER REQUEST (apply gently, never break the dish): ${extra}.` : "";
     const prompt = `STYLE: ${stylePrompt}${hasAddons ? ` CONTEXT TO ADD: ${addonBlocks}` : ""} ${dishLock}${extraBlock}`;
 
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              { type: "image_url", image_url: { url: `data:${data.mimeType};base64,${data.imageBase64}` } },
-            ],
-          },
-        ],
-        modalities: ["image", "text"],
-      }),
+    const r = await callGateway("/v1/chat/completions", {
+      model: "google/gemini-2.5-flash-image",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            { type: "image_url", image_url: { url: `data:${data.mimeType};base64,${data.imageBase64}` } },
+          ],
+        },
+      ],
+      modalities: ["image", "text"],
     });
     if (r.status === 429) return { imageUrl: "", error: "rate_limit" as const };
     if (r.status === 402) return { imageUrl: "", error: "credits" as const };
@@ -155,9 +153,6 @@ export const enhanceImage = createServerFn({ method: "POST" })
 export const planSocialCalendar = createServerFn({ method: "POST" })
   .inputValidator((input: { range: "week" | "month"; restaurantName: string; bio: string; tone: string; startDateISO: string; context?: string }) => input)
   .handler(async ({ data }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
-
     const days = data.range === "week" ? 7 : 30;
     const contextBlock = data.context ? `\nDettagli dal proprietario: ${data.context}` : "";
     const prompt = `Sei il social media manager di ${data.restaurantName}.
@@ -175,14 +170,10 @@ Per ogni post: data (YYYY-MM-DD), ora (HH:MM), tema breve, type (uno dei tipi so
 Rispondi SOLO con JSON valido:
 {"posts":[{"date":"2026-04-25","time":"20:30","theme":"...","type":"Foto piatto","photo_idea":"...","caption":"...","hashtags":"#a #b ..."}]}`;
 
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-      }),
+    const r = await callGateway("/v1/chat/completions", {
+      model: "google/gemini-3-flash-preview",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
     });
     if (r.status === 429) return { posts: [], error: "rate_limit" as const };
     if (r.status === 402) return { posts: [], error: "credits" as const };
@@ -205,9 +196,6 @@ Rispondi SOLO con JSON valido:
 export const extractMenuFromImage = createServerFn({ method: "POST" })
   .inputValidator((input: { imageBase64: string; mimeType: string }) => input)
   .handler(async ({ data }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
-
     const prompt = `Analizza questa foto di un menu di ristorante italiano ed estrai TUTTI i piatti visibili.
 Per ogni piatto fornisci:
 - name (string)
@@ -220,20 +208,16 @@ Mantieni l'ordine originale.
 Rispondi SOLO con JSON valido, senza markdown:
 {"items":[{"name":"...","description":"...","price":12.5,"category":"Primi","allergen_tags":["gluten","eggs"],"diet_tags":["vegetarian"]}]}`;
 
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
-        messages: [{
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: `data:${data.mimeType};base64,${data.imageBase64}` } },
-          ],
-        }],
-        response_format: { type: "json_object" },
-      }),
+    const r = await callGateway("/v1/chat/completions", {
+      model: "google/gemini-2.5-pro",
+      messages: [{
+        role: "user",
+        content: [
+          { type: "text", text: prompt },
+          { type: "image_url", image_url: { url: `data:${data.mimeType};base64,${data.imageBase64}` } },
+        ],
+      }],
+      response_format: { type: "json_object" },
     });
     if (r.status === 429) return { items: [], error: "rate_limit" as const };
     if (r.status === 402) return { items: [], error: "credits" as const };
