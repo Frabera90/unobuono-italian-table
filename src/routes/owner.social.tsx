@@ -771,6 +771,10 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                 className="w-full rounded-xl border-2 border-ink bg-ink py-3 font-bold uppercase tracking-wider text-paper shadow-brut transition hover:-translate-y-0.5 hover:bg-yellow hover:text-ink hover:shadow-none">
                 ✨ Genera piano editoriale
               </button>
+              <button onClick={addManualPost}
+                className="w-full rounded-xl border-2 border-dashed border-ink py-3 text-sm font-bold hover:bg-yellow/30">
+                ➕ Aggiungi idea manualmente (senza AI)
+              </button>
             </div>
           )}
 
