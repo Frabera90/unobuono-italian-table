@@ -40,12 +40,6 @@ type PlanPost = {
   editing: boolean;
 };
 
-const PHOTO_STYLES = [
-  { key: "rustic",  label: "Rustico caldo",      emoji: "🌾", desc: "Legno, luce dorata, atmosfera trattoria" },
-  { key: "minimal", label: "Minimal elegante",   emoji: "🤍", desc: "Sfondo pulito, editoriale, fine dining" },
-  { key: "pop",     label: "Vivace e colorato",  emoji: "🎨", desc: "Colori brillanti, fresco, social-first" },
-  { key: "moody",   label: "Dark & moody",       emoji: "🌑", desc: "Scuro, cinematico, premium" },
-];
 
 const CUISINE_CHIPS = ["Italiana", "Pizza", "Pesce", "Carne", "Vegetariana", "Fusion", "Regionale"];
 const GOAL_CHIPS    = ["Nuovi clienti", "Fidelizzare", "Mostrare il team", "Lanciare un piatto", "Promuovere un evento"];
