@@ -224,3 +224,13 @@ function OnboardingPage() {
     </div>
   );
 }
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return <label className="block"><span className="mb-1 block text-xs font-bold uppercase tracking-wider text-ink/70">{label}</span>{children}</label>;
+}
+function PrimaryBtn({ onClick, busy, children }: { onClick: () => void; busy: boolean; children: React.ReactNode }) {
+  return <button onClick={onClick} disabled={busy} className="flex-1 rounded-lg border-2 border-ink bg-yellow py-2.5 text-sm font-bold uppercase tracking-wider text-ink transition hover:bg-yellow/80 disabled:opacity-50">{busy ? "..." : children}</button>;
+}
+function SecondaryBtn({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return <button onClick={onClick} className="rounded-lg border-2 border-ink bg-paper px-4 py-2.5 text-sm font-bold uppercase tracking-wider text-ink hover:bg-cream-dark">{children}</button>;
+}
