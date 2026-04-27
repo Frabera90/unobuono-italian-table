@@ -383,33 +383,35 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
             </>
           )}
 
-          {/* style selection */}
-          {photoStep === "style" && imageDataUrl && (
+          {/* style selection — full wizard */}
+          {photoStep === "style" && imageDataUrl && restaurant?.id && (
             <div>
               <div className="mb-5 flex items-center gap-4">
                 <img src={imageDataUrl} alt="Foto" className="h-20 w-20 rounded-xl object-cover shadow-md" />
-                <div>
-                  <p className="font-bold text-lg">Scegli uno stile</p>
-                  <p className="text-sm text-muted-foreground">L'AI ritocca luce, colori e sfondo. Il piatto resta identico.</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-lg font-bold">Scegli stile e contesto</p>
+                  <p className="text-sm text-muted-foreground">12 stili visivi + contesto (mani, piatto, persone…) + ritocchi guidati.</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                {PHOTO_STYLES.map((s) => (
-                  <button
-                    key={s.key}
-                    onClick={() => applyStyle(s.key)}
-                    className="flex flex-col items-start rounded-xl border-2 border-ink bg-cream p-4 text-left shadow-brut transition hover:-translate-y-0.5 hover:bg-yellow/40 hover:shadow-none"
-                  >
-                    <span className="mb-2 text-3xl">{s.emoji}</span>
-                    <span className="font-bold text-sm">{s.label}</span>
-                    <span className="mt-0.5 text-xs text-muted-foreground">{s.desc}</span>
-                  </button>
-                ))}
-              </div>
+              <button
+                onClick={() => setShowWizard(true)}
+                className="w-full rounded-xl border-2 border-ink bg-yellow py-4 text-sm font-bold uppercase tracking-wider shadow-brut transition hover:-translate-y-0.5 hover:shadow-none"
+              >
+                🎨 Apri wizard stile
+              </button>
               <button onClick={resetPhoto}
-                className="mt-4 w-full rounded-lg border border-border py-2 text-sm text-muted-foreground hover:bg-cream-dark/40">
+                className="mt-3 w-full rounded-lg border border-border py-2 text-sm text-muted-foreground hover:bg-cream-dark/40">
                 ← Cambia foto
               </button>
+              {showWizard && (
+                <StyleWizard
+                  restaurantId={restaurant.id}
+                  initialStyle={currentStyle}
+                  initialAddons={currentAddons}
+                  onApply={(s, a, e) => { void applyStyle(s, a, e); }}
+                  onClose={() => setShowWizard(false)}
+                />
+              )}
             </div>
           )}
 
@@ -425,8 +427,8 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
             </div>
           )}
 
-          {/* before / after compare */}
-          {photoStep === "compare" && originalImage && imageDataUrl && (
+          {/* before / after compare + contextual editing */}
+          {photoStep === "compare" && originalImage && imageDataUrl && restaurant?.id && (
             <div>
               <h2 className="mb-4 font-display text-xl">Prima / Dopo</h2>
               <div className="mb-5 grid grid-cols-2 gap-3">
@@ -439,12 +441,31 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                   <img src={imageDataUrl} alt="Migliorata" className="aspect-square w-full rounded-xl object-cover ring-2 ring-terracotta" />
                 </div>
               </div>
-              <div className="flex gap-2">
+
+              {/* contextual editing chips */}
+              <div className="mb-4 rounded-xl border-2 border-dashed border-ink/30 bg-cream/40 p-3">
+                <div className="mb-2 text-xs font-bold uppercase tracking-wider text-ink/70">🪄 Ritocca al volo</div>
+                <EditChips
+                  activeAddons={currentAddons as AddonKey[]}
+                  onAdd={addAddon}
+                  onRemove={removeAddon}
+                  onTone={(instr) => void applyToneTweak(instr)}
+                  disabled={enhancing}
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => { setImageDataUrl(originalImage); setOriginalImage(null); setPhotoStep("style"); }}
-                  className="flex-1 rounded-xl border-2 border-ink py-3 text-sm font-bold hover:bg-cream-dark/30"
+                  onClick={() => setShowWizard(true)}
+                  className="flex-1 rounded-xl border-2 border-ink bg-paper py-3 text-sm font-bold hover:bg-cream-dark/30"
                 >
-                  ← Prova altro stile
+                  🎨 Cambia stile
+                </button>
+                <button
+                  onClick={() => { if (originalImage) { setImageDataUrl(originalImage); setOriginalImage(null); setPhotoStep("style"); } }}
+                  className="rounded-xl border-2 border-ink py-3 px-3 text-sm font-bold hover:bg-cream-dark/30"
+                >
+                  ↺ Originale
                 </button>
                 <button
                   onClick={generateCaption}
@@ -454,6 +475,15 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                   ✓ Continua →
                 </button>
               </div>
+              {showWizard && (
+                <StyleWizard
+                  restaurantId={restaurant.id}
+                  initialStyle={currentStyle}
+                  initialAddons={currentAddons}
+                  onApply={(s, a, e) => { void applyStyle(s, a, e); }}
+                  onClose={() => setShowWizard(false)}
+                />
+              )}
             </div>
           )}
 
