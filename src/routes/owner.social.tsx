@@ -445,6 +445,42 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
         <p className="text-sm text-muted-foreground">Foto, piano editoriale e calendario — tutto in un posto.</p>
       </header>
 
+      {/* Instagram connection bar */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border-2 border-ink bg-paper p-3 shadow-brut">
+        {igStatus?.connected ? (
+          <>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-lg">📸</span>
+              <span>
+                Instagram collegato: <b>@{igStatus.ig_username || "—"}</b>
+                {igStatus.fb_page_name && <span className="text-muted-foreground"> · {igStatus.fb_page_name}</span>}
+              </span>
+            </div>
+            <button
+              onClick={disconnectIg}
+              disabled={igBusy}
+              className="rounded-md border border-red-400 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+            >
+              Scollega
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-lg">📸</span>
+              <span>Instagram <b>non collegato</b> — collega per pubblicare in automatico.</span>
+            </div>
+            <button
+              onClick={connectIg}
+              disabled={igBusy}
+              className="rounded-md border-2 border-ink bg-yellow px-3 py-1.5 text-xs font-bold uppercase shadow-brut hover:translate-y-[1px] hover:shadow-none disabled:opacity-50"
+            >
+              {igBusy ? "..." : "Collega Instagram"}
+            </button>
+          </>
+        )}
+      </div>
+
       {/* Tab bar */}
       <div className="mb-5 flex gap-1 rounded-xl border-2 border-ink bg-paper p-1 shadow-brut">
         {([
