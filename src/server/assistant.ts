@@ -56,7 +56,7 @@ async function buildContext(supabase: any, restaurantId: string) {
       available: (menuStats || []).filter((m: any) => m.available).length,
       featured: featuredCount,
       unavailable_today: (menuOff || []).map((m: any) => m.name),
-      categories: Array.from(new Set((menuStats || []).map((m: any) => m.category).filter(Boolean))),
+      categories: Array.from(new Set((menuStats || []).map((m: any) => m.category).filter(Boolean))) as string[],
     },
     reviews_new: (reviewsNew || []).map((r: any) => ({
       id: r.id, author: r.author, rating: r.rating, text: (r.text || "").slice(0, 200), platform: r.platform,
@@ -81,7 +81,7 @@ export const getAssistantInsights = createServerFn({ method: "GET" })
     const chips: string[] = [];
 
     // Recensioni negative non risposte
-    const negative = ctx.reviews_new.filter((r) => (r.rating || 0) <= 2);
+    const negative = ctx.reviews_new.filter((r: { rating: number | null }) => (r.rating || 0) <= 2);
     if (negative.length > 0) {
       alerts.push({ level: "red", text: `${negative.length} recensione/i 1-2★ da gestire` });
       chips.push(`Aiutami a rispondere alla recensione di ${negative[0].author || "cliente"} (${negative[0].rating}★)`);
