@@ -243,6 +243,10 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
     setScheduleMode("now");
     setScheduledAt("");
     setPlatform("instagram");
+    setCurrentStyle("auto");
+    setCurrentAddons([]);
+    setCurrentExtra("");
+    setShowWizard(false);
   }
 
   // ── Plan handlers ────────────────────────────────────
