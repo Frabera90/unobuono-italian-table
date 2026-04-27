@@ -1,0 +1,5 @@
+{
+  "buildCommand": "npm run build && node scripts/vercel-build.mjs",
+  "installCommand": "npm install",
+  "framework": null
+}
