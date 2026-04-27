@@ -1,6 +1,30 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { callAI } from "@/server/ai";
+
+/** Chiamata diretta al gateway AI via edge function ai-proxy. */
+async function callGatewayDirect(messages: { role: string; content: string }[], model: string): Promise<{ content: string; error: null | "rate_limit" | "credits" | "unknown" }> {
+  const base = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "https://eaydgypewphfnenkemvn.supabase.co";
+  const anon = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVheWRneXBld3BoZm5lbmtlbXZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NDI2MzEsImV4cCI6MjA5MjUxODYzMX0.xqZEL-WXXVwjYtJ5eqXQlmLHZ-yvsehLQLcu9f2uNMk";
+  try {
+    const r = await fetch(`${base.replace(/\/$/, "")}/functions/v1/ai-proxy`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: anon, Authorization: `Bearer ${anon}` },
+      body: JSON.stringify({ path: "/v1/chat/completions", body: { model, messages } }),
+    });
+    if (r.status === 429) return { content: "", error: "rate_limit" };
+    if (r.status === 402) return { content: "", error: "credits" };
+    if (!r.ok) {
+      const t = await r.text();
+      console.error("assistant gateway error", r.status, t);
+      return { content: "", error: "unknown" };
+    }
+    const j = await r.json();
+    return { content: j.choices?.[0]?.message?.content ?? "", error: null };
+  } catch (e) {
+    console.error("assistant fetch threw", e);
+    return { content: "", error: "unknown" };
+  }
+}
 
 /** Snapshot compatto dei dati LIVE del ristorante. Iniettato come system message. */
 async function buildContext(supabase: any, restaurantId: string) {
@@ -186,6 +210,6 @@ export const askAssistant = createServerFn({ method: "POST" })
       { role: "system" as const, content: `CONTESTO LIVE (snapshot di ${new Date().toLocaleString("it-IT")}):\n${JSON.stringify(ctx, null, 2)}` },
     ];
 
-    const r = await callAI({ data: { messages: [...systemMessages, ...data.messages], model } });
+    const r = await callGatewayDirect([...systemMessages, ...data.messages], model);
     return { content: r.content, error: r.error, model_used: model };
   });
