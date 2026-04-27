@@ -4,4 +4,7 @@
   "compatibility_date": "2025-09-24",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
+  "routes": [
+    { "pattern": "www.unobuono.xyz/*", "zone_name": "unobuono.xyz" }
+  ]
 }
