@@ -295,3 +295,12 @@ function StatLink({ to, icon, label, value, alert }: { to: string; icon: string;
     </Link>
   );
 }
+
+function KitchenChip({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
+  return (
+    <div className={`min-w-[60px] rounded-lg px-2.5 py-1 text-center ${highlight ? "bg-yellow text-ink" : "bg-paper/15 text-paper"}`}>
+      <p className="font-display text-lg leading-none">{value}</p>
+      <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wider opacity-80">{label}</p>
+    </div>
+  );
+}
