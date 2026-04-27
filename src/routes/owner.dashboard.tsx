@@ -210,6 +210,30 @@ function DashboardPage() {
         </div>
       </Link>
 
+      {/* Cucina — KDS */}
+      <Link
+        to="/kitchen"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-3 flex items-center justify-between gap-4 rounded-2xl border-2 border-terracotta bg-terracotta px-5 py-4 text-paper transition hover:bg-terracotta/90"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">👨‍🍳</span>
+          <div>
+            <p className="font-display text-lg leading-tight">Cucina (KDS)</p>
+            <p className="text-xs text-paper/80">Apri il display di cucina in una nuova scheda</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="hidden gap-3 sm:flex">
+            <KitchenChip label="Da fare" value={kitchen.pending} />
+            <KitchenChip label="In cottura" value={kitchen.cooking} />
+            <KitchenChip label="Pronti" value={kitchen.ready} highlight={kitchen.ready > 0} />
+          </div>
+          <span className="font-mono text-sm text-paper/70">↗</span>
+        </div>
+      </Link>
+
       <div className="mt-4 grid gap-3 md:mt-7 md:gap-5 lg:grid-cols-3">
         <section className="min-w-0 rounded-2xl border border-border bg-card p-3 md:p-5 lg:col-span-2">
           <div className="mb-3 flex items-center justify-between gap-2">
