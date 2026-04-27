@@ -1037,7 +1037,7 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                   <p className="mt-1 line-clamp-1 text-xs text-terracotta">{p.hashtags}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1">
-                  {igStatus?.connected && p.image_url && p.status !== "published" && p.platform.includes("instagram") && (
+                  {false && igStatus?.connected && p.image_url && p.status !== "published" && p.platform.includes("instagram") && (
                     <button
                       onClick={() => publishIgNow(p.id)}
                       disabled={igPublishing === p.id}
