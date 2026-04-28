@@ -14,6 +14,21 @@ type TableLite = { id: string; code: string; seats: number; zone_id: string | nu
 type Preorder = { id: string; customer_name: string | null; reservation_id: string | null; total: number | null; status: string | null; items: Array<{ name: string; qty: number; price: number }> | null; created_at: string };
 type WaiterCall = { id: string; table_number: string; message: string; status: string; created_at: string };
 
+function playDing() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.35, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.6);
+  } catch {}
+}
+
 const EMPTY_FORM = { name: "", phone: "", email: "", partySize: 2, date: isoDate(new Date()), time: "20:00", notes: "" };
 
 function ReservationsPage() {
@@ -93,7 +108,14 @@ function ReservationsPage() {
     const ch = supabase.channel("o-resv-" + (date ?? "all") + (showHistory ? "-h" : ""))
       .on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "waitlist" }, load)
-      .on("postgres_changes", { event: "*", schema: "public", table: "preorders" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "preorders" }, (payload) => {
+        const r = (payload.new || payload.old) as any;
+        if (payload.eventType === "UPDATE" && r.status === "bill_requested") {
+          toast("💳 Conto richiesto!", { description: r.customer_name || "Un cliente", duration: 10000 });
+          playDing();
+        }
+        load();
+      })
       .on("postgres_changes", { event: "*", schema: "public", table: "waiter_calls" }, load)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -348,7 +370,7 @@ function ReservationsPage() {
                     <div className="text-xs text-muted-foreground">Ordinato {new Date(p.created_at).toLocaleString("it-IT")}</div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${p.status === "ready" ? "bg-emerald-500/15 text-emerald-700" : p.status === "preparing" ? "bg-amber-500/15 text-amber-700" : "bg-terracotta/15 text-terracotta"}`}>{p.status || "pending"}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${p.status === "bill_requested" ? "bg-red-500/15 text-red-700" : p.status === "ready" ? "bg-emerald-500/15 text-emerald-700" : p.status === "preparing" ? "bg-amber-500/15 text-amber-700" : "bg-terracotta/15 text-terracotta"}`}>{p.status === "bill_requested" ? "💳 conto" : p.status || "pending"}</span>
                     <span className="font-display text-lg text-terracotta">€ {Number(p.total || 0).toFixed(2)}</span>
                   </div>
                 </div>
@@ -590,13 +612,15 @@ function TablesView({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {tableRows.map(({ table, occupied, reserved, activeResv, tablePreos, total }) => {
           const pendingCalls = callsByTable[table.code] ?? [];
-          const isAwaitingBill = activeResv ? awaitingBill.has(activeResv.id) : false;
+          const isAwaitingBill = activeResv
+            ? (tablePreos.some((p) => p.status === "bill_requested") || awaitingBill.has(activeResv.id))
+            : false;
           return (
           <div
             key={table.id}
             className={`rounded-xl border-2 p-4 transition ${
               isAwaitingBill
-                ? "border-purple-500 bg-purple-50/30 dark:bg-purple-900/10"
+                ? "border-red-500 bg-red-50/30 dark:bg-red-900/10 animate-pulse"
                 : occupied
                 ? "border-terracotta bg-terracotta/5"
                 : reserved
@@ -615,7 +639,7 @@ function TablesView({
               <span
                 className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
                   isAwaitingBill
-                    ? "bg-purple-500 text-white"
+                    ? "bg-red-500 text-white"
                     : occupied
                     ? "bg-terracotta text-paper"
                     : reserved
@@ -623,7 +647,7 @@ function TablesView({
                     : "bg-emerald-500/15 text-emerald-700"
                 }`}
               >
-                {isAwaitingBill ? "🧾 Conto" : occupied ? "Occupato" : reserved ? "Prenotato" : "Libero"}
+                {isAwaitingBill ? "💳 Conto" : occupied ? "Occupato" : reserved ? "Prenotato" : "Libero"}
               </span>
             </div>
 
@@ -674,7 +698,9 @@ function TablesView({
                       <span className="text-[10px] text-muted-foreground">{p.customer_name || "Cliente"}</span>
                       <span
                         className={`rounded-full px-1.5 py-px text-[9px] font-bold uppercase ${
-                          p.status === "ready"
+                          p.status === "bill_requested"
+                            ? "bg-red-500/15 text-red-700"
+                            : p.status === "ready"
                             ? "bg-emerald-500/15 text-emerald-700"
                             : p.status === "preparing"
                             ? "bg-amber-500/15 text-amber-700"
@@ -683,7 +709,7 @@ function TablesView({
                             : "bg-terracotta/15 text-terracotta"
                         }`}
                       >
-                        {p.status === "served" ? "servito" : p.status === "ready" ? "pronto" : p.status === "preparing" ? "in prep." : "in attesa"}
+                        {p.status === "bill_requested" ? "💳 conto" : p.status === "served" ? "servito" : p.status === "ready" ? "pronto" : p.status === "preparing" ? "in prep." : "in attesa"}
                       </span>
                     </div>
                     {Array.isArray(p.items) &&
@@ -719,10 +745,10 @@ function TablesView({
                 </button>
                 <button
                   onClick={() => onToggleBill(activeResv.id)}
-                  className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider transition ${isAwaitingBill ? "border-purple-500 bg-purple-100 text-purple-700" : "border-border hover:bg-muted"}`}
+                  className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider transition ${isAwaitingBill ? "border-red-500 bg-red-100 text-red-700" : "border-border hover:bg-muted"}`}
                   title="Segna in attesa conto"
                 >
-                  {isAwaitingBill ? "✓ Conto" : "In attesa conto"}
+                  {isAwaitingBill ? "💳 Conto ✓" : "In attesa conto"}
                 </button>
               </div>
             )}

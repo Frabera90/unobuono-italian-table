@@ -56,6 +56,21 @@ const CARD_CFG: Record<CardState, { label: string; border: string; badge: string
   incoming: { label: "In arrivo", border: "border-border/40 bg-transparent",        badge: "bg-muted/40 text-muted-foreground/60" },
 };
 
+function playDing() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.35, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.6);
+  } catch {}
+}
+
 // ── Email helpers ────────────────────────────────────────────────────────────
 
 async function checkAndSendEmails() {
@@ -276,6 +291,10 @@ function DashboardPage() {
           push({ id: r.id, ts: r.created_at, icon: "🍽️", text: `Ordine da ${r.customer_name}: ${itms}…` });
         } else if (p.eventType === "UPDATE" && r.course_status === "ready") {
           push({ id: r.id + "r", ts: new Date().toISOString(), icon: "✅", text: `Pronto — ${r.customer_name}` });
+        } else if (p.eventType === "UPDATE" && r.status === "bill_requested") {
+          push({ id: r.id + "b", ts: new Date().toISOString(), icon: "💳", text: `Conto richiesto — ${r.customer_name}` });
+          toast("💳 Conto richiesto!", { description: r.customer_name || "Un cliente", duration: 10000 });
+          playDing();
         }
         loadStats();
         loadSala();
