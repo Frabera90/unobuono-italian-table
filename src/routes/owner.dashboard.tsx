@@ -336,101 +336,119 @@ function DashboardPage() {
   const urgentCount = sala.filter((r) => { const s = getCardState(r); return s === "bill" || s === "ready"; }).length;
 
   return (
-    <div className="mx-auto w-full max-w-6xl overflow-x-hidden px-3 py-4 md:px-5 md:py-7">
-      <header className="mb-4 md:mb-6">
-        <h1 className="font-display text-2xl md:text-3xl">Dashboard</h1>
-        <p className="text-xs text-muted-foreground md:text-sm">Tutto quello che succede stasera, in tempo reale.</p>
-      </header>
+    <div className="relative min-h-screen overflow-x-hidden">
+      {/* Soft ambient background — Apple-like */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-40 -left-32 h-[420px] w-[420px] rounded-full bg-[oklch(0.92_0.18_99)] opacity-50 blur-3xl" />
+        <div className="absolute top-40 -right-32 h-[480px] w-[480px] rounded-full bg-[oklch(0.85_0.06_240)] opacity-30 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-[360px] w-[360px] rounded-full bg-[oklch(0.9_0.08_140)] opacity-30 blur-3xl" />
+      </div>
 
-      {/* Stats compatte */}
-      <section className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
-        <StatCard icon="📅" label="Prenotazioni oggi" value={stats.resv} to="/owner/reservations" />
-        <StatCard icon="🍽️" label="Ordini attivi" value={stats.preo} to="/owner/reservations" />
-        <StatCard icon="⭐" label="Recensioni nuove" value={stats.reviews} alert={stats.reviews > 0} />
-        <StatCard icon="⏳" label="Lista d'attesa" value={stats.waitlist} />
-      </section>
+      <div className="mx-auto w-full max-w-6xl px-3 py-5 md:px-6 md:py-9">
+        <header className="mb-5 flex items-end justify-between md:mb-7">
+          <div>
+            <h1 className="font-display text-3xl tracking-tight md:text-5xl">Dashboard</h1>
+            <p className="mt-1 text-xs text-muted-foreground md:text-sm">Tutto quello che succede stasera, in tempo reale.</p>
+          </div>
+          <span className="hidden items-center gap-2 rounded-full border border-black/10 bg-white/60 px-3 py-1.5 text-xs backdrop-blur-xl md:inline-flex">
+            <span className="live-dot" /> live
+          </span>
+        </header>
 
-      {/* ── SALA LIVE ──────────────────────────────────────────────────── */}
-      <section className="mt-4 md:mt-6">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-3">
-            <h2 className="font-display text-xl md:text-2xl">Sala Live</h2>
-            <span className="rounded-full border border-border px-2.5 py-0.5 font-mono text-xs text-muted-foreground">
-              {arrivedCount} al tavolo
-            </span>
-            {urgentCount > 0 && (
-              <span className="rounded-full bg-red-500/20 px-2.5 py-0.5 font-mono text-xs text-red-400 animate-pulse">
-                {urgentCount} urgenti
+        {/* Stats — pillole glass */}
+        <section className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-4">
+          <StatCard icon="📅" label="Prenotazioni oggi" value={stats.resv} to="/owner/reservations" accent="yellow" />
+          <StatCard icon="🍽️" label="Ordini attivi" value={stats.preo} to="/owner/reservations" accent="dark" />
+          <StatCard icon="⭐" label="Recensioni nuove" value={stats.reviews} alert={stats.reviews > 0} accent="white" />
+          <StatCard icon="⏳" label="Lista d'attesa" value={stats.waitlist} accent="white" />
+        </section>
+
+        {/* ── SALA LIVE ──────────────────────────────────────────────────── */}
+        <section className="mt-6 md:mt-8">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <h2 className="font-display text-2xl tracking-tight md:text-3xl">Sala Live</h2>
+              <span className="rounded-full border border-black/10 bg-white/70 px-2.5 py-0.5 text-[11px] text-muted-foreground backdrop-blur-xl">
+                {arrivedCount} al tavolo
               </span>
-            )}
-          </div>
-          <Link to="/owner/reservations" className="font-mono text-[10px] uppercase tracking-wider text-terracotta hover:underline">
-            Lista completa →
-          </Link>
-        </div>
-
-        {sortedSala.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-            Nessuna prenotazione per oggi.
-          </p>
-        ) : (
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {sortedSala.map((resv) => (
-              <TableCard
-                key={resv.id}
-                resv={resv}
-                isClosing={closingId === resv.id}
-                closingBusy={closing}
-                onRequestClose={() => setClosingId(resv.id)}
-                onConfirmClose={() => closeTable(resv)}
-                onCancelClose={() => setClosingId(null)}
-              />
-            ))}
-          </div>
-        )}
-      </section>
-
-      <div className="mt-4 grid gap-3 md:mt-7 md:gap-5 lg:grid-cols-3">
-        <section className="min-w-0 rounded-2xl border border-border bg-card p-3 md:p-5 lg:col-span-2">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="truncate font-display text-base md:text-xl">Attività in tempo reale</h2>
-            <Link to="/owner/reservations" className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-terracotta hover:underline">
-              Vedi tutto →
+              {urgentCount > 0 && (
+                <span className="rounded-full bg-red-500/15 px-2.5 py-0.5 text-[11px] font-medium text-red-600 ring-1 ring-red-500/20 animate-pulse">
+                  {urgentCount} urgenti
+                </span>
+              )}
+            </div>
+            <Link to="/owner/reservations" className="text-xs font-medium text-foreground/70 hover:text-foreground">
+              Lista completa →
             </Link>
           </div>
-          {activity.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">In attesa di nuovi eventi...</p>
+
+          {sortedSala.length === 0 ? (
+            <p className="rounded-3xl border border-dashed border-black/15 bg-white/50 p-10 text-center text-sm text-muted-foreground backdrop-blur-xl">
+              Nessuna prenotazione per oggi.
+            </p>
           ) : (
-            <ul className="space-y-2">
-              {activity.map((a) => (
-                <li key={a.id} className="flex min-w-0 items-start gap-2 rounded-lg border border-border/60 bg-background/40 px-2 py-2 slide-in-right md:gap-3 md:px-3">
-                  <span className="shrink-0 text-base leading-tight">{a.icon}</span>
-                  <span className="min-w-0 flex-1 break-words text-[12px] leading-snug md:text-sm">{a.text}</span>
-                  <span className="shrink-0 text-[10px] text-muted-foreground md:text-xs">{relTime(a.ts)}</span>
-                </li>
+            <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {sortedSala.map((resv) => (
+                <TableCard
+                  key={resv.id}
+                  resv={resv}
+                  isClosing={closingId === resv.id}
+                  closingBusy={closing}
+                  onRequestClose={() => setClosingId(resv.id)}
+                  onConfirmClose={() => closeTable(resv)}
+                  onCancelClose={() => setClosingId(null)}
+                />
               ))}
-            </ul>
+            </div>
           )}
         </section>
 
-        <section className="min-w-0 rounded-2xl border border-border bg-card p-3 md:p-5">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="truncate font-display text-base md:text-xl">Menu — disponibilità</h2>
-            <Link to="/owner/menu" className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-terracotta hover:underline">
-              Modifica →
-            </Link>
-          </div>
-          <ul className="max-h-[40vh] space-y-1 overflow-y-auto pr-1 md:max-h-[60vh]">
-            {items.map((it) => (
-              <li key={it.id} className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-cream-dark/50">
-                <span className={`min-w-0 flex-1 truncate text-sm ${!it.available ? "text-muted-foreground line-through" : ""}`}>{it.name}</span>
-                <button onClick={() => toggleItem(it)} className={`relative h-5 w-9 shrink-0 rounded-full transition ${it.available ? "bg-terracotta" : "bg-border"}`}>
-                  <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-paper transition ${it.available ? "left-[18px]" : "left-0.5"}`} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <div className="mt-5 grid gap-3 md:mt-8 md:gap-5 lg:grid-cols-3">
+          <section className="min-w-0 rounded-3xl border border-black/8 bg-white/65 p-4 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_8px_30px_-12px_rgba(0,0,0,0.15)] backdrop-blur-2xl md:p-6 lg:col-span-2">
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <h2 className="truncate font-display text-lg tracking-tight md:text-2xl">Attività in tempo reale</h2>
+              <Link to="/owner/reservations" className="shrink-0 text-xs font-medium text-foreground/70 hover:text-foreground">
+                Vedi tutto →
+              </Link>
+            </div>
+            {activity.length === 0 ? (
+              <p className="py-12 text-center text-sm text-muted-foreground">In attesa di nuovi eventi…</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {activity.map((a) => (
+                  <li key={a.id} className="flex min-w-0 items-center gap-3 rounded-2xl bg-white/70 px-3 py-2.5 ring-1 ring-black/5 slide-in-right">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--yellow)]/30 text-base ring-1 ring-black/5">{a.icon}</span>
+                    <span className="min-w-0 flex-1 break-words text-[13px] leading-snug text-foreground/90 md:text-sm">{a.text}</span>
+                    <span className="shrink-0 text-[10px] text-muted-foreground md:text-xs">{relTime(a.ts)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="min-w-0 rounded-3xl border border-black/8 bg-white/65 p-4 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_8px_30px_-12px_rgba(0,0,0,0.15)] backdrop-blur-2xl md:p-6">
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <h2 className="truncate font-display text-lg tracking-tight md:text-2xl">Menu — disponibilità</h2>
+              <Link to="/owner/menu" className="shrink-0 text-xs font-medium text-foreground/70 hover:text-foreground">
+                Modifica →
+              </Link>
+            </div>
+            <ul className="max-h-[40vh] space-y-0.5 overflow-y-auto pr-1 md:max-h-[60vh]">
+              {items.map((it) => (
+                <li key={it.id} className="flex items-center justify-between gap-2 rounded-xl px-2.5 py-2 transition hover:bg-white/80">
+                  <span className={`min-w-0 flex-1 truncate text-sm ${!it.available ? "text-muted-foreground line-through" : ""}`}>{it.name}</span>
+                  <button
+                    onClick={() => toggleItem(it)}
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition ${it.available ? "bg-[var(--ink)]" : "bg-black/15"}`}
+                    aria-label="toggle"
+                  >
+                    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${it.available ? "left-[22px]" : "left-0.5"}`} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
       </div>
     </div>
   );
