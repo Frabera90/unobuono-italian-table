@@ -5,13 +5,18 @@ import { isoDate } from "@/lib/restaurant";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/kitchen")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    pin: typeof search.pin === "string" ? search.pin.toUpperCase() : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Cucina — Unobuono" },
       { name: "theme-color", content: "#0a0a0a" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "Cucina" },
     ],
+    links: [{ rel: "manifest", href: "/staff.webmanifest" }],
   }),
   component: KitchenPage,
 });
@@ -41,17 +46,12 @@ const NEXT_ACTION: Record<string, { label: string; next: string; cls: string }> 
 };
 
 function KitchenPage() {
+  const { pin: pinParam } = Route.useSearch();
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [pin, setPin] = useState("");
+  const [pin, setPin] = useState(pinParam ?? "");
   const [pinBusy, setPinBusy] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
-
-  useEffect(() => {
-    const rid = localStorage.getItem("staff.restaurant_id");
-    if (rid) setRestaurantId(rid);
-    setAuthChecked(true);
-  }, []);
 
   const loadOrders = useCallback(async (rid: string) => {
     const today = isoDate(new Date());
@@ -65,7 +65,6 @@ function KitchenPage() {
 
     if (!preorders?.length) { setOrders([]); return; }
 
-    // Fetch reservations + tables for table code
     const resvIds = [...new Set(preorders.map((p) => p.reservation_id).filter(Boolean))];
     const [{ data: resvs }, { data: tbls }] = await Promise.all([
       resvIds.length
@@ -94,6 +93,30 @@ function KitchenPage() {
     );
   }, []);
 
+  // Auth check — reads kitchen.* keys (separate from waiter staff.* keys)
+  useEffect(() => {
+    const rid = localStorage.getItem("kitchen.restaurant_id");
+    if (rid) {
+      setRestaurantId(rid);
+      setAuthChecked(true);
+      return;
+    }
+    // Auto-login when PIN comes from URL
+    if (pinParam) {
+      void (async () => {
+        const { data } = await supabase.rpc("restaurant_id_by_staff_pin", { _pin: pinParam });
+        if (data) {
+          localStorage.setItem("kitchen.restaurant_id", data as string);
+          localStorage.setItem("kitchen.pin", pinParam);
+          setRestaurantId(data as string);
+        }
+        setAuthChecked(true);
+      })();
+    } else {
+      setAuthChecked(true);
+    }
+  }, [pinParam]);
+
   useEffect(() => {
     if (!restaurantId) return;
     loadOrders(restaurantId);
@@ -105,7 +128,7 @@ function KitchenPage() {
   }, [restaurantId, loadOrders]);
 
   async function advance(order: Order) {
-    const p = localStorage.getItem("staff.pin");
+    const p = localStorage.getItem("kitchen.pin");
     if (!p) return;
     const action = NEXT_ACTION[order.course_status];
     if (!action) return;
@@ -118,14 +141,22 @@ function KitchenPage() {
   }
 
   async function doLogin() {
-    if (pin.trim().length < 4) { toast.error("PIN non valido"); return; }
+    const trimmed = pin.trim().toUpperCase();
+    if (trimmed.length < 4) { toast.error("PIN non valido"); return; }
     setPinBusy(true);
-    const { data } = await supabase.rpc("restaurant_id_by_staff_pin", { _pin: pin.trim().toUpperCase() });
+    const { data } = await supabase.rpc("restaurant_id_by_staff_pin", { _pin: trimmed });
     setPinBusy(false);
     if (!data) { toast.error("PIN non valido"); return; }
-    localStorage.setItem("staff.restaurant_id", data as string);
-    localStorage.setItem("staff.pin", pin.trim().toUpperCase());
+    localStorage.setItem("kitchen.restaurant_id", data as string);
+    localStorage.setItem("kitchen.pin", trimmed);
     setRestaurantId(data as string);
+  }
+
+  function logout() {
+    localStorage.removeItem("kitchen.restaurant_id");
+    localStorage.removeItem("kitchen.pin");
+    setRestaurantId(null);
+    setOrders([]);
   }
 
   if (!authChecked) return null;
@@ -136,21 +167,31 @@ function KitchenPage() {
         <div className="w-full max-w-xs text-center">
           <div className="mb-2 text-5xl">👨‍🍳</div>
           <h1 className="font-display text-4xl text-yellow">Cucina</h1>
-          <p className="mt-2 text-sm text-paper/50">Inserisci il PIN del ristorante</p>
-          <div className="mt-6 space-y-3">
-            <input
-              type="text"
-              value={pin}
-              onChange={(e) => setPin(e.target.value.toUpperCase())}
-              placeholder="PIN"
-              maxLength={8}
-              className="w-full rounded-xl border-2 border-white/20 bg-white/5 px-4 py-3 text-center font-display text-3xl tracking-[0.4em] text-yellow focus:border-yellow focus:outline-none"
-              onKeyDown={(e) => e.key === "Enter" && doLogin()}
-            />
-            <button onClick={doLogin} disabled={pinBusy} className="w-full rounded-xl bg-yellow py-3 text-sm font-bold uppercase tracking-wider text-ink disabled:opacity-50">
-              {pinBusy ? "..." : "Accedi"}
-            </button>
-          </div>
+          <p className="mt-2 text-sm text-paper/50">
+            {pinParam ? "Verifica PIN cucina..." : "Inserisci il PIN cucina"}
+          </p>
+          {!pinParam && (
+            <div className="mt-6 space-y-3">
+              <input
+                type="text"
+                value={pin}
+                onChange={(e) => setPin(e.target.value.toUpperCase())}
+                placeholder="PIN"
+                maxLength={8}
+                autoCapitalize="characters"
+                className="w-full rounded-xl border-2 border-white/20 bg-white/5 px-4 py-3 text-center font-display text-3xl tracking-[0.4em] text-yellow focus:border-yellow focus:outline-none"
+                onKeyDown={(e) => e.key === "Enter" && doLogin()}
+              />
+              <button
+                onClick={doLogin}
+                disabled={pinBusy}
+                className="w-full rounded-xl bg-yellow py-3 text-sm font-bold uppercase tracking-wider text-ink disabled:opacity-50"
+              >
+                {pinBusy ? "..." : "Accedi alla cucina"}
+              </button>
+            </div>
+          )}
+          <p className="mt-5 text-xs text-paper/30">PIN fornito dall'owner del ristorante</p>
         </div>
       </div>
     );
@@ -176,6 +217,12 @@ function KitchenPage() {
           <span className="font-mono text-xs text-paper/30">
             {new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
           </span>
+          <button
+            onClick={logout}
+            className="rounded-lg border border-white/15 px-2.5 py-1 text-xs text-paper/40 hover:text-paper/70"
+          >
+            Esci
+          </button>
         </div>
       </div>
 

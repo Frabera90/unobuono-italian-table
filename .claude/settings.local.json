@@ -2,7 +2,23 @@
   "permissions": {
     "allow": [
       "Bash(grep -E \"^d|^-.*\\\\.\\(ts|tsx|sql|json\\)$)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(supabase *)",
+      "Bash(curl *)",
+      "Bash(python3 -m json.tool)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(npx wrangler *)",
+      "Bash(git commit -m 'config: add www.unobuono.xyz route to wrangler.jsonc *)",
+      "Bash(node_modules/.bin/wrangler --version2)",
+      "Bash(git check-ignore *2)",
+      "Bash(git commit -m 'fix: restore cloudflare vite config for Lovable deploy *)",
+      "Bash(git pull *)",
+      "Bash(git stash *)",
+      "Bash(xargs grep *)",
+      "Bash(xargs wc *)",
+      "Bash(echo \"EXIT:$?\")"
     ]
   }
 }

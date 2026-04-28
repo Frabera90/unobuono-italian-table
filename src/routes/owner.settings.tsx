@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Copy, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/owner/settings")({
   head: () => ({ meta: [{ title: "Il mio locale — Unobuono" }] }),
@@ -11,10 +12,25 @@ export const Route = createFileRoute("/owner/settings")({
 function SettingsPage() {
   const [s, setS] = useState<any>(null);
   const [busy, setBusy] = useState(false);
+  const [pinBusy, setPinBusy] = useState(false);
 
   useEffect(() => {
     supabase.from("restaurant_settings").select("*").limit(1).maybeSingle().then(({ data }) => setS(data));
   }, []);
+
+  async function regeneratePin() {
+    setPinBusy(true);
+    const { data, error } = await supabase.rpc("regenerate_staff_pin");
+    setPinBusy(false);
+    if (error || !data) { toast.error("Errore rigenera PIN"); return; }
+    setS((prev: any) => ({ ...prev, staff_pin: data as string }));
+    toast.success("PIN rigenerato — aggiorna i link condivisi con lo staff");
+  }
+
+  function copyLink(path: string) {
+    const url = `${window.location.origin}${path}`;
+    navigator.clipboard.writeText(url).then(() => toast.success("Link copiato!")).catch(() => toast.error("Copia non riuscita"));
+  }
 
   async function save() {
     if (!s) return;
@@ -73,6 +89,72 @@ function SettingsPage() {
           <Toggle label="Reminder 24h prima" v={s.reminder_24h} onChange={(v) => setS({ ...s, reminder_24h: v })} />
           <Toggle label="Follow-up post-cena" v={s.followup_enabled} onChange={(v) => setS({ ...s, followup_enabled: v })} />
         </Section>
+      </div>
+
+      {/* Staff access — separate card so it stands out */}
+      <div className="mt-5 rounded-2xl border border-border bg-card p-5">
+        <h2 className="mb-1 font-display text-lg italic text-terracotta">Accesso Staff</h2>
+        <p className="mb-4 text-xs text-muted-foreground">Condividi i link con il tuo staff. Chiunque abbia il PIN può accedere all'app corrispondente.</p>
+
+        {/* PIN display + regenerate */}
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex-1">
+            <span className="mb-1 block text-xs uppercase tracking-wider text-muted-foreground">PIN corrente</span>
+            <span className="font-mono text-2xl tracking-[0.3em] text-foreground">
+              {s.staff_pin || "—"}
+            </span>
+          </div>
+          <button
+            onClick={regeneratePin}
+            disabled={pinBusy}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:border-terracotta hover:text-terracotta disabled:opacity-40"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            {pinBusy ? "..." : "Rigenera"}
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          {/* Sala link */}
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5">
+            <span className="mr-1 text-base">👨‍🍽️</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold">App Cameriere</p>
+              <p className="truncate font-mono text-[11px] text-muted-foreground">
+                {typeof window !== "undefined" ? window.location.origin : ""}/staff?pin={s.staff_pin || "…"}
+              </p>
+            </div>
+            <button
+              onClick={() => copyLink(`/staff?pin=${s.staff_pin || ""}`)}
+              className="shrink-0 rounded-md border border-border p-1.5 text-muted-foreground hover:text-foreground"
+              title="Copia link"
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          {/* Cucina link */}
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5">
+            <span className="mr-1 text-base">👨‍🍳</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold">App Cucina</p>
+              <p className="truncate font-mono text-[11px] text-muted-foreground">
+                {typeof window !== "undefined" ? window.location.origin : ""}/kitchen?pin={s.staff_pin || "…"}
+              </p>
+            </div>
+            <button
+              onClick={() => copyLink(`/kitchen?pin=${s.staff_pin || ""}`)}
+              className="shrink-0 rounded-md border border-border p-1.5 text-muted-foreground hover:text-foreground"
+              title="Copia link"
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+
+        <p className="mt-3 text-[11px] text-muted-foreground/60">
+          Dopo aver rigenerato il PIN, i vecchi link non funzioneranno più. Ricondividi i link con lo staff.
+        </p>
       </div>
 
       <button onClick={save} disabled={busy} className="mt-5 rounded-lg bg-terracotta px-6 py-3 font-medium text-paper disabled:opacity-40">{busy ? "Salvo..." : "Salva modifiche"}</button>

@@ -8,14 +8,14 @@ import {
   CalendarDays,
   UtensilsCrossed,
   Armchair,
-  QrCode,
   Users,
   ChefHat,
-  Camera,
+  Flame,
   Store,
-  Sparkles,
+  BarChart2,
   Menu as MenuIcon,
   LogOut,
+  ExternalLink,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { BrandLockup } from "@/components/brand";
@@ -30,16 +30,19 @@ export const Route = createFileRoute("/owner")({
 type NavItem = { to: string; label: string; short: string; Icon: LucideIcon };
 
 const NAV: NavItem[] = [
-  { to: "/owner/dashboard", label: "Dashboard", short: "Home", Icon: LayoutDashboard },
-  { to: "/owner/reservations", label: "Prenotazioni", short: "Preno", Icon: CalendarDays },
-  { to: "/owner/menu", label: "Menu", short: "Menu", Icon: UtensilsCrossed },
-  { to: "/owner/sala", label: "Sala & Tavoli", short: "Sala", Icon: Armchair },
-  { to: "/owner/qr", label: "QR Code", short: "QR", Icon: QrCode },
-  { to: "/owner/staff", label: "Staff", short: "Staff", Icon: ChefHat },
-  { to: "/owner/crm", label: "Clienti", short: "Clienti", Icon: Users },
-  { to: "/owner/social", label: "Social", short: "Social", Icon: Camera },
-  { to: "/owner/settings", label: "Il mio locale", short: "Locale", Icon: Store },
-  { to: "/owner/pro", label: "Pro / Prossimamente", short: "Pro", Icon: Sparkles },
+  { to: "/owner/dashboard",    label: "Dashboard",      short: "Home",   Icon: LayoutDashboard },
+  { to: "/owner/reservations", label: "Prenotazioni",   short: "Preno",  Icon: CalendarDays },
+  { to: "/owner/sala",         label: "Sala & Tavoli",  short: "Sala",   Icon: Armchair },
+  { to: "/owner/menu",         label: "Menu",           short: "Menu",   Icon: UtensilsCrossed },
+  { to: "/owner/crm",          label: "Clienti",        short: "CRM",    Icon: Users },
+  { to: "/owner/stats",        label: "Statistiche",    short: "Stats",  Icon: BarChart2 },
+  { to: "/owner/settings",     label: "Il mio locale",  short: "Locale", Icon: Store },
+];
+
+type ExtLink = { href: string; label: string; short: string; Icon: LucideIcon };
+const EXT_LINKS: ExtLink[] = [
+  { href: "/waiter",  label: "App Cameriere", short: "Sala",   Icon: ChefHat },
+  { href: "/kitchen", label: "Cucina (KDS)",  short: "Cucina", Icon: Flame },
 ];
 
 // Bottom nav mobile: 4 voci principali + "Altro" (drawer). Esattamente 5 slot.
@@ -109,6 +112,16 @@ function OwnerLayout() {
               </Link>
             );
           })}
+          <div className="mt-2 border-t border-paper/10 pt-2">
+            {EXT_LINKS.map((n) => (
+              <a key={n.href} href={n.href} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-paper/70 transition hover:bg-paper/10 hover:text-paper">
+                <n.Icon className="h-4 w-4 shrink-0" strokeWidth={2.25} />
+                <span className="truncate">{n.label}</span>
+                <ExternalLink className="ml-auto h-3 w-3 shrink-0 opacity-40" strokeWidth={2} />
+              </a>
+            ))}
+          </div>
         </nav>
         <button onClick={logout} className="mt-4 flex items-center gap-2 rounded-xl border-2 border-paper/20 px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-paper/70 hover:border-yellow hover:text-yellow">
           <LogOut className="h-4 w-4" strokeWidth={2.25} /> Esci
@@ -173,6 +186,16 @@ function OwnerLayout() {
                   </Link>
                 );
               })}
+              <div className="mt-2 border-t border-paper/10 pt-2">
+                {EXT_LINKS.map((n) => (
+                  <a key={n.href} href={n.href} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-paper/70 transition hover:bg-paper/10 hover:text-paper">
+                    <n.Icon className="h-4 w-4 shrink-0" strokeWidth={2.25} />
+                    <span className="truncate">{n.label}</span>
+                    <ExternalLink className="ml-auto h-3 w-3 shrink-0 opacity-40" strokeWidth={2} />
+                  </a>
+                ))}
+              </div>
             </nav>
             <button onClick={logout} className="mt-4 flex items-center gap-2 rounded-xl border-2 border-paper/20 px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-paper/70 hover:border-yellow hover:text-yellow">
               <LogOut className="h-4 w-4" strokeWidth={2.25} /> Esci
