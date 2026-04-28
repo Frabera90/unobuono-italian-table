@@ -13,6 +13,7 @@ import {
   Flame,
   Store,
   BarChart2,
+  QrCode,
   Menu as MenuIcon,
   LogOut,
   ExternalLink,
