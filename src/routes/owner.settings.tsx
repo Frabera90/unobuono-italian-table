@@ -70,26 +70,11 @@ function SettingsPage() {
         </Section>
 
         <Section title="Orari di apertura">
-          <p className="text-xs text-muted-foreground -mt-1">Formato: <code>12:00-14:30,19:00-23:00</code> · scrivi <code>closed</code> se chiuso.</p>
-          {[
-            { k: "mon", label: "Lunedì" },
-            { k: "tue", label: "Martedì" },
-            { k: "wed", label: "Mercoledì" },
-            { k: "thu", label: "Giovedì" },
-            { k: "fri", label: "Venerdì" },
-            { k: "sat", label: "Sabato" },
-            { k: "sun", label: "Domenica" },
-          ].map(({ k, label }) => (
-            <div key={k} className="flex items-center gap-3">
-              <span className="w-24 text-sm">{label}</span>
-              <input
-                className="set-in flex-1"
-                placeholder="closed"
-                value={s.opening_hours?.[k] ?? ""}
-                onChange={(e) => setS({ ...s, opening_hours: { ...(s.opening_hours || {}), [k]: e.target.value } })}
-              />
-            </div>
-          ))}
+          <p className="-mt-1 text-xs text-muted-foreground">Aggiungi uno o più turni per ogni giorno (es. pranzo + cena). Lascia vuoto se chiuso.</p>
+          <OpeningHoursEditor
+            value={s.opening_hours || {}}
+            onChange={(v) => setS({ ...s, opening_hours: v })}
+          />
         </Section>
 
         <Section title="Social">
