@@ -465,17 +465,25 @@ function TableCard({ resv, isClosing, closingBusy, onRequestClose, onConfirmClos
   onCancelClose: () => void;
 }) {
   const state = getCardState(resv);
-  const cfg = CARD_CFG[state];
   const isIncoming = state === "incoming";
   const canClose = !isIncoming && resv.arrived;
 
+  const STATE_STYLE: Record<CardState, { label: string; pill: string; ring: string; tint: string }> = {
+    bill:     { label: "Conto",     pill: "bg-red-500 text-white",                ring: "ring-red-400/40",     tint: "bg-red-50/80" },
+    ready:    { label: "Pronto",    pill: "bg-emerald-500 text-white",            ring: "ring-emerald-400/40", tint: "bg-emerald-50/80" },
+    cooking:  { label: "In cucina", pill: "bg-[var(--ink)] text-[var(--yellow)]", ring: "ring-black/15",       tint: "bg-[var(--yellow)]/15" },
+    ordered:  { label: "Ordinato",  pill: "bg-sky-500 text-white",                ring: "ring-sky-400/30",     tint: "bg-sky-50/80" },
+    seated:   { label: "Al tavolo", pill: "bg-white text-foreground ring-1 ring-black/15", ring: "ring-black/10", tint: "bg-white/70" },
+    incoming: { label: "In arrivo", pill: "bg-white/70 text-muted-foreground ring-1 ring-black/10", ring: "ring-black/5", tint: "bg-white/50" },
+  };
+  const s = STATE_STYLE[state];
+
   return (
-    <div className={`rounded-xl border-2 p-3 transition ${cfg.border} ${isIncoming ? "opacity-60" : ""}`}>
-      {/* Header */}
+    <div className={`group relative overflow-hidden rounded-3xl ${s.tint} p-3.5 ring-1 ${s.ring} backdrop-blur-2xl shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_8px_24px_-12px_rgba(0,0,0,0.18)] transition hover:-translate-y-0.5 ${isIncoming ? "opacity-70" : ""}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="truncate font-display text-base leading-tight">{resv.customer_name}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <p className="truncate font-display text-base leading-tight tracking-tight">{resv.customer_name}</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">
             {resv.time}
             {" · "}{resv.party_size}p
             {resv.tableCode && <span className="ml-1 font-mono">· {resv.tableCode}</span>}
@@ -484,17 +492,16 @@ function TableCard({ resv, isClosing, closingBusy, onRequestClose, onConfirmClos
             <p className="text-[10px] text-muted-foreground/70">{resv.zone_name}</p>
           )}
         </div>
-        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${cfg.badge}`}>
-          {cfg.label}
+        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${s.pill}`}>
+          {s.label}
         </span>
       </div>
 
-      {/* Ordine */}
       {resv.preorder && resv.preorder.items.length > 0 && (
-        <ul className="mt-2 space-y-0.5 border-t border-current/10 pt-2 text-xs text-muted-foreground">
+        <ul className="mt-2.5 space-y-0.5 border-t border-black/5 pt-2 text-xs text-foreground/80">
           {resv.preorder.items.slice(0, 4).map((it, i) => (
-            <li key={i} className="flex items-baseline gap-1">
-              <span className="font-mono text-[10px]">{it.qty}×</span>
+            <li key={i} className="flex items-baseline gap-1.5">
+              <span className="font-mono text-[10px] text-muted-foreground">{it.qty}×</span>
               <span className="truncate">{it.name}</span>
             </li>
           ))}
@@ -504,16 +511,15 @@ function TableCard({ resv, isClosing, closingBusy, onRequestClose, onConfirmClos
         </ul>
       )}
 
-      {/* Footer */}
-      <div className="mt-2.5 flex items-center justify-between gap-1.5">
-        <span className="font-display text-sm">
+      <div className="mt-3 flex items-center justify-between gap-1.5">
+        <span className="font-display text-sm tracking-tight">
           {resv.preorder?.total ? `€ ${Number(resv.preorder.total).toFixed(2)}` : ""}
         </span>
 
         {canClose && !isClosing && (
           <button
             onClick={onRequestClose}
-            className="rounded-md border border-current/25 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground hover:border-current/60 hover:text-foreground"
+            className="rounded-full bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-foreground/70 ring-1 ring-black/10 backdrop-blur-md transition hover:text-foreground hover:ring-black/30"
           >
             Chiudi
           </button>
@@ -523,16 +529,16 @@ function TableCard({ resv, isClosing, closingBusy, onRequestClose, onConfirmClos
           <div className="flex gap-1.5">
             <button
               onClick={onCancelClose}
-              className="rounded-md border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground hover:text-foreground"
+              className="rounded-full bg-white/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground ring-1 ring-black/10"
             >
               No
             </button>
             <button
               onClick={onConfirmClose}
               disabled={closingBusy}
-              className="rounded-md bg-terracotta px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-paper disabled:opacity-50"
+              className="rounded-full bg-[var(--ink)] px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-white disabled:opacity-50"
             >
-              {closingBusy ? "..." : "Conferma"}
+              {closingBusy ? "…" : "Conferma"}
             </button>
           </div>
         )}
@@ -543,25 +549,34 @@ function TableCard({ resv, isClosing, closingBusy, onRequestClose, onConfirmClos
 
 // ── Stat card ────────────────────────────────────────────────────────────────
 
-function StatCard({ icon, label, value, to, alert }: {
+function StatCard({ icon, label, value, to, alert, accent = "white" }: {
   icon: string; label: string; value: number; to?: string; alert?: boolean;
+  accent?: "yellow" | "dark" | "white";
 }) {
+  const styles =
+    accent === "yellow"
+      ? "bg-[var(--yellow)] text-[var(--ink)] ring-black/10"
+      : accent === "dark"
+      ? "bg-[var(--ink)] text-white ring-white/10"
+      : "bg-white/70 text-foreground ring-black/8 backdrop-blur-2xl";
+
   const inner = (
     <>
-      <div className="text-lg md:text-2xl">{icon}</div>
-      <div className="mt-1 font-display text-xl leading-tight md:mt-2 md:text-3xl">
-        {value}
-        {alert && value > 0 && <span className="ml-2 inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-destructive align-middle" />}
+      <div className="flex items-center justify-between">
+        <span className={`grid h-9 w-9 place-items-center rounded-full text-base ring-1 ${accent === "dark" ? "bg-white/10 ring-white/15" : "bg-black/5 ring-black/5"}`}>
+          {icon}
+        </span>
+        {alert && value > 0 && <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />}
       </div>
-      <div className="mt-1 truncate text-[10px] uppercase tracking-wider text-muted-foreground md:text-xs">{label}</div>
+      <div className="mt-3 font-display text-3xl leading-none tracking-tight md:text-4xl">{value}</div>
+      <div className={`mt-1.5 truncate text-[11px] font-medium ${accent === "dark" ? "text-white/60" : "text-muted-foreground"}`}>
+        {label}
+      </div>
     </>
   );
-  return to ? (
-    <Link to={to} className="block min-w-0 rounded-2xl border border-border bg-card p-3 transition hover:border-terracotta hover:shadow-md md:p-5">
-      {inner}
-    </Link>
-  ) : (
-    <div className="block min-w-0 rounded-2xl border border-border bg-card p-3 md:p-5">{inner}</div>
-  );
+
+  const cls = `block min-w-0 rounded-3xl p-4 ring-1 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_8px_24px_-12px_rgba(0,0,0,0.18)] transition hover:-translate-y-0.5 md:p-5 ${styles}`;
+
+  return to ? <Link to={to} className={cls}>{inner}</Link> : <div className={cls}>{inner}</div>;
 }
 
