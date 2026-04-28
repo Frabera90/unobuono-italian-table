@@ -170,7 +170,12 @@ function SettingsPage() {
 
       <button onClick={save} disabled={busy} className="mt-5 rounded-lg bg-terracotta px-6 py-3 font-medium text-paper disabled:opacity-40">{busy ? "Salvo..." : "Salva modifiche"}</button>
 
-      <style>{`.set-in{width:100%;border:1px solid hsl(var(--border));background:hsl(var(--background));border-radius:8px;padding:8px 10px;font-size:14px;color:inherit}`}</style>
+      <style>{`
+        .set-in{width:100%;border:1.5px solid hsl(var(--border));background:hsl(var(--background));border-radius:10px;padding:10px 12px;font-size:14px;color:hsl(var(--foreground));transition:border-color .15s, box-shadow .15s;outline:none;box-shadow:0 1px 0 rgba(0,0,0,0.02) inset;}
+        .set-in:hover{border-color:hsl(var(--foreground)/0.35);}
+        .set-in:focus{border-color:hsl(var(--primary));box-shadow:0 0 0 3px hsl(var(--primary)/0.18);}
+        .set-in::placeholder{color:hsl(var(--muted-foreground)/0.7);}
+      `}</style>
     </div>
   );
 }
