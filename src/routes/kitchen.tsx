@@ -60,7 +60,7 @@ function KitchenPage() {
       .select("id, reservation_id, customer_name, items, course_status, created_at")
       .eq("restaurant_id", rid)
       .gte("created_at", today)
-      .neq("course_status", "served")
+      .or("course_status.neq.served,course_status.is.null")
       .order("created_at");
 
     if (!preorders?.length) { setOrders([]); return; }

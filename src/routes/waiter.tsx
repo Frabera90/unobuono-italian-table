@@ -105,7 +105,9 @@ function WaiterPage() {
       .then(({ data }) => { setCalls((data || []) as Call[]); setReadCalls((data || []).length); });
 
     void supabase.from("reservations").select("*")
-      .eq("restaurant_id", restaurantId).eq("date", today).order("time")
+      .eq("restaurant_id", restaurantId).eq("date", today)
+      .neq("status", "cancelled").neq("status", "completed")
+      .order("time")
       .then(({ data }) => setReservations((data || []) as Resv[]));
 
     void supabase.from("preorders").select("*")
@@ -139,7 +141,8 @@ function WaiterPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "reservations", filter: `restaurant_id=eq.${restaurantId}` }, (p) => {
         const row = (p.new || p.old) as Resv;
         if (row.date !== today) return;
-        if (p.eventType === "DELETE") {
+        const newStatus = (p.new as any)?.status;
+        if (p.eventType === "DELETE" || newStatus === "cancelled" || newStatus === "completed") {
           setReservations((prev) => prev.filter((r) => r.id !== row.id));
         } else {
           setReservations((prev) => {
@@ -252,13 +255,14 @@ function WaiterPage() {
     const total = items.reduce((s, i) => s + i.qty * (i.price || 0), 0);
     setOrderBusy(true);
     try {
-      const { error } = await supabase.rpc("staff_upsert_preorder", {
+      const { data: preorderId, error } = await supabase.rpc("staff_upsert_preorder", {
         _pin: pin,
         _reservation_id: orderResv.id,
         _items: items,
         _total: total,
       });
       if (error) throw error;
+      if (!preorderId) throw new Error("PIN non autorizzato o prenotazione non trovata");
       toast.success("✓ Ordine inviato in cucina");
       setOrderResv(null);
       setCart({});
@@ -396,7 +400,21 @@ function WaiterPage() {
               reservations={reservations}
               preorders={preorders}
               onToggle={toggleArrived}
-              onOrder={(r) => { setOrderResv(r); setCart({}); }}
+              onOrder={(r) => {
+                // Pre-popola il carrello con i piatti già ordinati
+                const existingPre = preorders.find((p) => p.reservation_id === r.id);
+                if (existingPre && Array.isArray(existingPre.items) && existingPre.items.length > 0) {
+                  const preCart: Record<string, CartEntry> = {};
+                  for (const it of existingPre.items as any[]) {
+                    const mi = menuItems.find((m) => m.name === it.name);
+                    if (mi) preCart[mi.id] = { item: mi, qty: it.qty, notes: it.notes || "" };
+                  }
+                  setCart(preCart);
+                } else {
+                  setCart({});
+                }
+                setOrderResv(r);
+              }}
               onBillRequest={requestBill}
             />
           </>
@@ -633,10 +651,12 @@ function ResvList({ reservations, preorders, onToggle, onOrder, onBillRequest }:
                 <div className="truncate text-xs text-paper/60">{r.zone_name}</div>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   {r.occasion && <Badge>🎂 {r.occasion}</Badge>}
-                  {hasActiveOrder && <Badge tone="ok">🍽️ Ordinato</Badge>}
+                  {pre?.status === "bill_requested" && <Badge tone="bill">💳 Conto</Badge>}
+                  {pre && pre.course_status === "ready" && <Badge tone="ok">✅ Pronto!</Badge>}
+                  {pre && pre.course_status === "cooking" && <Badge>👨‍🍳 In cucina</Badge>}
+                  {pre && hasActiveOrder && pre.course_status !== "cooking" && pre.course_status !== "ready" && <Badge>📝 Ordinato</Badge>}
                   {pre && !hasActiveOrder && <Badge>🛵 Pre-ordine</Badge>}
                   {r.allergies && <Badge tone="warn">⚠️ Allergie</Badge>}
-                  {pre?.status === "bill_requested" && <Badge tone="bill">💳 Conto</Badge>}
                 </div>
               </div>
               {r.arrived ? (
@@ -832,7 +852,7 @@ function CucinaTab({ restaurantId, pin }: { restaurantId: string; pin: string })
       .select("id, reservation_id, customer_name, items, course_status, created_at")
       .eq("restaurant_id", restaurantId)
       .gte("created_at", today)
-      .neq("course_status", "served")
+      .or("course_status.neq.served,course_status.is.null")
       .order("created_at");
 
     if (!preorders?.length) { setOrders([]); return; }
