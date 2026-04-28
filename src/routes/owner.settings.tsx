@@ -201,3 +201,110 @@ function Toggle({ label, v, onChange }: { label: string; v: boolean; onChange: (
     </label>
   );
 }
+
+type Hours = Record<string, string>;
+const DAYS: { k: string; label: string }[] = [
+  { k: "mon", label: "Lunedì" },
+  { k: "tue", label: "Martedì" },
+  { k: "wed", label: "Mercoledì" },
+  { k: "thu", label: "Giovedì" },
+  { k: "fri", label: "Venerdì" },
+  { k: "sat", label: "Sabato" },
+  { k: "sun", label: "Domenica" },
+];
+
+function parseShifts(raw: string): Array<[string, string]> {
+  if (!raw || raw.trim().toLowerCase() === "closed") return [];
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => {
+      const [a, b] = s.split("-").map((x) => (x || "").trim());
+      return [a || "", b || ""] as [string, string];
+    });
+}
+function serializeShifts(shifts: Array<[string, string]>): string {
+  const valid = shifts.filter(([a, b]) => a && b);
+  if (valid.length === 0) return "closed";
+  return valid.map(([a, b]) => `${a}-${b}`).join(",");
+}
+
+function OpeningHoursEditor({ value, onChange }: { value: Hours; onChange: (v: Hours) => void }) {
+  function update(day: string, shifts: Array<[string, string]>) {
+    onChange({ ...value, [day]: serializeShifts(shifts) });
+  }
+  return (
+    <div className="space-y-2">
+      {DAYS.map(({ k, label }) => {
+        const raw = value[k] ?? "";
+        const closed = !raw || raw.trim().toLowerCase() === "closed";
+        const shifts = parseShifts(raw);
+        return (
+          <div key={k} className="rounded-xl border-2 border-border bg-background p-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium">{label}</span>
+              <label className="flex cursor-pointer select-none items-center gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-terracotta"
+                  checked={!closed}
+                  onChange={(e) => {
+                    if (e.target.checked) update(k, shifts.length ? shifts : [["12:00", "14:30"]]);
+                    else onChange({ ...value, [k]: "closed" });
+                  }}
+                />
+                {closed ? "Chiuso" : "Aperto"}
+              </label>
+            </div>
+            {!closed && (
+              <div className="mt-3 space-y-2">
+                {(shifts.length ? shifts : [["", ""] as [string, string]]).map(([from, to], idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <input
+                      type="time"
+                      className="set-in flex-1"
+                      value={from}
+                      onChange={(e) => {
+                        const next = shifts.length ? [...shifts] : [["", ""] as [string, string]];
+                        next[idx] = [e.target.value, to];
+                        update(k, next);
+                      }}
+                    />
+                    <span className="text-xs text-muted-foreground">→</span>
+                    <input
+                      type="time"
+                      className="set-in flex-1"
+                      value={to}
+                      onChange={(e) => {
+                        const next = shifts.length ? [...shifts] : [["", ""] as [string, string]];
+                        next[idx] = [from, e.target.value];
+                        update(k, next);
+                      }}
+                    />
+                    {shifts.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => update(k, shifts.filter((_, i) => i !== idx))}
+                        className="rounded-md border border-border px-2 py-1.5 text-xs text-muted-foreground hover:border-destructive hover:text-destructive"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => update(k, [...shifts, ["19:00", "23:00"]])}
+                  className="text-xs font-medium text-terracotta hover:underline"
+                >
+                  + Aggiungi turno
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
