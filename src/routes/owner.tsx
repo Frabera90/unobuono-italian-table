@@ -38,6 +38,7 @@ const NAV: NavItem[] = [
   { to: "/owner/menu",         label: "Menu",           short: "Menu",   Icon: UtensilsCrossed },
   { to: "/owner/crm",          label: "Clienti",        short: "CRM",    Icon: Users },
   { to: "/owner/stats",        label: "Statistiche",    short: "Stats",  Icon: BarChart2 },
+  { to: "/owner/qr",           label: "QR & Link",      short: "QR",     Icon: QrCode },
   { to: "/owner/settings",     label: "Il mio locale",  short: "Locale", Icon: Store },
 ];
 
