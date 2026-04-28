@@ -336,101 +336,119 @@ function DashboardPage() {
   const urgentCount = sala.filter((r) => { const s = getCardState(r); return s === "bill" || s === "ready"; }).length;
 
   return (
-    <div className="mx-auto w-full max-w-6xl overflow-x-hidden px-3 py-4 md:px-5 md:py-7">
-      <header className="mb-4 md:mb-6">
-        <h1 className="font-display text-2xl md:text-3xl">Dashboard</h1>
-        <p className="text-xs text-muted-foreground md:text-sm">Tutto quello che succede stasera, in tempo reale.</p>
-      </header>
+    <div className="relative min-h-screen overflow-x-hidden">
+      {/* Soft ambient background — Apple-like */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-40 -left-32 h-[420px] w-[420px] rounded-full bg-[oklch(0.92_0.18_99)] opacity-50 blur-3xl" />
+        <div className="absolute top-40 -right-32 h-[480px] w-[480px] rounded-full bg-[oklch(0.85_0.06_240)] opacity-30 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-[360px] w-[360px] rounded-full bg-[oklch(0.9_0.08_140)] opacity-30 blur-3xl" />
+      </div>
 
-      {/* Stats compatte */}
-      <section className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
-        <StatCard icon="📅" label="Prenotazioni oggi" value={stats.resv} to="/owner/reservations" />
-        <StatCard icon="🍽️" label="Ordini attivi" value={stats.preo} to="/owner/reservations" />
-        <StatCard icon="⭐" label="Recensioni nuove" value={stats.reviews} alert={stats.reviews > 0} />
-        <StatCard icon="⏳" label="Lista d'attesa" value={stats.waitlist} />
-      </section>
+      <div className="mx-auto w-full max-w-6xl px-3 py-5 md:px-6 md:py-9">
+        <header className="mb-5 flex items-end justify-between md:mb-7">
+          <div>
+            <h1 className="font-display text-3xl tracking-tight md:text-5xl">Dashboard</h1>
+            <p className="mt-1 text-xs text-muted-foreground md:text-sm">Tutto quello che succede stasera, in tempo reale.</p>
+          </div>
+          <span className="hidden items-center gap-2 rounded-full border border-black/10 bg-white/60 px-3 py-1.5 text-xs backdrop-blur-xl md:inline-flex">
+            <span className="live-dot" /> live
+          </span>
+        </header>
 
-      {/* ── SALA LIVE ──────────────────────────────────────────────────── */}
-      <section className="mt-4 md:mt-6">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-3">
-            <h2 className="font-display text-xl md:text-2xl">Sala Live</h2>
-            <span className="rounded-full border border-border px-2.5 py-0.5 font-mono text-xs text-muted-foreground">
-              {arrivedCount} al tavolo
-            </span>
-            {urgentCount > 0 && (
-              <span className="rounded-full bg-red-500/20 px-2.5 py-0.5 font-mono text-xs text-red-400 animate-pulse">
-                {urgentCount} urgenti
+        {/* Stats — pillole glass */}
+        <section className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-4">
+          <StatCard icon="📅" label="Prenotazioni oggi" value={stats.resv} to="/owner/reservations" accent="yellow" />
+          <StatCard icon="🍽️" label="Ordini attivi" value={stats.preo} to="/owner/reservations" accent="dark" />
+          <StatCard icon="⭐" label="Recensioni nuove" value={stats.reviews} alert={stats.reviews > 0} accent="white" />
+          <StatCard icon="⏳" label="Lista d'attesa" value={stats.waitlist} accent="white" />
+        </section>
+
+        {/* ── SALA LIVE ──────────────────────────────────────────────────── */}
+        <section className="mt-6 md:mt-8">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <h2 className="font-display text-2xl tracking-tight md:text-3xl">Sala Live</h2>
+              <span className="rounded-full border border-black/10 bg-white/70 px-2.5 py-0.5 text-[11px] text-muted-foreground backdrop-blur-xl">
+                {arrivedCount} al tavolo
               </span>
-            )}
-          </div>
-          <Link to="/owner/reservations" className="font-mono text-[10px] uppercase tracking-wider text-terracotta hover:underline">
-            Lista completa →
-          </Link>
-        </div>
-
-        {sortedSala.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-            Nessuna prenotazione per oggi.
-          </p>
-        ) : (
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {sortedSala.map((resv) => (
-              <TableCard
-                key={resv.id}
-                resv={resv}
-                isClosing={closingId === resv.id}
-                closingBusy={closing}
-                onRequestClose={() => setClosingId(resv.id)}
-                onConfirmClose={() => closeTable(resv)}
-                onCancelClose={() => setClosingId(null)}
-              />
-            ))}
-          </div>
-        )}
-      </section>
-
-      <div className="mt-4 grid gap-3 md:mt-7 md:gap-5 lg:grid-cols-3">
-        <section className="min-w-0 rounded-2xl border border-border bg-card p-3 md:p-5 lg:col-span-2">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="truncate font-display text-base md:text-xl">Attività in tempo reale</h2>
-            <Link to="/owner/reservations" className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-terracotta hover:underline">
-              Vedi tutto →
+              {urgentCount > 0 && (
+                <span className="rounded-full bg-red-500/15 px-2.5 py-0.5 text-[11px] font-medium text-red-600 ring-1 ring-red-500/20 animate-pulse">
+                  {urgentCount} urgenti
+                </span>
+              )}
+            </div>
+            <Link to="/owner/reservations" className="text-xs font-medium text-foreground/70 hover:text-foreground">
+              Lista completa →
             </Link>
           </div>
-          {activity.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">In attesa di nuovi eventi...</p>
+
+          {sortedSala.length === 0 ? (
+            <p className="rounded-3xl border border-dashed border-black/15 bg-white/50 p-10 text-center text-sm text-muted-foreground backdrop-blur-xl">
+              Nessuna prenotazione per oggi.
+            </p>
           ) : (
-            <ul className="space-y-2">
-              {activity.map((a) => (
-                <li key={a.id} className="flex min-w-0 items-start gap-2 rounded-lg border border-border/60 bg-background/40 px-2 py-2 slide-in-right md:gap-3 md:px-3">
-                  <span className="shrink-0 text-base leading-tight">{a.icon}</span>
-                  <span className="min-w-0 flex-1 break-words text-[12px] leading-snug md:text-sm">{a.text}</span>
-                  <span className="shrink-0 text-[10px] text-muted-foreground md:text-xs">{relTime(a.ts)}</span>
-                </li>
+            <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {sortedSala.map((resv) => (
+                <TableCard
+                  key={resv.id}
+                  resv={resv}
+                  isClosing={closingId === resv.id}
+                  closingBusy={closing}
+                  onRequestClose={() => setClosingId(resv.id)}
+                  onConfirmClose={() => closeTable(resv)}
+                  onCancelClose={() => setClosingId(null)}
+                />
               ))}
-            </ul>
+            </div>
           )}
         </section>
 
-        <section className="min-w-0 rounded-2xl border border-border bg-card p-3 md:p-5">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="truncate font-display text-base md:text-xl">Menu — disponibilità</h2>
-            <Link to="/owner/menu" className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-terracotta hover:underline">
-              Modifica →
-            </Link>
-          </div>
-          <ul className="max-h-[40vh] space-y-1 overflow-y-auto pr-1 md:max-h-[60vh]">
-            {items.map((it) => (
-              <li key={it.id} className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-cream-dark/50">
-                <span className={`min-w-0 flex-1 truncate text-sm ${!it.available ? "text-muted-foreground line-through" : ""}`}>{it.name}</span>
-                <button onClick={() => toggleItem(it)} className={`relative h-5 w-9 shrink-0 rounded-full transition ${it.available ? "bg-terracotta" : "bg-border"}`}>
-                  <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-paper transition ${it.available ? "left-[18px]" : "left-0.5"}`} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <div className="mt-5 grid gap-3 md:mt-8 md:gap-5 lg:grid-cols-3">
+          <section className="min-w-0 rounded-3xl border border-black/8 bg-white/65 p-4 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_8px_30px_-12px_rgba(0,0,0,0.15)] backdrop-blur-2xl md:p-6 lg:col-span-2">
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <h2 className="truncate font-display text-lg tracking-tight md:text-2xl">Attività in tempo reale</h2>
+              <Link to="/owner/reservations" className="shrink-0 text-xs font-medium text-foreground/70 hover:text-foreground">
+                Vedi tutto →
+              </Link>
+            </div>
+            {activity.length === 0 ? (
+              <p className="py-12 text-center text-sm text-muted-foreground">In attesa di nuovi eventi…</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {activity.map((a) => (
+                  <li key={a.id} className="flex min-w-0 items-center gap-3 rounded-2xl bg-white/70 px-3 py-2.5 ring-1 ring-black/5 slide-in-right">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--yellow)]/30 text-base ring-1 ring-black/5">{a.icon}</span>
+                    <span className="min-w-0 flex-1 break-words text-[13px] leading-snug text-foreground/90 md:text-sm">{a.text}</span>
+                    <span className="shrink-0 text-[10px] text-muted-foreground md:text-xs">{relTime(a.ts)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="min-w-0 rounded-3xl border border-black/8 bg-white/65 p-4 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_8px_30px_-12px_rgba(0,0,0,0.15)] backdrop-blur-2xl md:p-6">
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <h2 className="truncate font-display text-lg tracking-tight md:text-2xl">Menu — disponibilità</h2>
+              <Link to="/owner/menu" className="shrink-0 text-xs font-medium text-foreground/70 hover:text-foreground">
+                Modifica →
+              </Link>
+            </div>
+            <ul className="max-h-[40vh] space-y-0.5 overflow-y-auto pr-1 md:max-h-[60vh]">
+              {items.map((it) => (
+                <li key={it.id} className="flex items-center justify-between gap-2 rounded-xl px-2.5 py-2 transition hover:bg-white/80">
+                  <span className={`min-w-0 flex-1 truncate text-sm ${!it.available ? "text-muted-foreground line-through" : ""}`}>{it.name}</span>
+                  <button
+                    onClick={() => toggleItem(it)}
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition ${it.available ? "bg-[var(--ink)]" : "bg-black/15"}`}
+                    aria-label="toggle"
+                  >
+                    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${it.available ? "left-[22px]" : "left-0.5"}`} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
       </div>
     </div>
   );
@@ -447,17 +465,25 @@ function TableCard({ resv, isClosing, closingBusy, onRequestClose, onConfirmClos
   onCancelClose: () => void;
 }) {
   const state = getCardState(resv);
-  const cfg = CARD_CFG[state];
   const isIncoming = state === "incoming";
   const canClose = !isIncoming && resv.arrived;
 
+  const STATE_STYLE: Record<CardState, { label: string; pill: string; ring: string; tint: string }> = {
+    bill:     { label: "Conto",     pill: "bg-red-500 text-white",                ring: "ring-red-400/40",     tint: "bg-red-50/80" },
+    ready:    { label: "Pronto",    pill: "bg-emerald-500 text-white",            ring: "ring-emerald-400/40", tint: "bg-emerald-50/80" },
+    cooking:  { label: "In cucina", pill: "bg-[var(--ink)] text-[var(--yellow)]", ring: "ring-black/15",       tint: "bg-[var(--yellow)]/15" },
+    ordered:  { label: "Ordinato",  pill: "bg-sky-500 text-white",                ring: "ring-sky-400/30",     tint: "bg-sky-50/80" },
+    seated:   { label: "Al tavolo", pill: "bg-white text-foreground ring-1 ring-black/15", ring: "ring-black/10", tint: "bg-white/70" },
+    incoming: { label: "In arrivo", pill: "bg-white/70 text-muted-foreground ring-1 ring-black/10", ring: "ring-black/5", tint: "bg-white/50" },
+  };
+  const s = STATE_STYLE[state];
+
   return (
-    <div className={`rounded-xl border-2 p-3 transition ${cfg.border} ${isIncoming ? "opacity-60" : ""}`}>
-      {/* Header */}
+    <div className={`group relative overflow-hidden rounded-3xl ${s.tint} p-3.5 ring-1 ${s.ring} backdrop-blur-2xl shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_8px_24px_-12px_rgba(0,0,0,0.18)] transition hover:-translate-y-0.5 ${isIncoming ? "opacity-70" : ""}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="truncate font-display text-base leading-tight">{resv.customer_name}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <p className="truncate font-display text-base leading-tight tracking-tight">{resv.customer_name}</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">
             {resv.time}
             {" · "}{resv.party_size}p
             {resv.tableCode && <span className="ml-1 font-mono">· {resv.tableCode}</span>}
@@ -466,17 +492,16 @@ function TableCard({ resv, isClosing, closingBusy, onRequestClose, onConfirmClos
             <p className="text-[10px] text-muted-foreground/70">{resv.zone_name}</p>
           )}
         </div>
-        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${cfg.badge}`}>
-          {cfg.label}
+        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${s.pill}`}>
+          {s.label}
         </span>
       </div>
 
-      {/* Ordine */}
       {resv.preorder && resv.preorder.items.length > 0 && (
-        <ul className="mt-2 space-y-0.5 border-t border-current/10 pt-2 text-xs text-muted-foreground">
+        <ul className="mt-2.5 space-y-0.5 border-t border-black/5 pt-2 text-xs text-foreground/80">
           {resv.preorder.items.slice(0, 4).map((it, i) => (
-            <li key={i} className="flex items-baseline gap-1">
-              <span className="font-mono text-[10px]">{it.qty}×</span>
+            <li key={i} className="flex items-baseline gap-1.5">
+              <span className="font-mono text-[10px] text-muted-foreground">{it.qty}×</span>
               <span className="truncate">{it.name}</span>
             </li>
           ))}
@@ -486,16 +511,15 @@ function TableCard({ resv, isClosing, closingBusy, onRequestClose, onConfirmClos
         </ul>
       )}
 
-      {/* Footer */}
-      <div className="mt-2.5 flex items-center justify-between gap-1.5">
-        <span className="font-display text-sm">
+      <div className="mt-3 flex items-center justify-between gap-1.5">
+        <span className="font-display text-sm tracking-tight">
           {resv.preorder?.total ? `€ ${Number(resv.preorder.total).toFixed(2)}` : ""}
         </span>
 
         {canClose && !isClosing && (
           <button
             onClick={onRequestClose}
-            className="rounded-md border border-current/25 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground hover:border-current/60 hover:text-foreground"
+            className="rounded-full bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-foreground/70 ring-1 ring-black/10 backdrop-blur-md transition hover:text-foreground hover:ring-black/30"
           >
             Chiudi
           </button>
@@ -505,16 +529,16 @@ function TableCard({ resv, isClosing, closingBusy, onRequestClose, onConfirmClos
           <div className="flex gap-1.5">
             <button
               onClick={onCancelClose}
-              className="rounded-md border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground hover:text-foreground"
+              className="rounded-full bg-white/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground ring-1 ring-black/10"
             >
               No
             </button>
             <button
               onClick={onConfirmClose}
               disabled={closingBusy}
-              className="rounded-md bg-terracotta px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-paper disabled:opacity-50"
+              className="rounded-full bg-[var(--ink)] px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-white disabled:opacity-50"
             >
-              {closingBusy ? "..." : "Conferma"}
+              {closingBusy ? "…" : "Conferma"}
             </button>
           </div>
         )}
@@ -525,25 +549,34 @@ function TableCard({ resv, isClosing, closingBusy, onRequestClose, onConfirmClos
 
 // ── Stat card ────────────────────────────────────────────────────────────────
 
-function StatCard({ icon, label, value, to, alert }: {
+function StatCard({ icon, label, value, to, alert, accent = "white" }: {
   icon: string; label: string; value: number; to?: string; alert?: boolean;
+  accent?: "yellow" | "dark" | "white";
 }) {
+  const styles =
+    accent === "yellow"
+      ? "bg-[var(--yellow)] text-[var(--ink)] ring-black/10"
+      : accent === "dark"
+      ? "bg-[var(--ink)] text-white ring-white/10"
+      : "bg-white/70 text-foreground ring-black/8 backdrop-blur-2xl";
+
   const inner = (
     <>
-      <div className="text-lg md:text-2xl">{icon}</div>
-      <div className="mt-1 font-display text-xl leading-tight md:mt-2 md:text-3xl">
-        {value}
-        {alert && value > 0 && <span className="ml-2 inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-destructive align-middle" />}
+      <div className="flex items-center justify-between">
+        <span className={`grid h-9 w-9 place-items-center rounded-full text-base ring-1 ${accent === "dark" ? "bg-white/10 ring-white/15" : "bg-black/5 ring-black/5"}`}>
+          {icon}
+        </span>
+        {alert && value > 0 && <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />}
       </div>
-      <div className="mt-1 truncate text-[10px] uppercase tracking-wider text-muted-foreground md:text-xs">{label}</div>
+      <div className="mt-3 font-display text-3xl leading-none tracking-tight md:text-4xl">{value}</div>
+      <div className={`mt-1.5 truncate text-[11px] font-medium ${accent === "dark" ? "text-white/60" : "text-muted-foreground"}`}>
+        {label}
+      </div>
     </>
   );
-  return to ? (
-    <Link to={to} className="block min-w-0 rounded-2xl border border-border bg-card p-3 transition hover:border-terracotta hover:shadow-md md:p-5">
-      {inner}
-    </Link>
-  ) : (
-    <div className="block min-w-0 rounded-2xl border border-border bg-card p-3 md:p-5">{inner}</div>
-  );
+
+  const cls = `block min-w-0 rounded-3xl p-4 ring-1 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_8px_24px_-12px_rgba(0,0,0,0.18)] transition hover:-translate-y-0.5 md:p-5 ${styles}`;
+
+  return to ? <Link to={to} className={cls}>{inner}</Link> : <div className={cls}>{inner}</div>;
 }
 
