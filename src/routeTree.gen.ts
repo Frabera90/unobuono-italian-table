@@ -45,6 +45,7 @@ import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/em
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
+import { Route as ApiPublicInstagramCallbackRouteImport } from './routes/api/public/instagram/callback'
 import { Route as ApiPublicEmailBookingConfirmRouteImport } from './routes/api/public/email/booking-confirm'
 
 const WaiterRoute = WaiterRouteImport.update({
@@ -230,6 +231,12 @@ const LovableEmailQueueProcessRoute =
     path: '/lovable/email/queue/process',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicInstagramCallbackRoute =
+  ApiPublicInstagramCallbackRouteImport.update({
+    id: '/api/public/instagram/callback',
+    path: '/api/public/instagram/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicEmailBookingConfirmRoute =
   ApiPublicEmailBookingConfirmRouteImport.update({
     id: '/api/public/email/booking-confirm',
@@ -272,6 +279,7 @@ export interface FileRoutesByFullPath {
   '/owner/': typeof OwnerIndexRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/email/booking-confirm': typeof ApiPublicEmailBookingConfirmRoute
+  '/api/public/instagram/callback': typeof ApiPublicInstagramCallbackRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -310,6 +318,7 @@ export interface FileRoutesByTo {
   '/owner': typeof OwnerIndexRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/email/booking-confirm': typeof ApiPublicEmailBookingConfirmRoute
+  '/api/public/instagram/callback': typeof ApiPublicInstagramCallbackRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -350,6 +359,7 @@ export interface FileRoutesById {
   '/owner/': typeof OwnerIndexRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/email/booking-confirm': typeof ApiPublicEmailBookingConfirmRoute
+  '/api/public/instagram/callback': typeof ApiPublicInstagramCallbackRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -391,6 +401,7 @@ export interface FileRouteTypes {
     | '/owner/'
     | '/lovable/email/suppression'
     | '/api/public/email/booking-confirm'
+    | '/api/public/instagram/callback'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -429,6 +440,7 @@ export interface FileRouteTypes {
     | '/owner'
     | '/lovable/email/suppression'
     | '/api/public/email/booking-confirm'
+    | '/api/public/instagram/callback'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -468,6 +480,7 @@ export interface FileRouteTypes {
     | '/owner/'
     | '/lovable/email/suppression'
     | '/api/public/email/booking-confirm'
+    | '/api/public/instagram/callback'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -492,6 +505,7 @@ export interface RootRouteChildren {
   RSlugRoute: typeof RSlugRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicEmailBookingConfirmRoute: typeof ApiPublicEmailBookingConfirmRoute
+  ApiPublicInstagramCallbackRoute: typeof ApiPublicInstagramCallbackRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
   LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
@@ -751,6 +765,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/instagram/callback': {
+      id: '/api/public/instagram/callback'
+      path: '/api/public/instagram/callback'
+      fullPath: '/api/public/instagram/callback'
+      preLoaderRoute: typeof ApiPublicInstagramCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/email/booking-confirm': {
       id: '/api/public/email/booking-confirm'
       path: '/api/public/email/booking-confirm'
@@ -828,6 +849,7 @@ const rootRouteChildren: RootRouteChildren = {
   RSlugRoute: RSlugRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicEmailBookingConfirmRoute: ApiPublicEmailBookingConfirmRoute,
+  ApiPublicInstagramCallbackRoute: ApiPublicInstagramCallbackRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
   LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,

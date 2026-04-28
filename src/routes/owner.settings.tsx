@@ -57,6 +57,9 @@ function SettingsPage() {
           <Field label="Telefono"><input className="set-in" value={s.phone || ""} onChange={(e) => setS({ ...s, phone: e.target.value })} /></Field>
           <Field label="Bio"><textarea className="set-in" rows={3} value={s.bio || ""} onChange={(e) => setS({ ...s, bio: e.target.value })} /></Field>
           <Field label="Tono di voce"><input className="set-in" value={s.tone || ""} onChange={(e) => setS({ ...s, tone: e.target.value })} /></Field>
+          <Field label="📧 Email per notifiche (prenotazioni, pre-ordini, disdette)">
+            <input type="email" className="set-in" value={s.notification_email || ""} onChange={(e) => setS({ ...s, notification_email: e.target.value })} placeholder="proprietario@ristorante.it" />
+          </Field>
         </Section>
 
         <Section title="Capacità">
@@ -64,6 +67,29 @@ function SettingsPage() {
             <Field label="Coperti max"><input type="number" className="set-in" value={s.max_covers || 0} onChange={(e) => setS({ ...s, max_covers: Number(e.target.value) })} /></Field>
             <Field label="Durata media tavolo (min)"><input type="number" className="set-in" value={s.avg_table_duration || 0} onChange={(e) => setS({ ...s, avg_table_duration: Number(e.target.value) })} /></Field>
           </div>
+        </Section>
+
+        <Section title="Orari di apertura">
+          <p className="text-xs text-muted-foreground -mt-1">Formato: <code>12:00-14:30,19:00-23:00</code> · scrivi <code>closed</code> se chiuso.</p>
+          {[
+            { k: "mon", label: "Lunedì" },
+            { k: "tue", label: "Martedì" },
+            { k: "wed", label: "Mercoledì" },
+            { k: "thu", label: "Giovedì" },
+            { k: "fri", label: "Venerdì" },
+            { k: "sat", label: "Sabato" },
+            { k: "sun", label: "Domenica" },
+          ].map(({ k, label }) => (
+            <div key={k} className="flex items-center gap-3">
+              <span className="w-24 text-sm">{label}</span>
+              <input
+                className="set-in flex-1"
+                placeholder="closed"
+                value={s.opening_hours?.[k] ?? ""}
+                onChange={(e) => setS({ ...s, opening_hours: { ...(s.opening_hours || {}), [k]: e.target.value } })}
+              />
+            </div>
+          ))}
         </Section>
 
         <Section title="Social">

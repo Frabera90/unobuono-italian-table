@@ -207,6 +207,45 @@ export type Database = {
         }
         Relationships: []
       }
+      instagram_connections: {
+        Row: {
+          access_token: string
+          created_at: string
+          fb_page_id: string
+          fb_page_name: string | null
+          id: string
+          ig_user_id: string
+          ig_username: string | null
+          restaurant_id: string
+          token_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          fb_page_id: string
+          fb_page_name?: string | null
+          id?: string
+          ig_user_id: string
+          ig_username?: string | null
+          restaurant_id: string
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          fb_page_id?: string
+          fb_page_name?: string | null
+          id?: string
+          ig_user_id?: string
+          ig_username?: string | null
+          restaurant_id?: string
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       menu_items: {
         Row: {
           allergen_tags: string[] | null
@@ -353,6 +392,7 @@ export type Database = {
           customer_name: string
           customer_phone: string | null
           date: string
+          followup_sent: boolean | null
           id: string
           joined_table_ids: string[] | null
           manage_token: string | null
@@ -383,6 +423,7 @@ export type Database = {
           customer_name: string
           customer_phone?: string | null
           date: string
+          followup_sent?: boolean | null
           id?: string
           joined_table_ids?: string[] | null
           manage_token?: string | null
@@ -413,6 +454,7 @@ export type Database = {
           customer_name?: string
           customer_phone?: string | null
           date?: string
+          followup_sent?: boolean | null
           id?: string
           joined_table_ids?: string[] | null
           manage_token?: string | null
@@ -475,6 +517,7 @@ export type Database = {
           max_covers: number | null
           min_age: number | null
           name: string | null
+          notification_email: string | null
           opening_hours: Json | null
           parking_available: boolean | null
           pets_allowed: boolean | null
@@ -507,6 +550,7 @@ export type Database = {
           max_covers?: number | null
           min_age?: number | null
           name?: string | null
+          notification_email?: string | null
           opening_hours?: Json | null
           parking_available?: boolean | null
           pets_allowed?: boolean | null
@@ -539,6 +583,7 @@ export type Database = {
           max_covers?: number | null
           min_age?: number | null
           name?: string | null
+          notification_email?: string | null
           opening_hours?: Json | null
           parking_available?: boolean | null
           pets_allowed?: boolean | null
@@ -567,6 +612,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          intro_seen: boolean
           name: string
           onboarding_complete: boolean
           owner_id: string
@@ -576,6 +622,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          intro_seen?: boolean
           name?: string
           onboarding_complete?: boolean
           owner_id: string
@@ -585,6 +632,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          intro_seen?: boolean
           name?: string
           onboarding_complete?: boolean
           owner_id?: string

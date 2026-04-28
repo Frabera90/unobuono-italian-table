@@ -212,17 +212,17 @@ function MenuPage() {
             🙋 Cameriere
           </button>
           <button
-            onClick={() => activeRes ? setPreorderOpen(true) : toast.info("Pre-ordine disponibile solo con prenotazione")}
-            className={`flex-1 rounded-xl border-2 border-ink py-3.5 text-sm font-bold uppercase tracking-wider text-ink shadow-brut-sm transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-brut ${activeRes ? "bg-yellow" : "bg-cream-dark/40 opacity-70"}`}
-            title={activeRes ? "Fai preparare i piatti in anticipo. Quando arrivi mangi subito — puoi sempre aggiungere altro al tavolo." : "Disponibile solo se hai una prenotazione attiva"}
+            onClick={() => setPreorderOpen(true)}
+            className="flex-1 rounded-xl border-2 border-ink bg-yellow py-3.5 text-sm font-bold uppercase tracking-wider text-ink shadow-brut-sm transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-brut"
+            title={activeRes ? "Fai preparare i piatti in anticipo." : "Pre-ordina anche senza prenotazione: lo staff lo riceve subito."}
           >
-            🛵 Pre-ordina{!activeRes && " 🔒"}
+            🛵 {activeRes ? "Pre-ordina" : "Ordina"}
           </button>
         </div>
       </div>
 
       {callOpen && <WaiterCallSheet table={tableNumber} restaurantId={restaurantId} reservationId={activeRes?.id ?? null} defaultName={activeRes?.customer_name ?? ""} onClose={() => setCallOpen(false)} />}
-      {preorderOpen && <PreorderOverlay items={items} restaurantId={restaurantId} reservationId={activeRes?.id ?? null} defaultName={activeRes?.customer_name ?? ""} onClose={() => setPreorderOpen(false)} />}
+      {preorderOpen && <PreorderOverlay items={items} restaurantId={restaurantId} reservationId={activeRes?.id ?? null} tableNumber={tableNumber} defaultName={activeRes?.customer_name ?? ""} onClose={() => setPreorderOpen(false)} />}
     </main>
   );
 }
@@ -281,7 +281,7 @@ function WaiterCallSheet({ table, restaurantId, reservationId, defaultName, onCl
   );
 }
 
-function PreorderOverlay({ items, restaurantId, reservationId, defaultName, onClose }: { items: MenuItem[]; restaurantId: string; reservationId: string | null; defaultName: string; onClose: () => void }) {
+function PreorderOverlay({ items, restaurantId, reservationId, tableNumber, defaultName, onClose }: { items: MenuItem[]; restaurantId: string; reservationId: string | null; tableNumber: string; defaultName: string; onClose: () => void }) {
   const [qty, setQty] = useState<Record<string, number>>({});
   const [name, setName] = useState(defaultName);
   const [busy, setBusy] = useState(false);
@@ -302,12 +302,13 @@ function PreorderOverlay({ items, restaurantId, reservationId, defaultName, onCl
     if (!name.trim()) { toast.error("Inserisci il tuo nome"); return; }
     const selected = items.filter((i) => qty[i.id]).map((i) => ({ id: i.id, name: i.name, qty: qty[i.id], price: Number(i.price) }));
     if (selected.length === 0) { toast.error("Aggiungi almeno un piatto"); return; }
-    if (!reservationId) { toast.error("Per pre-ordinare devi avere una prenotazione attiva su questo tavolo."); return; }
     setBusy(true);
+    // Walk-in: prefisso "Tav. X — Nome" così lo staff vede subito da quale tavolo arriva
+    const customerLabel = reservationId ? name : `Tav. ${tableNumber} — ${name}`;
     const { error } = await supabase.from("preorders").insert({
       restaurant_id: restaurantId,
       reservation_id: reservationId,
-      customer_name: name,
+      customer_name: customerLabel,
       items: selected,
       total,
       status: "pending",
@@ -322,8 +323,8 @@ function PreorderOverlay({ items, restaurantId, reservationId, defaultName, onCl
     <div className="fixed inset-0 z-40 overflow-y-auto bg-cream">
       <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-cream/95 px-5 py-4 backdrop-blur">
         <div>
-          <h2 className="font-display text-xl leading-none">Pre-ordina</h2>
-          <p className="mt-1 text-[11px] text-muted-foreground">Aiuta la cucina a prepararsi: arrivi, ti siedi e mangi subito.</p>
+          <h2 className="font-display text-xl leading-none">{reservationId ? "Pre-ordina" : "Ordina al tavolo"}</h2>
+          <p className="mt-1 text-[11px] text-muted-foreground">{reservationId ? "Aiuta la cucina a prepararsi: arrivi, ti siedi e mangi subito." : `Tavolo ${tableNumber} · l'ordine arriva subito allo staff.`}</p>
         </div>
         <button onClick={onClose} className="text-2xl text-muted-foreground">×</button>
       </div>
@@ -338,8 +339,8 @@ function PreorderOverlay({ items, restaurantId, reservationId, defaultName, onCl
         <>
           <div className="mx-auto max-w-2xl px-5 py-6 pb-40">
             {!reservationId && (
-              <div className="mb-4 rounded-lg bg-amber-100 p-3 text-xs text-amber-900">
-                ⚠ Nessuna prenotazione attiva trovata su questo tavolo. Per pre-ordinare devi prima prenotare.
+              <div className="mb-4 rounded-lg border border-border bg-paper p-3 text-xs text-ink/70">
+                ℹ️ Stai ordinando come <b>walk-in</b> dal tavolo <b>{tableNumber}</b>. Lo staff riceverà l'ordine subito.
               </div>
             )}
             {grouped.map(([cat, list]) => (
@@ -371,7 +372,7 @@ function PreorderOverlay({ items, restaurantId, reservationId, defaultName, onCl
                   <div className="text-xs text-muted-foreground">Totale</div>
                   <div className="font-display text-2xl text-terracotta">€ {total.toFixed(2).replace(".", ",")}</div>
                 </div>
-                <button onClick={submit} disabled={busy || !name.trim() || total === 0 || !reservationId} className="rounded-md bg-terracotta px-6 py-3 font-medium text-paper hover:bg-terracotta-dark disabled:opacity-40">{busy ? "Invio..." : "Manda ordine"}</button>
+                <button onClick={submit} disabled={busy || !name.trim() || total === 0} className="rounded-md bg-terracotta px-6 py-3 font-medium text-paper hover:bg-terracotta-dark disabled:opacity-40">{busy ? "Invio..." : (reservationId ? "Manda pre-ordine" : "Manda ordine")}</button>
               </div>
             </div>
           </div>

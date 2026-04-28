@@ -210,7 +210,6 @@ function DashboardPage() {
     try {
       const orderTotal = resv.preorder?.total ?? 0;
 
-      // Upsert CRM client by phone
       if (resv.customer_phone) {
         const { data: existing } = await supabase.from("clients")
           .select("id,visit_count,total_spent")
@@ -236,12 +235,10 @@ function DashboardPage() {
         }
       }
 
-      // Segna prenotazione come completata
       await supabase.from("reservations").update({ status: "completed" }).eq("id", resv.id);
 
       toast.success(`${resv.customer_name} — tavolo chiuso ✓`);
       setClosingId(null);
-      // La card sparisce dal prossimo loadSala via real-time
     } catch (err: any) {
       toast.error(err.message || "Errore chiusura tavolo");
     } finally {
@@ -258,8 +255,11 @@ function DashboardPage() {
 
     const push = (a: Activity) => setActivity((prev) => [a, ...prev].slice(0, 20));
 
+    // Suffisso univoco per evitare conflitti di canali (StrictMode / più tab)
+    const uid = Math.random().toString(36).slice(2, 8);
+
     const channels = [
-      supabase.channel("d-resv").on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, (p) => {
+      supabase.channel(`d-resv-${uid}`).on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, (p) => {
         const r = (p.new || p.old) as any;
         if (p.eventType === "INSERT") {
           push({ id: r.id, ts: r.created_at, icon: "📅", text: `Nuova prenotazione: ${r.customer_name} per ${r.party_size} alle ${r.time}` });
@@ -269,7 +269,7 @@ function DashboardPage() {
         loadStats();
         loadSala();
       }).subscribe(),
-      supabase.channel("d-pre").on("postgres_changes", { event: "*", schema: "public", table: "preorders" }, (p) => {
+      supabase.channel(`d-pre-${uid}`).on("postgres_changes", { event: "*", schema: "public", table: "preorders" }, (p) => {
         const r = (p.new || p.old) as any;
         if (p.eventType === "INSERT") {
           const itms = Array.isArray(r.items) ? r.items.slice(0, 2).map((i: any) => `${i.qty}× ${i.name}`).join(", ") : "";
@@ -280,16 +280,16 @@ function DashboardPage() {
         loadStats();
         loadSala();
       }).subscribe(),
-      supabase.channel("d-call").on("postgres_changes", { event: "INSERT", schema: "public", table: "waiter_calls" }, (p) => {
+      supabase.channel(`d-call-${uid}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "waiter_calls" }, (p) => {
         const r = p.new as any;
         push({ id: r.id, ts: r.created_at, icon: "🔔", text: `Tavolo ${r.table_number}: ${r.message}` });
       }).subscribe(),
-      supabase.channel("d-rev").on("postgres_changes", { event: "INSERT", schema: "public", table: "reviews" }, (p) => {
+      supabase.channel(`d-rev-${uid}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "reviews" }, (p) => {
         const r = p.new as any;
         push({ id: r.id, ts: r.date || r.created_at, icon: "⭐", text: `Nuova recensione ${r.rating}★ da ${r.author}` });
         loadStats();
       }).subscribe(),
-      supabase.channel("d-menu").on("postgres_changes", { event: "UPDATE", schema: "public", table: "menu_items" }, (p) => {
+      supabase.channel(`d-menu-${uid}`).on("postgres_changes", { event: "UPDATE", schema: "public", table: "menu_items" }, (p) => {
         const r = p.new as any;
         push({ id: r.id + r.updated_at, ts: r.updated_at, icon: "📋", text: `Menu aggiornato: ${r.name}` });
         setItems((prev) => prev.map((x) => x.id === r.id ? r : x));
@@ -371,7 +371,6 @@ function DashboardPage() {
         )}
       </section>
 
-      {/* ── Activity + Menu ─────────────────────────────────────────────── */}
       <div className="mt-4 grid gap-3 md:mt-7 md:gap-5 lg:grid-cols-3">
         <section className="min-w-0 rounded-2xl border border-border bg-card p-3 md:p-5 lg:col-span-2">
           <div className="mb-3 flex items-center justify-between gap-2">
@@ -528,3 +527,4 @@ function StatCard({ icon, label, value, to, alert }: {
     <div className="block min-w-0 rounded-2xl border border-border bg-card p-3 md:p-5">{inner}</div>
   );
 }
+

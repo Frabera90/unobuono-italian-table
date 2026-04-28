@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { callAI, callAIVision, enhanceImage, planSocialCalendar } from "@/server/ai";
 import { getMySettings, getMyRestaurant, type RestaurantSettings, type Restaurant } from "@/lib/restaurant";
 import { CalendarGrid } from "@/components/social/CalendarGrid";
+import { StyleWizard, type AddonKey } from "@/components/social/StyleWizard";
+import { EditChips } from "@/components/social/EditChips";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/owner/social")({
@@ -38,12 +40,6 @@ type PlanPost = {
   editing: boolean;
 };
 
-const PHOTO_STYLES = [
-  { key: "rustic",  label: "Rustico caldo",      emoji: "🌾", desc: "Legno, luce dorata, atmosfera trattoria" },
-  { key: "minimal", label: "Minimal elegante",   emoji: "🤍", desc: "Sfondo pulito, editoriale, fine dining" },
-  { key: "pop",     label: "Vivace e colorato",  emoji: "🎨", desc: "Colori brillanti, fresco, social-first" },
-  { key: "moody",   label: "Dark & moody",       emoji: "🌑", desc: "Scuro, cinematico, premium" },
-];
 
 const CUISINE_CHIPS = ["Italiana", "Pizza", "Pesce", "Carne", "Vegetariana", "Fusion", "Regionale"];
 const GOAL_CHIPS    = ["Nuovi clienti", "Fidelizzare", "Mostrare il team", "Lanciare un piatto", "Promuovere un evento"];
@@ -71,6 +67,11 @@ function SocialPage() {
   const [todayTime, setTodayTime]       = useState("19:30");
   const [publishing, setPublishing]     = useState(false);
   const [confetti, setConfetti]         = useState(false);
+  // wizard state
+  const [showWizard, setShowWizard]     = useState(false);
+  const [currentStyle, setCurrentStyle] = useState<string>("auto");
+  const [currentAddons, setCurrentAddons] = useState<string[]>([]);
+  const [currentExtra, setCurrentExtra]   = useState<string>("");
 
   // ── Plan flow ────────────────────────────────────────
   const [planStep, setPlanStep]         = useState<PlanStep>("questions");
@@ -94,9 +95,19 @@ function SocialPage() {
     setPosts((data || []) as Post[]);
   }
 
+  // ── Instagram connection (DISABLED: OAuth removed) ──
+  const igStatus: { connected: boolean; ig_username?: string | null; fb_page_name?: string | null } | null = null;
+  const igBusy = false;
+  const igPublishing: string | null = null;
+  // Stubs kept for compatibility
+  async function refreshIgStatus() { /* no-op */ }
+  async function publishIgNow(_postId: string) {
+    toast.info("Pubblicazione automatica Instagram non disponibile. Copia caption e pubblica manualmente.");
+  }
+
   useEffect(() => {
     let mounted = true;
-    void Promise.all([getMySettings(), getMyRestaurant()]).then(([s, r]) => {
+    void Promise.all([getMySettings(), getMyRestaurant(), refreshIgStatus()]).then(([s, r]) => {
       if (!mounted) return;
       setSettings(s);
       setRestaurant(r);
@@ -132,17 +143,22 @@ function SocialPage() {
     reader.readAsDataURL(file);
   }
 
-  async function applyStyle(styleKey: string) {
+  async function applyStyle(styleKey: string, addons: string[] = currentAddons, extra: string = currentExtra) {
     if (!imageDataUrl || enhancing) return;
     setEnhancing(true);
     setPhotoStep("enhancing");
+    setCurrentStyle(styleKey);
+    setCurrentAddons(addons);
+    setCurrentExtra(extra);
     try {
-      const base64 = imageDataUrl.split(",")[1] || "";
-      const r = await enhanceImage({ data: { imageBase64: base64, mimeType: imageMime, style: styleKey } });
+      // Always re-enhance starting from the ORIGINAL when available, so edits don't compound.
+      const sourceImg = originalImage || imageDataUrl;
+      const base64 = sourceImg.split(",")[1] || "";
+      const r = await enhanceImage({ data: { imageBase64: base64, mimeType: imageMime, style: styleKey, addons, extraInstructions: extra } });
       if (r.error === "rate_limit") { toast.error("Troppe richieste. Riprova tra poco."); setPhotoStep("style"); return; }
       if (r.error === "credits")    { toast.error("Crediti AI esauriti.");                setPhotoStep("style"); return; }
       if (r.error || !r.imageUrl)  { toast.error("Ritocco non riuscito. Riprova.");       setPhotoStep("style"); return; }
-      setOriginalImage(imageDataUrl);
+      if (!originalImage) setOriginalImage(imageDataUrl);
       setImageDataUrl(r.imageUrl);
       setImageMime("image/png");
       setPhotoStep("compare");
@@ -152,6 +168,19 @@ function SocialPage() {
     } finally {
       setEnhancing(false);
     }
+  }
+
+  // contextual edit: tweak tone/light without changing style
+  async function applyToneTweak(instruction: string) {
+    const merged = (currentExtra ? currentExtra + ". " : "") + instruction;
+    await applyStyle(currentStyle, currentAddons, merged.slice(0, 280));
+  }
+  function addAddon(k: AddonKey) {
+    if (currentAddons.includes(k)) return;
+    void applyStyle(currentStyle, [...currentAddons, k], currentExtra);
+  }
+  function removeAddon(k: AddonKey) {
+    void applyStyle(currentStyle, currentAddons.filter((x) => x !== k), currentExtra);
   }
 
   async function generateCaption() {
@@ -199,12 +228,38 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
       if (!scheduledAt) { toast.error("Scegli data e ora."); setPublishing(false); return; }
       scheduledISO = new Date(scheduledAt).toISOString();
     }
+    // Upload image to public bucket so Instagram can fetch it via https URL
+    let publicImageUrl = imageDataUrl;
+    try {
+      const m = imageDataUrl.match(/^data:(.+);base64,(.+)$/);
+      if (m) {
+        const mime = m[1];
+        const b64 = m[2];
+        const ext = mime.split("/")[1] || "jpg";
+        const bin = atob(b64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        const blob = new Blob([bytes], { type: mime });
+        const path = `${restaurant.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const up = await supabase.storage.from("social-posts").upload(path, blob, {
+          contentType: mime,
+          upsert: false,
+        });
+        if (up.error) { toast.error(`Upload immagine: ${up.error.message}`); setPublishing(false); return; }
+        publicImageUrl = supabase.storage.from("social-posts").getPublicUrl(path).data.publicUrl;
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Errore upload immagine");
+      setPublishing(false);
+      return;
+    }
+
     const { error } = await supabase.from("social_posts").insert({
       restaurant_id: restaurant.id,
       caption,
       hashtags: hashtags.join(" "),
       platform: platform === "both" ? "instagram,facebook" : platform,
-      image_url: imageDataUrl,
+      image_url: publicImageUrl,
       status: scheduleMode === "now" ? "published" : "scheduled",
       scheduled_at: scheduledISO,
     });
@@ -224,6 +279,10 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
     setScheduleMode("now");
     setScheduledAt("");
     setPlatform("instagram");
+    setCurrentStyle("auto");
+    setCurrentAddons([]);
+    setCurrentExtra("");
+    setShowWizard(false);
   }
 
   // ── Plan handlers ────────────────────────────────────
@@ -281,10 +340,68 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
     }
   }
 
+  function addManualPost() {
+    const today = new Date();
+    const d = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    const dateISO = d.toISOString().slice(0, 10);
+    setPlanPosts((arr) => [
+      ...arr,
+      {
+        date: dateISO,
+        time: "19:30",
+        theme: "Idea personale",
+        type: "custom",
+        photo_idea: "",
+        caption: "",
+        hashtags: "",
+        approved: true,
+        editing: true,
+      },
+    ]);
+    if (planStep !== "results") setPlanStep("results");
+  }
+
+  function removePlanPost(index: number) {
+    setPlanPosts((arr) => arr.filter((_, i) => i !== index));
+  }
+
+  async function deletePost(id: string) {
+    if (!confirm("Eliminare questo post?")) return;
+    const { error } = await supabase.from("social_posts").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Post eliminato");
+    await loadPosts();
+  }
+
+  async function clearHistory() {
+    if (!restaurant?.id) return;
+    if (!confirm("Cancellare TUTTO lo storico social? L'azione è irreversibile.")) return;
+    const { error } = await supabase
+      .from("social_posts")
+      .delete()
+      .eq("restaurant_id", restaurant.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Storico svuotato");
+    await loadPosts();
+  }
+
+  async function clearScheduled() {
+    if (!restaurant?.id) return;
+    if (!confirm("Cancellare tutti i post programmati (non pubblicati)?")) return;
+    const { error } = await supabase
+      .from("social_posts")
+      .delete()
+      .eq("restaurant_id", restaurant.id)
+      .eq("status", "scheduled");
+    if (error) { toast.error(error.message); return; }
+    toast.success("Post programmati eliminati");
+    await loadPosts();
+  }
+
   async function saveApproved() {
     if (!restaurant?.id) return;
-    const approved = planPosts.filter((p) => p.approved);
-    if (!approved.length) { toast.error("Approva almeno un post."); return; }
+    const approved = planPosts.filter((p) => p.approved && p.caption.trim());
+    if (!approved.length) { toast.error("Approva almeno un post con caption."); return; }
     const rows = approved.map((p) => ({
       restaurant_id: restaurant!.id,
       caption:       p.caption,
@@ -315,6 +432,11 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
         <h1 className="font-display text-2xl uppercase md:text-3xl">Social</h1>
         <p className="text-sm text-muted-foreground">Foto, piano editoriale e calendario — tutto in un posto.</p>
       </header>
+
+      {/* Instagram connection: rimossa, pubblicazione manuale */}
+      <div className="mb-4 rounded-xl border-2 border-ink bg-paper p-3 text-sm shadow-brut">
+        <span className="text-lg">📸</span> Genera foto e caption qui, poi <b>copia e pubblica</b> dal tuo account social.
+      </div>
 
       {/* Tab bar */}
       <div className="mb-5 flex gap-1 rounded-xl border-2 border-ink bg-paper p-1 shadow-brut">
@@ -358,33 +480,35 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
             </>
           )}
 
-          {/* style selection */}
-          {photoStep === "style" && imageDataUrl && (
+          {/* style selection — full wizard */}
+          {photoStep === "style" && imageDataUrl && restaurant?.id && (
             <div>
               <div className="mb-5 flex items-center gap-4">
                 <img src={imageDataUrl} alt="Foto" className="h-20 w-20 rounded-xl object-cover shadow-md" />
-                <div>
-                  <p className="font-bold text-lg">Scegli uno stile</p>
-                  <p className="text-sm text-muted-foreground">L'AI ritocca luce, colori e sfondo. Il piatto resta identico.</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-lg font-bold">Scegli stile e contesto</p>
+                  <p className="text-sm text-muted-foreground">12 stili visivi + contesto (mani, piatto, persone…) + ritocchi guidati.</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                {PHOTO_STYLES.map((s) => (
-                  <button
-                    key={s.key}
-                    onClick={() => applyStyle(s.key)}
-                    className="flex flex-col items-start rounded-xl border-2 border-ink bg-cream p-4 text-left shadow-brut transition hover:-translate-y-0.5 hover:bg-yellow/40 hover:shadow-none"
-                  >
-                    <span className="mb-2 text-3xl">{s.emoji}</span>
-                    <span className="font-bold text-sm">{s.label}</span>
-                    <span className="mt-0.5 text-xs text-muted-foreground">{s.desc}</span>
-                  </button>
-                ))}
-              </div>
+              <button
+                onClick={() => setShowWizard(true)}
+                className="w-full rounded-xl border-2 border-ink bg-yellow py-4 text-sm font-bold uppercase tracking-wider shadow-brut transition hover:-translate-y-0.5 hover:shadow-none"
+              >
+                🎨 Apri wizard stile
+              </button>
               <button onClick={resetPhoto}
-                className="mt-4 w-full rounded-lg border border-border py-2 text-sm text-muted-foreground hover:bg-cream-dark/40">
+                className="mt-3 w-full rounded-lg border border-border py-2 text-sm text-muted-foreground hover:bg-cream-dark/40">
                 ← Cambia foto
               </button>
+              {showWizard && (
+                <StyleWizard
+                  restaurantId={restaurant.id}
+                  initialStyle={currentStyle}
+                  initialAddons={currentAddons}
+                  onApply={(s, a, e) => { void applyStyle(s, a, e); }}
+                  onClose={() => setShowWizard(false)}
+                />
+              )}
             </div>
           )}
 
@@ -400,8 +524,8 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
             </div>
           )}
 
-          {/* before / after compare */}
-          {photoStep === "compare" && originalImage && imageDataUrl && (
+          {/* before / after compare + contextual editing */}
+          {photoStep === "compare" && originalImage && imageDataUrl && restaurant?.id && (
             <div>
               <h2 className="mb-4 font-display text-xl">Prima / Dopo</h2>
               <div className="mb-5 grid grid-cols-2 gap-3">
@@ -414,12 +538,31 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                   <img src={imageDataUrl} alt="Migliorata" className="aspect-square w-full rounded-xl object-cover ring-2 ring-terracotta" />
                 </div>
               </div>
-              <div className="flex gap-2">
+
+              {/* contextual editing chips */}
+              <div className="mb-4 rounded-xl border-2 border-dashed border-ink/30 bg-cream/40 p-3">
+                <div className="mb-2 text-xs font-bold uppercase tracking-wider text-ink/70">🪄 Ritocca al volo</div>
+                <EditChips
+                  activeAddons={currentAddons as AddonKey[]}
+                  onAdd={addAddon}
+                  onRemove={removeAddon}
+                  onTone={(instr) => void applyToneTweak(instr)}
+                  disabled={enhancing}
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => { setImageDataUrl(originalImage); setOriginalImage(null); setPhotoStep("style"); }}
-                  className="flex-1 rounded-xl border-2 border-ink py-3 text-sm font-bold hover:bg-cream-dark/30"
+                  onClick={() => setShowWizard(true)}
+                  className="flex-1 rounded-xl border-2 border-ink bg-paper py-3 text-sm font-bold hover:bg-cream-dark/30"
                 >
-                  ← Prova altro stile
+                  🎨 Cambia stile
+                </button>
+                <button
+                  onClick={() => { if (originalImage) { setImageDataUrl(originalImage); setOriginalImage(null); setPhotoStep("style"); } }}
+                  className="rounded-xl border-2 border-ink py-3 px-3 text-sm font-bold hover:bg-cream-dark/30"
+                >
+                  ↺ Originale
                 </button>
                 <button
                   onClick={generateCaption}
@@ -429,6 +572,15 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                   ✓ Continua →
                 </button>
               </div>
+              {showWizard && (
+                <StyleWizard
+                  restaurantId={restaurant.id}
+                  initialStyle={currentStyle}
+                  initialAddons={currentAddons}
+                  onApply={(s, a, e) => { void applyStyle(s, a, e); }}
+                  onClose={() => setShowWizard(false)}
+                />
+              )}
             </div>
           )}
 
@@ -660,6 +812,10 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                 className="w-full rounded-xl border-2 border-ink bg-ink py-3 font-bold uppercase tracking-wider text-paper shadow-brut transition hover:-translate-y-0.5 hover:bg-yellow hover:text-ink hover:shadow-none">
                 ✨ Genera piano editoriale
               </button>
+              <button onClick={addManualPost}
+                className="w-full rounded-xl border-2 border-dashed border-ink py-3 text-sm font-bold hover:bg-yellow/30">
+                ➕ Aggiungi idea manualmente (senza AI)
+              </button>
             </div>
           )}
 
@@ -721,6 +877,11 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                           title="Rigenera">
                           🔄
                         </button>
+                        <button onClick={() => removePlanPost(i)}
+                          className="rounded-md border border-red-400 px-2 py-1 text-[11px] text-red-600 hover:bg-red-50"
+                          title="Rimuovi">
+                          🗑
+                        </button>
                         <button
                           onClick={() => setPlanPosts((arr) => arr.map((pp, j) => j === i ? { ...pp, approved: !pp.approved } : pp))}
                           className={`rounded-md px-3 py-1 text-[11px] font-bold transition ${
@@ -741,10 +902,37 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
 
                     {p.editing ? (
                       <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            type="date"
+                            value={p.date}
+                            onChange={(e) => setPlanPosts((arr) => arr.map((pp, j) => j === i ? { ...pp, date: e.target.value } : pp))}
+                            className="rounded-lg border border-border bg-background px-2 py-1 text-xs"
+                          />
+                          <input
+                            type="time"
+                            value={p.time}
+                            onChange={(e) => setPlanPosts((arr) => arr.map((pp, j) => j === i ? { ...pp, time: e.target.value } : pp))}
+                            className="rounded-lg border border-border bg-background px-2 py-1 text-xs"
+                          />
+                        </div>
+                        <input
+                          value={p.theme}
+                          onChange={(e) => setPlanPosts((arr) => arr.map((pp, j) => j === i ? { ...pp, theme: e.target.value } : pp))}
+                          placeholder="Tema (es. Pasta fresca della casa)"
+                          className="w-full rounded-lg border border-border bg-background px-2 py-1 text-xs"
+                        />
+                        <input
+                          value={p.photo_idea}
+                          onChange={(e) => setPlanPosts((arr) => arr.map((pp, j) => j === i ? { ...pp, photo_idea: e.target.value } : pp))}
+                          placeholder="Cosa fotografare (opzionale)"
+                          className="w-full rounded-lg border border-border bg-background px-2 py-1 text-xs"
+                        />
                         <textarea
                           value={p.caption}
                           onChange={(e) => setPlanPosts((arr) => arr.map((pp, j) => j === i ? { ...pp, caption: e.target.value } : pp))}
                           rows={3}
+                          placeholder="Caption del post…"
                           className="w-full rounded-lg border border-border bg-background p-2 text-sm"
                         />
                         <input
@@ -761,7 +949,7 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                       </div>
                     ) : (
                       <div>
-                        <p className="text-sm">{p.caption}</p>
+                        <p className="text-sm">{p.caption || <em className="text-muted-foreground">Nessuna caption — clicca ✏️ per scriverla</em>}</p>
                         <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">{p.hashtags}</p>
                       </div>
                     )}
@@ -769,14 +957,25 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                 ))}
               </div>
 
-              <div className="mt-5 flex gap-2">
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button onClick={addManualPost}
+                  className="flex-1 rounded-xl border-2 border-dashed border-ink py-3 text-sm font-bold hover:bg-yellow/30">
+                  ➕ Aggiungi idea
+                </button>
+                <button onClick={() => { if (confirm("Svuotare il piano corrente?")) { setPlanPosts([]); setPlanStep("questions"); } }}
+                  className="rounded-xl border-2 border-red-400 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50">
+                  🗑 Svuota piano
+                </button>
+              </div>
+
+              <div className="mt-3 flex gap-2">
                 <button onClick={() => { setPlanStep("questions"); setPlanPosts([]); }}
                   className="flex-1 rounded-xl border-2 border-ink py-3 text-sm font-bold hover:bg-cream-dark/30">
                   ← Rigenera tutto
                 </button>
-                <button onClick={saveApproved} disabled={!planPosts.some((p) => p.approved)}
+                <button onClick={saveApproved} disabled={!planPosts.some((p) => p.approved && p.caption.trim())}
                   className="flex-1 rounded-xl bg-terracotta py-3 text-sm font-bold text-paper disabled:opacity-40">
-                  ✓ Salva {planPosts.filter((p) => p.approved).length} post
+                  ✓ Salva {planPosts.filter((p) => p.approved && p.caption.trim()).length} post
                 </button>
               </div>
             </div>
@@ -803,6 +1002,24 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
             />
           </section>
 
+          {posts.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 py-2">
+              <span className="text-xs text-muted-foreground">
+                {posts.length} post · {posts.filter((p) => p.status === "scheduled").length} programmati
+              </span>
+              <div className="flex gap-2">
+                <button onClick={clearScheduled}
+                  className="rounded-md border border-red-400 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50">
+                  🗑 Cancella programmati
+                </button>
+                <button onClick={clearHistory}
+                  className="rounded-md border-2 border-red-500 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100">
+                  🗑 Svuota tutto
+                </button>
+              </div>
+            </div>
+          )}
+
           <ul className="space-y-3">
             {posts.map((p) => (
               <li key={p.id} className="flex gap-3 rounded-xl border border-border bg-card p-3">
@@ -818,6 +1035,24 @@ Rispondi SOLO con JSON: {"caption":"...","hashtags":"#tag1 #tag2 #tag3 #tag4 #ta
                   </span>
                   <p className="mt-0.5 line-clamp-2 text-sm">{p.caption}</p>
                   <p className="mt-1 line-clamp-1 text-xs text-terracotta">{p.hashtags}</p>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  {false && igStatus?.connected && p.image_url && p.status !== "published" && p.platform.includes("instagram") && (
+                    <button
+                      onClick={() => publishIgNow(p.id)}
+                      disabled={igPublishing === p.id}
+                      className="rounded-md border-2 border-ink bg-yellow px-2 py-1 text-[11px] font-bold uppercase shadow-brut hover:translate-y-[1px] hover:shadow-none disabled:opacity-50"
+                      title="Pubblica ora su Instagram"
+                    >
+                      {igPublishing === p.id ? "..." : "📸 IG"}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => deletePost(p.id)}
+                    className="rounded-md border border-red-300 px-2 py-1 text-[11px] text-red-600 opacity-70 transition hover:opacity-100 hover:bg-red-50"
+                    title="Elimina post">
+                    🗑
+                  </button>
                 </div>
               </li>
             ))}

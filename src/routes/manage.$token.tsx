@@ -91,6 +91,19 @@ function ManagePage() {
         }),
       });
     }
+    if (resv.restaurant_id) {
+      const { notifyOwner } = await import("@/lib/email/notify-owner");
+      void notifyOwner({
+        restaurantId: resv.restaurant_id,
+        reservationId: resv.id,
+        eventType: "cancellation",
+        customerName: resv.customer_name,
+        date: resv.date,
+        time: resv.time,
+        partySize: resv.party_size,
+        details: "Disdetta dal cliente tramite link di gestione",
+      });
+    }
   }
 
   async function submitPreorder() {
