@@ -1234,6 +1234,15 @@ export type Database = {
         Args: { _course_status: string; _pin: string; _preorder_id: string }
         Returns: boolean
       }
+      staff_set_item_status: {
+        Args: {
+          _item_index: number
+          _pin: string
+          _preorder_id: string
+          _status: string
+        }
+        Returns: boolean
+      }
       staff_set_preorder_item_notes: {
         Args: {
           _item_index: number
