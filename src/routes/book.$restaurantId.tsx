@@ -141,6 +141,7 @@ function BookingPage() {
 
   async function submitBooking() {
     if (!firstName.trim() || !lastName.trim() || !phone.trim() || !time || !resolvedRestaurantId) return;
+    if (submitting) return;
     setSubmitting(true);
 
     // Re-fetch reservations per evitare race conditions sulla stessa fascia
@@ -289,7 +290,7 @@ function BookingPage() {
             {settings?.address && <span className="chip-ink">📍 {settings.address}</span>}
             {settings?.phone && <span className="chip-ink">📞 {settings.phone}</span>}
             <a
-              href="/r/ristorante"
+              href={`/r/${settings?.slug || param}`}
               target="_blank"
               rel="noreferrer"
               className="rounded-full border-2 border-ink bg-paper px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-ink hover:bg-cream-dark"
@@ -407,7 +408,7 @@ function BookingPage() {
           <section className="mt-6 rounded-2xl border-2 border-ink bg-paper p-5">
             <div className="mb-3 flex items-baseline justify-between">
               <h3 className="font-display text-xl uppercase tracking-tight">⭐ I più ordinati</h3>
-              <a href="/r/ristorante" target="_blank" rel="noreferrer" className="font-mono text-[11px] uppercase tracking-wider text-terracotta hover:underline">
+              <a href={`/r/${settings?.slug || param}`} target="_blank" rel="noreferrer" className="font-mono text-[11px] uppercase tracking-wider text-terracotta hover:underline">
                 Tutto il menu →
               </a>
             </div>
@@ -720,6 +721,12 @@ function BookingPage() {
             <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-terracotta text-3xl text-paper">✓</div>
             <h2 className="mt-4 font-display text-3xl uppercase">Prenotazione confermata!</h2>
             <p className="mt-2 text-sm text-ink/70">Riceverai un'email di conferma con il tuo codice.</p>
+
+            {!email && (
+              <p className="mt-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+                ⚠ Non hai inserito un'email — salva il link di gestione qui sotto per modificare o disdire la prenotazione.
+              </p>
+            )}
 
             <div className="mx-auto mt-5 max-w-sm rounded-xl bg-cream-dark/40 p-4 text-left">
               <p className="font-mono text-[10px] uppercase tracking-wider text-ink/60">📅 Quando</p>

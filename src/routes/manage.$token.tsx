@@ -133,6 +133,23 @@ function ManagePage() {
     toast.success("Pre-ordine inviato! Lo troverai pronto al tuo arrivo.");
     setShowPreorder(false);
     setCart({});
+
+    // Notify owner (best-effort)
+    if (resv) {
+      try {
+        const { notifyOwner } = await import("@/lib/email/notify-owner");
+        void notifyOwner({
+          restaurantId: resv.restaurant_id,
+          reservationId: resv.id,
+          eventType: "new_preorder",
+          customerName: resv.customer_name,
+          date: resv.date,
+          time: resv.time,
+          partySize: resv.party_size,
+          details: items.map((i) => `${i.qty}× ${i.name}`).join(", "),
+        });
+      } catch {}
+    }
   }
 
   if (loading) return <div className="grid min-h-screen place-items-center bg-cream"><p className="text-sm text-ink/60">Caricamento…</p></div>;

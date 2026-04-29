@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { isoDate, fmtDate, relTime, getMyRestaurant, type MenuItem } from "@/lib/restaurant";
+import { isoDate, relTime, getMyRestaurant, type MenuItem } from "@/lib/restaurant";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/owner/dashboard")({
@@ -69,81 +69,6 @@ function playDing() {
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.6);
   } catch {}
-}
-
-// ── Email helpers ────────────────────────────────────────────────────────────
-
-async function checkAndSendEmails() {
-  const restaurant = await getMyRestaurant();
-  if (!restaurant) return;
-
-  const { data: settings } = await supabase
-    .from("restaurant_settings")
-    .select("name, reminder_24h, followup_enabled, google_maps_url")
-    .eq("restaurant_id", restaurant.id)
-    .maybeSingle();
-  if (!settings) return;
-
-  const origin = window.location.origin;
-  const tomorrow = isoDate(new Date(Date.now() + 86400e3));
-  const yesterday = isoDate(new Date(Date.now() - 86400e3));
-
-  if (settings.reminder_24h) {
-    const { data: toRemind } = await supabase
-      .from("reservations")
-      .select("id, customer_name, customer_email, date, time, party_size, manage_token")
-      .eq("restaurant_id", restaurant.id)
-      .eq("date", tomorrow)
-      .eq("reminder_sent", false)
-      .neq("status", "cancelled")
-      .not("customer_email", "is", null);
-
-    for (const r of toRemind || []) {
-      if (!r.customer_email) continue;
-      try {
-        const manageUrl = (r as any).manage_token ? `${origin}/manage/${(r as any).manage_token}` : undefined;
-        const res = await fetch(`${origin}/api/public/email/booking-confirm`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            templateName: "booking-reminder",
-            recipientEmail: r.customer_email,
-            reservationId: r.id,
-            templateData: { customerName: r.customer_name, restaurantName: settings.name, date: fmtDate(r.date), time: r.time, partySize: r.party_size, manageUrl },
-          }),
-        });
-        if (res.ok) await supabase.from("reservations").update({ reminder_sent: true }).eq("id", r.id);
-      } catch {}
-    }
-  }
-
-  if (settings.followup_enabled) {
-    const { data: toFollowup } = await (supabase as any)
-      .from("reservations")
-      .select("id, customer_name, customer_email")
-      .eq("restaurant_id", restaurant.id)
-      .eq("date", yesterday)
-      .eq("followup_sent", false)
-      .eq("arrived", true)
-      .not("customer_email", "is", null);
-
-    for (const r of toFollowup || []) {
-      if (!r.customer_email) continue;
-      try {
-        const res = await fetch(`${origin}/api/public/email/booking-confirm`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            templateName: "booking-followup",
-            recipientEmail: r.customer_email,
-            reservationId: r.id,
-            templateData: { customerName: r.customer_name, restaurantName: settings.name, reviewUrl: settings.google_maps_url || undefined },
-          }),
-        });
-        if (res.ok) await (supabase as any).from("reservations").update({ followup_sent: true }).eq("id", r.id);
-      } catch {}
-    }
-  }
 }
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
@@ -265,7 +190,6 @@ function DashboardPage() {
   useEffect(() => {
     loadStats();
     loadSala();
-    checkAndSendEmails().catch(() => {});
     supabase.from("menu_items").select("*").order("category").order("sort_order")
       .then(({ data }) => setItems((data || []) as MenuItem[]));
 
