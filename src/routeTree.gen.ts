@@ -44,6 +44,7 @@ import { Route as MenuTableNumberRouteImport } from './routes/menu.$tableNumber'
 import { Route as ManageTokenRouteImport } from './routes/manage.$token'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as BookRestaurantIdRouteImport } from './routes/book.$restaurantId'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiCronEmailAutomationRouteImport } from './routes/api/cron/email-automation'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
@@ -227,6 +228,11 @@ const BookRestaurantIdRoute = BookRestaurantIdRouteImport.update({
   path: '/book/$restaurantId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   id: '/lovable/email/suppression',
   path: '/lovable/email/suppression',
@@ -283,6 +289,7 @@ export interface FileRoutesByFullPath {
   '/trova': typeof TrovaRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/waiter': typeof WaiterRoute
+  '/api/health': typeof ApiHealthRoute
   '/book/$restaurantId': typeof BookRestaurantIdRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/manage/$token': typeof ManageTokenRoute
@@ -326,6 +333,7 @@ export interface FileRoutesByTo {
   '/trova': typeof TrovaRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/waiter': typeof WaiterRoute
+  '/api/health': typeof ApiHealthRoute
   '/book/$restaurantId': typeof BookRestaurantIdRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/manage/$token': typeof ManageTokenRoute
@@ -371,6 +379,7 @@ export interface FileRoutesById {
   '/trova': typeof TrovaRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/waiter': typeof WaiterRoute
+  '/api/health': typeof ApiHealthRoute
   '/book/$restaurantId': typeof BookRestaurantIdRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/manage/$token': typeof ManageTokenRoute
@@ -417,6 +426,7 @@ export interface FileRouteTypes {
     | '/trova'
     | '/unsubscribe'
     | '/waiter'
+    | '/api/health'
     | '/book/$restaurantId'
     | '/email/unsubscribe'
     | '/manage/$token'
@@ -460,6 +470,7 @@ export interface FileRouteTypes {
     | '/trova'
     | '/unsubscribe'
     | '/waiter'
+    | '/api/health'
     | '/book/$restaurantId'
     | '/email/unsubscribe'
     | '/manage/$token'
@@ -504,6 +515,7 @@ export interface FileRouteTypes {
     | '/trova'
     | '/unsubscribe'
     | '/waiter'
+    | '/api/health'
     | '/book/$restaurantId'
     | '/email/unsubscribe'
     | '/manage/$token'
@@ -549,6 +561,7 @@ export interface RootRouteChildren {
   TrovaRoute: typeof TrovaRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   WaiterRoute: typeof WaiterRoute
+  ApiHealthRoute: typeof ApiHealthRoute
   BookRestaurantIdRoute: typeof BookRestaurantIdRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   ManageTokenRoute: typeof ManageTokenRoute
@@ -810,6 +823,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BookRestaurantIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/suppression': {
       id: '/lovable/email/suppression'
       path: '/lovable/email/suppression'
@@ -925,6 +945,7 @@ const rootRouteChildren: RootRouteChildren = {
   TrovaRoute: TrovaRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   WaiterRoute: WaiterRoute,
+  ApiHealthRoute: ApiHealthRoute,
   BookRestaurantIdRoute: BookRestaurantIdRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   ManageTokenRoute: ManageTokenRoute,

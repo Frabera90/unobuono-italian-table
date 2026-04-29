@@ -263,7 +263,7 @@ function BookingPage() {
             {settings?.address && <span className="chip-ink">📍 {settings.address}</span>}
             {settings?.phone && <span className="chip-ink">📞 {settings.phone}</span>}
             <a
-              href={`/r/${settings?.slug || param}`}
+              href={`/r/${(settings as any)?.slug || param}`}
               target="_blank"
               rel="noreferrer"
               className="rounded-full border-2 border-ink bg-paper px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-ink hover:bg-cream-dark"
@@ -381,7 +381,7 @@ function BookingPage() {
           <section className="mt-6 rounded-2xl border-2 border-ink bg-paper p-5">
             <div className="mb-3 flex items-baseline justify-between">
               <h3 className="font-display text-xl uppercase tracking-tight">⭐ I più ordinati</h3>
-              <a href={`/r/${settings?.slug || param}`} target="_blank" rel="noreferrer" className="font-mono text-[11px] uppercase tracking-wider text-terracotta hover:underline">
+              <a href={`/r/${(settings as any)?.slug || param}`} target="_blank" rel="noreferrer" className="font-mono text-[11px] uppercase tracking-wider text-terracotta hover:underline">
                 Tutto il menu →
               </a>
             </div>
