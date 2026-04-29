@@ -817,6 +817,39 @@ export type Database = {
           },
         ]
       }
+      staff_notes: {
+        Row: {
+          author_name: string | null
+          body: string
+          created_at: string
+          id: string
+          pinned: boolean
+          resolved_at: string | null
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_name?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          resolved_at?: string | null
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_name?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          resolved_at?: string | null
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       staff_tasks: {
         Row: {
           call_id: string | null
@@ -1150,6 +1183,10 @@ export type Database = {
         Args: { _pin: string; _task_id: string }
         Returns: boolean
       }
+      staff_create_note: {
+        Args: { _author_name?: string; _body: string; _pin: string }
+        Returns: string
+      }
       staff_create_task: {
         Args: {
           _call_id?: string
@@ -1172,6 +1209,10 @@ export type Database = {
           _table_id?: string
         }
         Returns: string
+      }
+      staff_delete_note: {
+        Args: { _note_id: string; _pin: string }
+        Returns: boolean
       }
       staff_delete_task: {
         Args: { _pin: string; _task_id: string }
@@ -1204,6 +1245,16 @@ export type Database = {
       }
       staff_toggle_arrived: {
         Args: { _pin: string; _reservation_id: string }
+        Returns: boolean
+      }
+      staff_update_note: {
+        Args: {
+          _body?: string
+          _note_id: string
+          _pin: string
+          _pinned?: boolean
+          _resolved?: boolean
+        }
         Returns: boolean
       }
       staff_upsert_preorder: {

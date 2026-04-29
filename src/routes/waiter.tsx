@@ -2,9 +2,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { relTime, isoDate } from "@/lib/restaurant";
-import { playDing } from "@/lib/sounds";
+import { playDing, unlockAudio } from "@/lib/sounds";
 import { toast } from "sonner";
-import { TodoTab, AddTaskModal } from "@/components/waiter/TodoTab";
+import { NotesTab } from "@/components/waiter/NotesTab";
+import { AddTaskModal } from "@/components/waiter/TodoTab";
 
 export const Route = createFileRoute("/waiter")({
   head: () => ({
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/waiter")({
   component: WaiterPage,
 });
 
-type Tab = "calls" | "todo" | "reservations" | "ordini" | "cucina";
+type Tab = "calls" | "notes" | "reservations" | "ordini" | "cucina";
 
 type KitchenOrder = {
   id: string; reservation_id: string | null; customer_name: string | null;
@@ -95,6 +96,25 @@ function WaiterPage() {
     if (!localStorage.getItem("waiter-install-dismissed")) setShowInstall(true);
   }, [nav]);
 
+  // Unlock AudioContext + request notification permission on first user interaction
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onFirstInteraction = () => {
+      try { unlockAudio(); } catch {}
+      try {
+        if ("Notification" in window && Notification.permission === "default") {
+          void Notification.requestPermission();
+        }
+      } catch {}
+    };
+    window.addEventListener("pointerdown", onFirstInteraction, { once: true });
+    window.addEventListener("keydown", onFirstInteraction, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", onFirstInteraction);
+      window.removeEventListener("keydown", onFirstInteraction);
+    };
+  }, []);
+
   // Data loading + real-time subscriptions
   useEffect(() => {
     if (!restaurantId) return;
@@ -125,12 +145,23 @@ function WaiterPage() {
       .then(({ data }) => setMenuItems((data || []) as MenuItemLite[]));
 
     // Real-time: chiamate tavolo
+    const notifyOS = (title: string, body: string) => {
+      try {
+        if (typeof document !== "undefined" && !document.hidden) return; // tab attiva: basta toast
+        if (typeof window === "undefined" || !("Notification" in window)) return;
+        if (Notification.permission !== "granted") return;
+        new Notification(title, { body, icon: "/icons/icon-192.png", tag: title });
+      } catch {}
+    };
+
     const c1 = supabase.channel(`w-calls-${restaurantId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "waiter_calls", filter: `restaurant_id=eq.${restaurantId}` }, (p) => {
         if (p.eventType === "INSERT") {
-          setCalls((prev) => [p.new as Call, ...prev]);
-          try { playDing(); } catch {}
-          toast.success(`🔔 Tavolo ${(p.new as Call).table_number}`);
+          const call = p.new as Call;
+          setCalls((prev) => [call, ...prev]);
+          try { playDing(); setTimeout(playDing, 400); } catch {}
+          toast.success(`🔔 Tavolo ${call.table_number}`);
+          notifyOS(`🔔 Tavolo ${call.table_number}`, call.message || "Chiamata in attesa");
         } else if (p.eventType === "UPDATE") {
           setCalls((prev) => prev.map((x) => x.id === (p.new as Call).id ? (p.new as Call) : x).filter((x) => x.status === "pending"));
         }
@@ -164,7 +195,9 @@ function WaiterPage() {
         // Notifica cameriere quando la cucina marca "pronto"
         if (p.eventType === "UPDATE" && (p.new as any).course_status === "ready") {
           try { playDing(); setTimeout(playDing, 300); } catch {}
-          toast.success(`🍽️ Pronto — ${(p.new as any).customer_name || "Tavolo"}`);
+          const customer = (p.new as any).customer_name || "Tavolo";
+          toast.success(`🍽️ Pronto — ${customer}`);
+          notifyOS("🍽️ Piatto pronto", customer);
         }
         setPreorders((prev) => {
           const i = prev.findIndex((r) => r.id === row.id);
@@ -235,7 +268,12 @@ function WaiterPage() {
       setWalkinOpen(false);
       setWalkinName(""); setWalkinSize(2); setWalkinTable("");
     } catch (err: any) {
-      toast.error(err.message || "Errore creazione walk-in");
+      const msg = err?.message || "";
+      if (msg.toLowerCase().includes("tavolo") && msg.toLowerCase().includes("occupato")) {
+        toast.error("⚠️ Tavolo già occupato in questo orario — scegli un altro tavolo");
+      } else {
+        toast.error(msg || "Errore creazione walk-in");
+      }
     } finally {
       setWalkinBusy(false);
     }
@@ -320,7 +358,7 @@ function WaiterPage() {
       {/* Tab bar */}
       <div className="sticky top-0 z-10 grid grid-cols-5 border-b-2 border-yellow bg-ink">
         <TabBtn active={tab === "calls"} onClick={() => { setTab("calls"); setReadCalls(calls.length); }} badge={callsBadge}>🔔 Call</TabBtn>
-        <TabBtn active={tab === "todo"} onClick={() => setTab("todo")}>✅ To-do</TabBtn>
+        <TabBtn active={tab === "notes"} onClick={() => setTab("notes")}>📝 Note</TabBtn>
         <TabBtn active={tab === "reservations"} onClick={() => setTab("reservations")}>📋 Sala</TabBtn>
         <TabBtn active={tab === "ordini"} onClick={() => setTab("ordini")} badge={pronti.length > 0 ? pronti.length : undefined}>🍽️ Ordini</TabBtn>
         <TabBtn active={tab === "cucina"} onClick={() => setTab("cucina")}>👨‍🍳 Cucina</TabBtn>
@@ -382,8 +420,8 @@ function WaiterPage() {
           </ul>
         )}
 
-        {tab === "todo" && (
-          <TodoTab restaurantId={restaurantId} pin={pin || ""} staffName={staffName} />
+        {tab === "notes" && (
+          <NotesTab restaurantId={restaurantId} pin={pin || ""} staffName={staffName} />
         )}
 
         {tab === "reservations" && (
@@ -462,11 +500,45 @@ function WaiterPage() {
                 <input value={walkinName} onChange={(e) => setWalkinName(e.target.value)} placeholder="Walk-in"
                   className="w-full rounded-lg border-2 border-white/15 bg-white/5 px-3 py-2 text-paper placeholder:text-paper/30 focus:border-yellow focus:outline-none" />
               </label>
-              <label className="block">
+              <div>
                 <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-paper/70">Numero persone *</span>
-                <input type="number" min={1} max={30} value={walkinSize} onChange={(e) => setWalkinSize(Math.max(1, Number(e.target.value)))} required
-                  className="w-full rounded-lg border-2 border-white/15 bg-white/5 px-3 py-2 text-center font-display text-2xl text-yellow focus:border-yellow focus:outline-none" />
-              </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setWalkinSize((s) => Math.max(1, s - 1))}
+                    disabled={walkinSize <= 1}
+                    className="grid h-12 w-12 shrink-0 place-items-center rounded-lg border-2 border-white/15 bg-white/5 text-2xl text-yellow hover:border-yellow disabled:opacity-30"
+                    aria-label="Diminuisci"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={30}
+                    value={walkinSize}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "") { setWalkinSize(1); return; }
+                      const n = Number(v);
+                      if (!Number.isNaN(n)) setWalkinSize(Math.max(1, Math.min(30, n)));
+                    }}
+                    onFocus={(e) => e.target.select()}
+                    required
+                    className="w-full rounded-lg border-2 border-white/15 bg-white/5 px-3 py-2 text-center font-display text-2xl text-yellow focus:border-yellow focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setWalkinSize((s) => Math.min(30, s + 1))}
+                    disabled={walkinSize >= 30}
+                    className="grid h-12 w-12 shrink-0 place-items-center rounded-lg border-2 border-white/15 bg-white/5 text-2xl text-yellow hover:border-yellow disabled:opacity-30"
+                    aria-label="Aumenta"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
               <label className="block">
                 <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-paper/70">Tavolo</span>
                 <select value={walkinTable} onChange={(e) => setWalkinTable(e.target.value)}
@@ -643,11 +715,20 @@ function ResvList({ reservations, preorders, onToggle, onOrder, onBillRequest }:
         const pre = preMap.get(r.id);
         const hasActiveOrder = pre && pre.course_status !== "served";
         return (
-          <li key={r.id} className="rounded-2xl border border-white/10 bg-white/5">
-            <button onClick={() => setOpen(exp ? null : r.id)} className="flex w-full items-center gap-4 p-4 text-left">
+          <li key={r.id} className={`overflow-hidden rounded-2xl border bg-white/5 transition-colors ${exp ? "border-yellow/60 bg-white/10" : "border-white/10 hover:border-white/20"}`}>
+            <button
+              onClick={() => setOpen(exp ? null : r.id)}
+              className="flex w-full items-center gap-4 p-4 text-left active:bg-white/5"
+              aria-expanded={exp}
+            >
               <div className="font-display text-3xl text-yellow">{r.time}</div>
               <div className="min-w-0 flex-1">
-                <div className="font-display text-base">{r.customer_name} · {r.party_size} pers</div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-display text-base">{r.customer_name} · {r.party_size} pers</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-paper/40">
+                    {exp ? "" : "tocca per dettagli"}
+                  </span>
+                </div>
                 <div className="truncate text-xs text-paper/60">{r.zone_name}</div>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   {r.occasion && <Badge>🎂 {r.occasion}</Badge>}
@@ -671,6 +752,12 @@ function ResvList({ reservations, preorders, onToggle, onOrder, onBillRequest }:
                   Segna arrivato
                 </button>
               )}
+              <span
+                className={`ml-1 grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/20 text-paper/60 transition-transform ${exp ? "rotate-180 border-yellow/40 text-yellow" : ""}`}
+                aria-hidden
+              >
+                ▾
+              </span>
             </button>
 
             {exp && (
