@@ -990,16 +990,8 @@ function CucinaTab({ restaurantId, pin }: { restaurantId: string; pin: string })
     return () => { void supabase.removeChannel(ch); };
   }, [restaurantId, loadOrders]);
 
-  async function advance(order: KitchenOrder) {
-    const action = KITCHEN_ACTION[order.course_status];
-    if (!action) return;
-    const { data, error } = await supabase.rpc("staff_set_course_status", {
-      _pin: pin,
-      _preorder_id: order.id,
-      _course_status: action.next,
-    });
-    if (error || !data) toast.error("Errore aggiornamento stato");
-  }
+  // Read-only per cameriere: solo la cucina può cambiare lo stato di preparazione.
+  // Il cameriere vede l'avanzamento in tempo reale ma non può modificare gli stati.
 
   const cols = KITCHEN_COLS.map((c) => ({
     ...c,
