@@ -24,6 +24,7 @@ type ActiveReservation = {
   party_size: number;
   date: string;
   time: string;
+  arrived: boolean;
 };
 
 function MenuPage() {
@@ -65,7 +66,7 @@ function MenuPage() {
       const today = new Date().toISOString().slice(0, 10);
       let resQ = supabase
         .from("reservations")
-        .select("id,customer_name,party_size,date,time")
+        .select("id,customer_name,party_size,date,time,arrived")
         .eq("restaurant_id", rid)
         .eq("date", today)
         .neq("status", "cancelled")
@@ -105,6 +106,10 @@ function MenuPage() {
             n.delete(row.id);
             return n;
           }), 2200);
+        })
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "reservations", filter: `restaurant_id=eq.${rid}` }, (payload) => {
+          const row = payload.new as any;
+          setActiveRes((cur) => (cur && cur.id === row.id ? { ...cur, arrived: !!row.arrived } : cur));
         })
         .subscribe();
       return () => { supabase.removeChannel(ch); };
@@ -149,7 +154,11 @@ function MenuPage() {
         </div>
         {activeRes ? (
           <div className="mx-auto mt-3 max-w-3xl rounded-xl border-2 border-ink bg-paper px-3 py-2 text-sm">
-            👋 Ciao <strong>{activeRes.customer_name}</strong>! Prenotazione delle {activeRes.time} per {activeRes.party_size}.
+            {activeRes.arrived ? (
+              <>🍽️ <strong>Servizio in corso</strong> — il cameriere sta gestendo il tuo ordine. Sfoglia il menu o chiamalo se ti serve qualcosa.</>
+            ) : (
+              <>👋 Ciao <strong>{activeRes.customer_name}</strong>! Prenotazione delle {activeRes.time} per {activeRes.party_size}.</>
+            )}
           </div>
         ) : (
           <div className="mx-auto mt-3 max-w-3xl rounded-xl border-2 border-ink bg-paper px-3 py-2 text-sm">
@@ -211,18 +220,20 @@ function MenuPage() {
           >
             🙋 Cameriere
           </button>
-          <button
-            onClick={() => setPreorderOpen(true)}
-            className="flex-1 rounded-xl border-2 border-ink bg-yellow py-3.5 text-sm font-bold uppercase tracking-wider text-ink shadow-brut-sm transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-brut"
-            title={activeRes ? "Fai preparare i piatti in anticipo." : "Pre-ordina anche senza prenotazione: lo staff lo riceve subito."}
-          >
-            🛵 {activeRes ? "Pre-ordina" : "Ordina"}
-          </button>
+          {!activeRes?.arrived && (
+            <button
+              onClick={() => setPreorderOpen(true)}
+              className="flex-1 rounded-xl border-2 border-ink bg-yellow py-3.5 text-sm font-bold uppercase tracking-wider text-ink shadow-brut-sm transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-brut"
+              title={activeRes ? "Fai preparare i piatti in anticipo." : "Pre-ordina anche senza prenotazione: lo staff lo riceve subito."}
+            >
+              🛵 {activeRes ? "Pre-ordina" : "Ordina"}
+            </button>
+          )}
         </div>
       </div>
 
       {callOpen && <WaiterCallSheet table={tableNumber} restaurantId={restaurantId} reservationId={activeRes?.id ?? null} defaultName={activeRes?.customer_name ?? ""} onClose={() => setCallOpen(false)} />}
-      {preorderOpen && <PreorderOverlay items={items} restaurantId={restaurantId} reservationId={activeRes?.id ?? null} tableNumber={tableNumber} defaultName={activeRes?.customer_name ?? ""} onClose={() => setPreorderOpen(false)} />}
+      {preorderOpen && !activeRes?.arrived && <PreorderOverlay items={items} restaurantId={restaurantId} reservationId={activeRes?.id ?? null} tableNumber={tableNumber} defaultName={activeRes?.customer_name ?? ""} onClose={() => setPreorderOpen(false)} />}
     </main>
   );
 }
