@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WaiterRouteImport } from './routes/waiter'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as TrovaRouteImport } from './routes/trova'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as StaffRouteImport } from './routes/staff'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as OwnerRouteImport } from './routes/owner'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as KitchenRouteImport } from './routes/kitchen'
@@ -43,6 +45,7 @@ import { Route as ManageTokenRouteImport } from './routes/manage.$token'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as BookRestaurantIdRouteImport } from './routes/book.$restaurantId'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as ApiCronEmailAutomationRouteImport } from './routes/api/cron/email-automation'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -64,9 +67,19 @@ const TrovaRoute = TrovaRouteImport.update({
   path: '/trova',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StaffRoute = StaffRouteImport.update({
   id: '/staff',
   path: '/staff',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OwnerRoute = OwnerRouteImport.update({
@@ -219,6 +232,11 @@ const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   path: '/lovable/email/suppression',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCronEmailAutomationRoute = ApiCronEmailAutomationRouteImport.update({
+  id: '/api/cron/email-automation',
+  path: '/api/cron/email-automation',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailTransactionalSendRoute =
   LovableEmailTransactionalSendRouteImport.update({
     id: '/lovable/email/transactional/send',
@@ -259,7 +277,9 @@ export interface FileRoutesByFullPath {
   '/kitchen': typeof KitchenRoute
   '/onboarding': typeof OnboardingRoute
   '/owner': typeof OwnerRouteWithChildren
+  '/privacy': typeof PrivacyRoute
   '/staff': typeof StaffRouteWithChildren
+  '/terms': typeof TermsRoute
   '/trova': typeof TrovaRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/waiter': typeof WaiterRoute
@@ -284,6 +304,7 @@ export interface FileRoutesByFullPath {
   '/r/$slug': typeof RSlugRoute
   '/staff/$slug': typeof StaffSlugRoute
   '/owner/': typeof OwnerIndexRoute
+  '/api/cron/email-automation': typeof ApiCronEmailAutomationRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/email/booking-confirm': typeof ApiPublicEmailBookingConfirmRoute
   '/api/public/instagram/callback': typeof ApiPublicInstagramCallbackRoute
@@ -299,7 +320,9 @@ export interface FileRoutesByTo {
   '/demo': typeof DemoRoute
   '/kitchen': typeof KitchenRoute
   '/onboarding': typeof OnboardingRoute
+  '/privacy': typeof PrivacyRoute
   '/staff': typeof StaffRouteWithChildren
+  '/terms': typeof TermsRoute
   '/trova': typeof TrovaRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/waiter': typeof WaiterRoute
@@ -324,6 +347,7 @@ export interface FileRoutesByTo {
   '/r/$slug': typeof RSlugRoute
   '/staff/$slug': typeof StaffSlugRoute
   '/owner': typeof OwnerIndexRoute
+  '/api/cron/email-automation': typeof ApiCronEmailAutomationRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/email/booking-confirm': typeof ApiPublicEmailBookingConfirmRoute
   '/api/public/instagram/callback': typeof ApiPublicInstagramCallbackRoute
@@ -341,7 +365,9 @@ export interface FileRoutesById {
   '/kitchen': typeof KitchenRoute
   '/onboarding': typeof OnboardingRoute
   '/owner': typeof OwnerRouteWithChildren
+  '/privacy': typeof PrivacyRoute
   '/staff': typeof StaffRouteWithChildren
+  '/terms': typeof TermsRoute
   '/trova': typeof TrovaRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/waiter': typeof WaiterRoute
@@ -366,6 +392,7 @@ export interface FileRoutesById {
   '/r/$slug': typeof RSlugRoute
   '/staff/$slug': typeof StaffSlugRoute
   '/owner/': typeof OwnerIndexRoute
+  '/api/cron/email-automation': typeof ApiCronEmailAutomationRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/api/public/email/booking-confirm': typeof ApiPublicEmailBookingConfirmRoute
   '/api/public/instagram/callback': typeof ApiPublicInstagramCallbackRoute
@@ -384,7 +411,9 @@ export interface FileRouteTypes {
     | '/kitchen'
     | '/onboarding'
     | '/owner'
+    | '/privacy'
     | '/staff'
+    | '/terms'
     | '/trova'
     | '/unsubscribe'
     | '/waiter'
@@ -409,6 +438,7 @@ export interface FileRouteTypes {
     | '/r/$slug'
     | '/staff/$slug'
     | '/owner/'
+    | '/api/cron/email-automation'
     | '/lovable/email/suppression'
     | '/api/public/email/booking-confirm'
     | '/api/public/instagram/callback'
@@ -424,7 +454,9 @@ export interface FileRouteTypes {
     | '/demo'
     | '/kitchen'
     | '/onboarding'
+    | '/privacy'
     | '/staff'
+    | '/terms'
     | '/trova'
     | '/unsubscribe'
     | '/waiter'
@@ -449,6 +481,7 @@ export interface FileRouteTypes {
     | '/r/$slug'
     | '/staff/$slug'
     | '/owner'
+    | '/api/cron/email-automation'
     | '/lovable/email/suppression'
     | '/api/public/email/booking-confirm'
     | '/api/public/instagram/callback'
@@ -465,7 +498,9 @@ export interface FileRouteTypes {
     | '/kitchen'
     | '/onboarding'
     | '/owner'
+    | '/privacy'
     | '/staff'
+    | '/terms'
     | '/trova'
     | '/unsubscribe'
     | '/waiter'
@@ -490,6 +525,7 @@ export interface FileRouteTypes {
     | '/r/$slug'
     | '/staff/$slug'
     | '/owner/'
+    | '/api/cron/email-automation'
     | '/lovable/email/suppression'
     | '/api/public/email/booking-confirm'
     | '/api/public/instagram/callback'
@@ -507,7 +543,9 @@ export interface RootRouteChildren {
   KitchenRoute: typeof KitchenRoute
   OnboardingRoute: typeof OnboardingRoute
   OwnerRoute: typeof OwnerRouteWithChildren
+  PrivacyRoute: typeof PrivacyRoute
   StaffRoute: typeof StaffRouteWithChildren
+  TermsRoute: typeof TermsRoute
   TrovaRoute: typeof TrovaRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   WaiterRoute: typeof WaiterRoute
@@ -516,6 +554,7 @@ export interface RootRouteChildren {
   ManageTokenRoute: typeof ManageTokenRoute
   MenuTableNumberRoute: typeof MenuTableNumberRoute
   RSlugRoute: typeof RSlugRoute
+  ApiCronEmailAutomationRoute: typeof ApiCronEmailAutomationRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicEmailBookingConfirmRoute: typeof ApiPublicEmailBookingConfirmRoute
   ApiPublicInstagramCallbackRoute: typeof ApiPublicInstagramCallbackRoute
@@ -547,11 +586,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TrovaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/staff': {
       id: '/staff'
       path: '/staff'
       fullPath: '/staff'
       preLoaderRoute: typeof StaffRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/owner': {
@@ -764,6 +817,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailSuppressionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cron/email-automation': {
+      id: '/api/cron/email-automation'
+      path: '/api/cron/email-automation'
+      fullPath: '/api/cron/email-automation'
+      preLoaderRoute: typeof ApiCronEmailAutomationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/transactional/send': {
       id: '/lovable/email/transactional/send'
       path: '/lovable/email/transactional/send'
@@ -859,7 +919,9 @@ const rootRouteChildren: RootRouteChildren = {
   KitchenRoute: KitchenRoute,
   OnboardingRoute: OnboardingRoute,
   OwnerRoute: OwnerRouteWithChildren,
+  PrivacyRoute: PrivacyRoute,
   StaffRoute: StaffRouteWithChildren,
+  TermsRoute: TermsRoute,
   TrovaRoute: TrovaRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   WaiterRoute: WaiterRoute,
@@ -868,6 +930,7 @@ const rootRouteChildren: RootRouteChildren = {
   ManageTokenRoute: ManageTokenRoute,
   MenuTableNumberRoute: MenuTableNumberRoute,
   RSlugRoute: RSlugRoute,
+  ApiCronEmailAutomationRoute: ApiCronEmailAutomationRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicEmailBookingConfirmRoute: ApiPublicEmailBookingConfirmRoute,
   ApiPublicInstagramCallbackRoute: ApiPublicInstagramCallbackRoute,
