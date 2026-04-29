@@ -195,7 +195,9 @@ function WaiterPage() {
         // Notifica cameriere quando la cucina marca "pronto"
         if (p.eventType === "UPDATE" && (p.new as any).course_status === "ready") {
           try { playDing(); setTimeout(playDing, 300); } catch {}
-          toast.success(`🍽️ Pronto — ${(p.new as any).customer_name || "Tavolo"}`);
+          const customer = (p.new as any).customer_name || "Tavolo";
+          toast.success(`🍽️ Pronto — ${customer}`);
+          notifyOS("🍽️ Piatto pronto", customer);
         }
         setPreorders((prev) => {
           const i = prev.findIndex((r) => r.id === row.id);
