@@ -66,7 +66,7 @@ function MenuPage() {
       const today = new Date().toISOString().slice(0, 10);
       let resQ = supabase
         .from("reservations")
-        .select("id,customer_name,party_size,date,time")
+        .select("id,customer_name,party_size,date,time,arrived")
         .eq("restaurant_id", rid)
         .eq("date", today)
         .neq("status", "cancelled")
