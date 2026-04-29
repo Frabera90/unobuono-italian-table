@@ -680,15 +680,29 @@ function OrdiniTab({ preorders, reservations, onMarkServed, onBillRequest }: {
                   <span className="rounded-full bg-orange-500/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-orange-300">
                     💳 Conto
                   </span>
-                ) : (
+                ) : p.course_status === "served" ? (
                   <button
                     onClick={() => onBillRequest(p.id)}
                     className="rounded-lg border border-orange-400/40 px-3 py-2 text-xs font-bold uppercase tracking-wider text-orange-300 hover:bg-orange-400/10"
                   >
                     💳 Conto
                   </button>
+                ) : (
+                  <span
+                    className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-paper/30"
+                    title="Conto disponibile solo dopo che l'ordine è stato servito"
+                  >
+                    🔒 Servi prima
+                  </span>
                 )}
               </div>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
             </div>
           </li>
         );
