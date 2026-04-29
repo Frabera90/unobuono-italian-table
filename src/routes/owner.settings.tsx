@@ -96,7 +96,6 @@ function SettingsPage() {
         <Section title="Prenotazioni">
           <Toggle label="Chiedi occasione speciale" v={s.ask_occasion} onChange={(v) => setS({ ...s, ask_occasion: v })} />
           <Toggle label="Chiedi allergie" v={s.ask_allergies} onChange={(v) => setS({ ...s, ask_allergies: v })} />
-          <Toggle label="Lista d'attesa attiva" v={s.waitlist_enabled} onChange={(v) => setS({ ...s, waitlist_enabled: v })} />
           <Toggle label="Reminder 24h prima" v={s.reminder_24h} onChange={(v) => setS({ ...s, reminder_24h: v })} />
           <Toggle label="Follow-up post-cena" v={s.followup_enabled} onChange={(v) => setS({ ...s, followup_enabled: v })} />
         </Section>

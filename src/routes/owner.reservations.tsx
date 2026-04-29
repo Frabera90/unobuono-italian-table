@@ -9,7 +9,6 @@ export const Route = createFileRoute("/owner/reservations")({
   component: ReservationsPage,
 });
 
-type Waitlist = { id: string; customer_name: string; customer_phone: string | null; customer_email: string | null; party_size: number; date: string; preferred_time: string | null; status: string; created_at: string };
 type TableLite = { id: string; code: string; seats: number; zone_id: string | null };
 type Preorder = { id: string; customer_name: string | null; reservation_id: string | null; total: number | null; status: string | null; items: Array<{ name: string; qty: number; price: number }> | null; created_at: string };
 type WaiterCall = { id: string; table_number: string; message: string; status: string; created_at: string };
@@ -36,13 +35,12 @@ function ReservationsPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [date, setDate] = useState<string | null>(null); // null = "da oggi in poi" (o tutte se showHistory)
   const [list, setList] = useState<Reservation[]>([]);
-  const [waitlist, setWaitlist] = useState<Waitlist[]>([]);
   const [tables, setTables] = useState<TableLite[]>([]);
   const [preorders, setPreorders] = useState<Preorder[]>([]);
   const [waitercalls, setWaitercalls] = useState<WaiterCall[]>([]);
   const [awaitingBill, setAwaitingBill] = useState<Set<string>>(new Set());
   const [billModal, setBillModal] = useState<{ reservation: Reservation; preorders: Preorder[]; tableCode: string } | null>(null);
-  const [tab, setTab] = useState<"list" | "waitlist" | "preorders" | "tables">("tables");
+  const [tab, setTab] = useState<"list" | "preorders" | "tables">("tables");
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [newOpen, setNewOpen] = useState(false);
   const [newForm, setNewForm] = useState({ ...EMPTY_FORM });
@@ -56,19 +54,13 @@ function ReservationsPage() {
     setRestaurantId(rest.id);
 
     let resvQuery = supabase.from("reservations").select("*").eq("restaurant_id", rest.id);
-    let waitQuery = supabase.from("waitlist").select("*").eq("restaurant_id", rest.id).eq("status", "waiting");
 
     if (date) {
       resvQuery = resvQuery.eq("date", date).order("time");
-      waitQuery = waitQuery.eq("date", date).order("created_at");
     } else if (!showHistory) {
-      // Default: oggi e futuro
       resvQuery = resvQuery.gte("date", today).order("date").order("time").limit(300);
-      waitQuery = waitQuery.gte("date", today).order("date").limit(100);
     } else {
-      // Storico: tutto, passato + futuro
       resvQuery = resvQuery.order("date", { ascending: false }).order("time", { ascending: false }).limit(500);
-      waitQuery = waitQuery.order("date", { ascending: false }).limit(200);
     }
 
     // Pre-orders
@@ -89,15 +81,13 @@ function ReservationsPage() {
       .gte("created_at", today + "T00:00:00")
       .order("created_at", { ascending: false });
 
-    const [{ data: r }, { data: w }, { data: t }, { data: p }, { data: c }] = await Promise.all([
+    const [{ data: r }, { data: t }, { data: p }, { data: c }] = await Promise.all([
       resvQuery,
-      waitQuery,
       supabase.from("tables").select("id,code,seats,zone_id").eq("restaurant_id", rest.id).order("code"),
       preoQuery,
       callsQuery,
     ]);
     setList((r || []) as Reservation[]);
-    setWaitlist((w || []) as Waitlist[]);
     setTables((t || []) as TableLite[]);
     setPreorders((p || []) as Preorder[]);
     setWaitercalls((c || []) as WaiterCall[]);
@@ -107,7 +97,6 @@ function ReservationsPage() {
     load();
     const ch = supabase.channel("o-resv-" + (date ?? "all") + (showHistory ? "-h" : ""))
       .on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, load)
-      .on("postgres_changes", { event: "*", schema: "public", table: "waitlist" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "preorders" }, (payload) => {
         const r = (payload.new || payload.old) as any;
         if (payload.eventType === "UPDATE" && r.status === "bill_requested") {
@@ -160,51 +149,6 @@ function ReservationsPage() {
     const { error } = await supabase.from("reservations").update({ table_id: newTableId }).eq("id", reservationId);
     if (error) toast.error(error.message); else toast.success("Tavolo aggiornato");
   }
-  async function confirmWait(w: Waitlist) {
-    if (!restaurantId) return;
-    const { data: newRes } = await supabase.from("reservations").insert({
-      restaurant_id: restaurantId,
-      customer_name: w.customer_name,
-      customer_phone: w.customer_phone,
-      customer_email: w.customer_email || null,
-      party_size: w.party_size,
-      date: w.date,
-      time: w.preferred_time || "20:00",
-    } as any).select("id, manage_token, booking_code").single();
-    await supabase.from("waitlist").update({ status: "confirmed" }).eq("id", w.id);
-    toast.success("Prenotazione confermata!");
-    const restSettings = (await supabase.from("restaurant_settings").select("name").eq("restaurant_id", restaurantId).maybeSingle()).data;
-    // Email di conferma waitlist (se disponibile)
-    if (w.customer_email && newRes?.id) {
-      const manageUrl = newRes.manage_token ? `${window.location.origin}/manage/${newRes.manage_token}` : undefined;
-      void fetch("/api/public/email/booking-confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          templateName: "waitlist-confirmed",
-          recipientEmail: w.customer_email,
-          reservationId: newRes.id,
-          idempotencyKey: `waitlist-confirmed-${newRes.id}`,
-          templateData: {
-            customerName: w.customer_name,
-            restaurantName: restSettings?.name,
-            date: fmtDate(w.date),
-            time: w.preferred_time || "20:00",
-            partySize: w.party_size,
-            manageUrl,
-            bookingCode: (newRes as any).booking_code || undefined,
-          },
-        }),
-      });
-    }
-    // Notifica il cliente su WhatsApp
-    if (w.customer_phone) {
-      const msg = `Ciao ${w.customer_name}! Si è liberato un posto${restSettings?.name ? ` da ${restSettings.name}` : ""}. La tua prenotazione è confermata per il ${fmtDate(w.date)} alle ${w.preferred_time || "20:00"} per ${w.party_size} ${w.party_size === 1 ? "persona" : "persone"}. A presto!`;
-      const phone = w.customer_phone.replace(/[^0-9]/g, "");
-      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
-    }
-  }
-
   async function createReservation(e: React.FormEvent) {
     e.preventDefault();
     if (!restaurantId || !newForm.name.trim() || !newForm.date || !newForm.time) return;
@@ -280,10 +224,9 @@ function ReservationsPage() {
       </header>
 
       <div className="mb-4 flex flex-wrap gap-2 border-b border-border">
-        <Tab active={tab === "list"} onClick={() => setTab("list")}>Prenotazioni ({active.length})</Tab>
-        <Tab active={tab === "waitlist"} onClick={() => setTab("waitlist")}>Lista d'attesa ({waitlist.length})</Tab>
-        <Tab active={tab === "preorders"} onClick={() => setTab("preorders")}>Pre-ordini ({preorders.length})</Tab>
         <Tab active={tab === "tables"} onClick={() => setTab("tables")}>Tavoli oggi</Tab>
+        <Tab active={tab === "list"} onClick={() => setTab("list")}>Prenotazioni ({active.length})</Tab>
+        <Tab active={tab === "preorders"} onClick={() => setTab("preorders")}>Pre-ordini ({preorders.length})</Tab>
       </div>
 
       {tab === "list" && (
@@ -364,21 +307,6 @@ function ReservationsPage() {
             </details>
           )}
         </>
-      )}
-
-      {tab === "waitlist" && (
-        <ul className="space-y-2">
-          {waitlist.length === 0 && <li className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">Nessuno in lista d'attesa.</li>}
-          {waitlist.map((w) => (
-            <li key={w.id} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
-              <div className="min-w-0 flex-1">
-                <div className="font-display text-base">{w.customer_name} · {w.party_size} pers</div>
-                <div className="text-xs text-muted-foreground">{w.customer_phone} · pref. {w.preferred_time || "—"}</div>
-              </div>
-              <button onClick={() => confirmWait(w)} className="rounded-md bg-terracotta px-3 py-2 text-xs font-medium text-paper">Conferma tavolo</button>
-            </li>
-          ))}
-        </ul>
       )}
 
       {tab === "preorders" && (

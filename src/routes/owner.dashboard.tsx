@@ -31,6 +31,7 @@ type ActiveResv = {
     items: OrderItem[];
     total: number | null;
     course_status: string;
+    preorderStatus: string;
     bill_requested: boolean;
   } | null;
 };
@@ -46,15 +47,6 @@ function getCardState(r: ActiveResv): CardState {
   if (r.arrived) return "seated";
   return "incoming";
 }
-
-const CARD_CFG: Record<CardState, { label: string; border: string; badge: string }> = {
-  bill:     { label: "Conto",     border: "border-red-400/80 bg-red-900/10",        badge: "bg-red-500/20 text-red-300" },
-  ready:    { label: "Pronto ✓",  border: "border-emerald-400 bg-emerald-900/10",   badge: "bg-emerald-500/20 text-emerald-300" },
-  cooking:  { label: "In cucina", border: "border-yellow/70 bg-yellow/5",           badge: "bg-yellow/20 text-yellow" },
-  ordered:  { label: "Ordinato",  border: "border-sky-400/40 bg-sky-900/5",         badge: "bg-sky-500/15 text-sky-300" },
-  seated:   { label: "Al tavolo", border: "border-border bg-card",                  badge: "bg-muted text-muted-foreground" },
-  incoming: { label: "In arrivo", border: "border-border/40 bg-transparent",        badge: "bg-muted/40 text-muted-foreground/60" },
-};
 
 function playDing() {
   try {
@@ -75,7 +67,7 @@ function playDing() {
 
 function DashboardPage() {
   const today = isoDate(new Date());
-  const [stats, setStats] = useState({ resv: 0, preo: 0, reviews: 0, waitlist: 0 });
+  const [stats, setStats] = useState({ resv: 0, preo: 0, reviews: 0 });
   const [sala, setSala] = useState<ActiveResv[]>([]);
   const [activity, setActivity] = useState<Activity[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -86,13 +78,12 @@ function DashboardPage() {
   async function loadStats() {
     const restaurant = await getMyRestaurant();
     if (restaurant && !restId) setRestId(restaurant.id);
-    const [r, p, rv, wl] = await Promise.all([
+    const [r, p, rv] = await Promise.all([
       supabase.from("reservations").select("id", { count: "exact", head: true }).eq("date", today).neq("status", "cancelled"),
       supabase.from("preorders").select("id", { count: "exact", head: true }).gte("created_at", today + "T00:00:00").neq("status", "cancelled"),
       supabase.from("reviews").select("id", { count: "exact", head: true }).eq("status", "new"),
-      supabase.from("waitlist").select("id", { count: "exact", head: true }).eq("status", "waiting"),
     ]);
-    setStats({ resv: r.count || 0, preo: p.count || 0, reviews: rv.count || 0, waitlist: wl.count || 0 });
+    setStats({ resv: r.count || 0, preo: p.count || 0, reviews: rv.count || 0 });
   }
 
   async function loadSala() {
@@ -138,10 +129,23 @@ function DashboardPage() {
           items: Array.isArray(pre.items) ? pre.items : [],
           total: pre.total,
           course_status: pre.course_status || "pending",
+          preorderStatus: pre.status || "pending",
           bill_requested: pre.status === "bill_requested",
         } : null,
       };
     }));
+  }
+
+  async function markArrived(resv: ActiveResv) {
+    await supabase.from("reservations").update({ arrived: true }).eq("id", resv.id);
+    // If there's a pending pre-order, confirm it so the kitchen picks it up immediately
+    if (resv.preorder?.id && resv.preorder.preorderStatus === "pending") {
+      await supabase.from("preorders")
+        .update({ status: "confirmed" })
+        .eq("id", resv.preorder.id);
+    }
+    toast.success(`${resv.customer_name} segnato arrivato${resv.preorder ? " — ordine confermato in cucina" : ""}`);
+    await loadSala();
   }
 
   async function closeTable(resv: ActiveResv) {
@@ -195,7 +199,6 @@ function DashboardPage() {
 
     const push = (a: Activity) => setActivity((prev) => [a, ...prev].slice(0, 20));
 
-    // Suffisso univoco per evitare conflitti di canali (StrictMode / più tab)
     const uid = Math.random().toString(36).slice(2, 8);
 
     const channels = [
@@ -248,7 +251,6 @@ function DashboardPage() {
     await supabase.from("menu_items").update({ available: !it.available, updated_at: new Date().toISOString() }).eq("id", it.id);
   }
 
-  // Ordina le card per urgenza: bill > ready > cooking > ordered > seated > incoming, poi per orario
   const PRIORITY: Record<CardState, number> = { bill: 0, ready: 1, cooking: 2, ordered: 3, seated: 4, incoming: 5 };
   const sortedSala = [...sala].sort((a, b) => {
     const pa = PRIORITY[getCardState(a)];
@@ -262,7 +264,6 @@ function DashboardPage() {
 
   return (
     <div className="relative min-h-screen overflow-x-hidden">
-      {/* Soft ambient background — Apple-like */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-40 -left-32 h-[420px] w-[420px] rounded-full bg-[oklch(0.92_0.18_99)] opacity-50 blur-3xl" />
         <div className="absolute top-40 -right-32 h-[480px] w-[480px] rounded-full bg-[oklch(0.85_0.06_240)] opacity-30 blur-3xl" />
@@ -280,12 +281,11 @@ function DashboardPage() {
           </span>
         </header>
 
-        {/* Stats — pillole glass */}
-        <section className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-4">
+        {/* Stats */}
+        <section className="grid grid-cols-3 gap-2.5 sm:gap-3">
           <StatCard icon="📅" label="Prenotazioni oggi" value={stats.resv} to="/owner/reservations" accent="yellow" />
           <StatCard icon="🍽️" label="Ordini attivi" value={stats.preo} to="/owner/reservations" accent="dark" />
           <StatCard icon="⭐" label="Recensioni nuove" value={stats.reviews} alert={stats.reviews > 0} accent="white" />
-          <StatCard icon="⏳" label="Lista d'attesa" value={stats.waitlist} accent="white" />
         </section>
 
         {/* ── SALA LIVE ──────────────────────────────────────────────────── */}
@@ -322,6 +322,7 @@ function DashboardPage() {
                   onRequestClose={() => setClosingId(resv.id)}
                   onConfirmClose={() => closeTable(resv)}
                   onCancelClose={() => setClosingId(null)}
+                  onMarkArrived={() => markArrived(resv)}
                 />
               ))}
             </div>
@@ -381,17 +382,21 @@ function DashboardPage() {
 
 // ── TableCard ────────────────────────────────────────────────────────────────
 
-function TableCard({ resv, isClosing, closingBusy, onRequestClose, onConfirmClose, onCancelClose }: {
+function TableCard({ resv, isClosing, closingBusy, onRequestClose, onConfirmClose, onCancelClose, onMarkArrived }: {
   resv: ActiveResv;
   isClosing: boolean;
   closingBusy: boolean;
   onRequestClose: () => void;
   onConfirmClose: () => void;
   onCancelClose: () => void;
+  onMarkArrived: () => void;
 }) {
   const state = getCardState(resv);
   const isIncoming = state === "incoming";
   const canClose = !isIncoming && resv.arrived;
+  const hasPreorder = !!resv.preorder;
+  // A "confirmed" pre-order means the customer just arrived and the order went to kitchen
+  const orderLabel = resv.arrived && hasPreorder ? "Ordine" : "Pre-ordine";
 
   const STATE_STYLE: Record<CardState, { label: string; pill: string; ring: string; tint: string }> = {
     bill:     { label: "Conto",     pill: "bg-red-500 text-white",                ring: "ring-red-400/40",     tint: "bg-red-50/80" },
@@ -404,7 +409,7 @@ function TableCard({ resv, isClosing, closingBusy, onRequestClose, onConfirmClos
   const s = STATE_STYLE[state];
 
   return (
-    <div className={`group relative overflow-hidden rounded-3xl ${s.tint} p-3.5 ring-1 ${s.ring} backdrop-blur-2xl shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_8px_24px_-12px_rgba(0,0,0,0.18)] transition hover:-translate-y-0.5 ${isIncoming ? "opacity-70" : ""}`}>
+    <div className={`group relative overflow-hidden rounded-3xl ${s.tint} p-3.5 ring-1 ${s.ring} backdrop-blur-2xl shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_8px_24px_-12px_rgba(0,0,0,0.18)] transition hover:-translate-y-0.5 ${isIncoming ? "opacity-80" : ""}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="truncate font-display text-base leading-tight tracking-tight">{resv.customer_name}</p>
@@ -422,24 +427,38 @@ function TableCard({ resv, isClosing, closingBusy, onRequestClose, onConfirmClos
         </span>
       </div>
 
+      {/* Order items — shown as "Pre-ordine" before arrival, "Ordine" after */}
       {resv.preorder && resv.preorder.items.length > 0 && (
-        <ul className="mt-2.5 space-y-0.5 border-t border-black/5 pt-2 text-xs text-foreground/80">
-          {resv.preorder.items.slice(0, 4).map((it, i) => (
-            <li key={i} className="flex items-baseline gap-1.5">
-              <span className="font-mono text-[10px] text-muted-foreground">{it.qty}×</span>
-              <span className="truncate">{it.name}</span>
-            </li>
-          ))}
-          {resv.preorder.items.length > 4 && (
-            <li className="text-[10px] opacity-60">+{resv.preorder.items.length - 4} altri</li>
-          )}
-        </ul>
+        <div className="mt-2.5 border-t border-black/5 pt-2">
+          <p className="mb-1 text-[9px] font-bold uppercase tracking-widest text-muted-foreground">{orderLabel}</p>
+          <ul className="space-y-0.5 text-xs text-foreground/80">
+            {resv.preorder.items.slice(0, 4).map((it, i) => (
+              <li key={i} className="flex items-baseline gap-1.5">
+                <span className="font-mono text-[10px] text-muted-foreground">{it.qty}×</span>
+                <span className="truncate">{it.name}</span>
+              </li>
+            ))}
+            {resv.preorder.items.length > 4 && (
+              <li className="text-[10px] opacity-60">+{resv.preorder.items.length - 4} altri</li>
+            )}
+          </ul>
+        </div>
       )}
 
       <div className="mt-3 flex items-center justify-between gap-1.5">
         <span className="font-display text-sm tracking-tight">
           {resv.preorder?.total ? `€ ${Number(resv.preorder.total).toFixed(2)}` : ""}
         </span>
+
+        {/* Segna arrivato — shown when customer hasn't arrived yet */}
+        {isIncoming && !isClosing && (
+          <button
+            onClick={onMarkArrived}
+            className="rounded-full bg-[var(--ink)] px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-md transition hover:opacity-80"
+          >
+            {hasPreorder ? "✓ Arrivato + conferma ordine" : "✓ Segna arrivato"}
+          </button>
+        )}
 
         {canClose && !isClosing && (
           <button
@@ -504,4 +523,3 @@ function StatCard({ icon, label, value, to, alert, accent = "white" }: {
 
   return to ? <Link to={to} className={cls}>{inner}</Link> : <div className={cls}>{inner}</div>;
 }
-

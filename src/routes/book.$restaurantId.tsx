@@ -27,7 +27,7 @@ export const Route = createFileRoute("/book/$restaurantId")({
   component: BookingPage,
 });
 
-type Step = 1 | 2 | 3 | 4 | "waitlist" | "done";
+type Step = 1 | 2 | 3 | 4 | "done";
 
 function BookingPage() {
   const { restaurantId: param } = Route.useParams();
@@ -57,11 +57,6 @@ function BookingPage() {
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [confirmedRes, setConfirmedRes] = useState<{ id: string; manage_token: string; booking_code: string | null } | null>(null);
-
-  const [wlName, setWlName] = useState("");
-  const [wlPhone, setWlPhone] = useState("+39 ");
-  const [wlEmail, setWlEmail] = useState("");
-  const [wlPreferred, setWlPreferred] = useState("20:00");
 
   const [reservations, setReservations] = useState<ReservationLite[]>([]);
   const [featured, setFeatured] = useState<MenuItem[]>([]);
@@ -256,28 +251,6 @@ function BookingPage() {
     setSubmitting(false);
   }
 
-  async function submitWaitlist() {
-    if (!wlName.trim() || !wlPhone.trim() || !resolvedRestaurantId) return;
-    const { error } = await supabase.from("waitlist").insert({
-      restaurant_id: resolvedRestaurantId,
-      customer_name: wlName,
-      customer_phone: wlPhone,
-      customer_email: wlEmail.trim() || null,
-      party_size: partySize,
-      date,
-      preferred_time: wlPreferred,
-    } as any);
-    if (error) {
-      toast.error("Errore: " + error.message);
-      return;
-    }
-    toast.success("Sei in lista d'attesa! Ti avvisiamo su WhatsApp.");
-    setStep(1);
-    setWlName("");
-    setWlPhone("+39 ");
-    setWlEmail("");
-  }
-
   return (
     <main className="min-h-screen bg-cream pb-16">
       {/* Header */}
@@ -355,7 +328,7 @@ function BookingPage() {
       </header>
 
       <div className="mx-auto max-w-2xl px-5 py-10">
-        <Stepper step={typeof step === "number" ? step : step === "waitlist" ? 2 : 4} />
+        <Stepper step={typeof step === "number" ? step : 4} />
 
         {step === 1 && (
           <Section title="Quando vieni?">
@@ -470,13 +443,18 @@ function BookingPage() {
                   ))}
                 </div>
 
-                {noAvailability && settings?.waitlist_enabled && (
+                {noAvailability && (
                   <div className="mt-6 rounded-xl border border-dashed border-terracotta bg-terracotta/5 p-5">
                     <p className="font-display text-lg">Siamo al completo per questa data</p>
-                    <p className="mt-1 text-sm text-muted-foreground">Vuoi entrare in lista d'attesa? Ti avvisiamo su WhatsApp appena si libera un posto.</p>
-                    <button onClick={() => setStep("waitlist")} className="mt-4 rounded-md border border-terracotta px-4 py-2 text-sm font-medium text-terracotta hover:bg-terracotta hover:text-paper">
-                      Entra in lista d'attesa
-                    </button>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Non ci sono tavoli disponibili per questa combinazione di data e numero di persone.
+                      Prova un'altra data o contatta direttamente il ristorante.
+                    </p>
+                    {settings?.phone && (
+                      <a href={`tel:${settings.phone}`} className="mt-4 inline-flex rounded-md border border-terracotta px-4 py-2 text-sm font-medium text-terracotta hover:bg-terracotta hover:text-paper">
+                        📞 Chiama {settings.phone}
+                      </a>
+                    )}
                   </div>
                 )}
               </>
@@ -567,29 +545,6 @@ function BookingPage() {
                 </button>
               </>
             )}
-          </Section>
-        )}
-
-        {step === "waitlist" && (
-          <Section title="Lista d'attesa" onBack={() => setStep(2)}>
-            <p className="mb-5 text-sm text-muted-foreground">{fmtDate(date)} · {partySize} {partySize === 1 ? "persona" : "persone"}</p>
-            <Field label="Nome">
-              <input className="input" value={wlName} onChange={(e) => setWlName(e.target.value)} />
-            </Field>
-            <Field label="Numero WhatsApp">
-              <input className="input" value={wlPhone} onChange={(e) => setWlPhone(e.target.value)} />
-            </Field>
-            <Field label="Email (per la conferma)">
-              <input className="input" type="email" placeholder="nome@esempio.it" value={wlEmail} onChange={(e) => setWlEmail(e.target.value)} />
-            </Field>
-            <Field label="Orario preferito">
-              <select className="input" value={wlPreferred} onChange={(e) => setWlPreferred(e.target.value)}>
-                {allSlots.map((s) => <option key={s}>{s}</option>)}
-              </select>
-            </Field>
-            <button onClick={submitWaitlist} className="mt-3 w-full rounded-md bg-terracotta py-3.5 font-medium text-paper hover:bg-terracotta-dark">
-              Avvisami quando si libera
-            </button>
           </Section>
         )}
 
