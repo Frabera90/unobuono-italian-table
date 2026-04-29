@@ -340,7 +340,7 @@ function WaiterPage() {
       {/* Tab bar */}
       <div className="sticky top-0 z-10 grid grid-cols-5 border-b-2 border-yellow bg-ink">
         <TabBtn active={tab === "calls"} onClick={() => { setTab("calls"); setReadCalls(calls.length); }} badge={callsBadge}>🔔 Call</TabBtn>
-        <TabBtn active={tab === "todo"} onClick={() => setTab("todo")}>✅ To-do</TabBtn>
+        <TabBtn active={tab === "notes"} onClick={() => setTab("notes")}>📝 Note</TabBtn>
         <TabBtn active={tab === "reservations"} onClick={() => setTab("reservations")}>📋 Sala</TabBtn>
         <TabBtn active={tab === "ordini"} onClick={() => setTab("ordini")} badge={pronti.length > 0 ? pronti.length : undefined}>🍽️ Ordini</TabBtn>
         <TabBtn active={tab === "cucina"} onClick={() => setTab("cucina")}>👨‍🍳 Cucina</TabBtn>
@@ -402,8 +402,8 @@ function WaiterPage() {
           </ul>
         )}
 
-        {tab === "todo" && (
-          <TodoTab restaurantId={restaurantId} pin={pin || ""} staffName={staffName} />
+        {tab === "notes" && (
+          <NotesTab restaurantId={restaurantId} pin={pin || ""} staffName={staffName} />
         )}
 
         {tab === "reservations" && (
