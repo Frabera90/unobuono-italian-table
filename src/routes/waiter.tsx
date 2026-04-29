@@ -703,13 +703,6 @@ function OrdiniTab({ preorders, reservations, onMarkServed, onBillRequest }: {
     </ul>
   );
 }
-            </div>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
 
 // ── Reservation list ─────────────────────────────────────────────────────────
 
