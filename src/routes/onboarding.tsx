@@ -211,6 +211,24 @@ function OnboardingPage() {
               <div className="rounded-lg border border-terracotta/30 bg-terracotta/5 p-3 text-xs text-ink/80">
                 📋 Poi caricherai il menu — anche solo con una foto, l'AI lo trascrive per te.
               </div>
+              {restaurant && (
+                <div className="rounded-lg border-2 border-ink bg-yellow p-3">
+                  <p className="mb-1 text-xs font-bold uppercase tracking-wider text-ink/70">Il tuo link prenotazioni</p>
+                  <p className="break-all font-mono text-sm font-bold text-ink">
+                    {typeof window !== "undefined" ? window.location.origin : "https://www.unobuono.xyz"}/r/{restaurant.slug}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const url = `${window.location.origin}/r/${restaurant.slug}`;
+                      navigator.clipboard.writeText(url).catch(() => {});
+                    }}
+                    className="mt-2 rounded border border-ink px-3 py-1 text-xs font-bold uppercase text-ink hover:bg-ink hover:text-yellow"
+                  >
+                    Copia link
+                  </button>
+                </div>
+              )}
               <div className="flex gap-2">
                 <SecondaryBtn onClick={() => setStep(2)}>← Indietro</SecondaryBtn>
                 <PrimaryBtn onClick={finish} busy={busy}>Vai a Sala & Tavoli →</PrimaryBtn>

@@ -83,6 +83,9 @@ function StatsPage() {
         <Card label="Pre-ordini €" value={`€${stats.revenue.toFixed(0)}`} />
         <Card label="Scontrino medio" value={stats.avgTicket ? `€${stats.avgTicket.toFixed(0)}` : "—"} />
       </div>
+      <p className="mt-2 text-[11px] text-muted-foreground/60">
+        ℹ️ Gli importi mostrati si riferiscono ai soli <strong>pre-ordini digitali</strong> ricevuti tramite app — non includono i conti pagati al tavolo.
+      </p>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-2">
         <section className="rounded-2xl border border-border bg-card p-5">

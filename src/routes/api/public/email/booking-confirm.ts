@@ -62,6 +62,17 @@ export const Route = createFileRoute('/api/public/email/booking-confirm')({
 
         const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+        // Rate limit: max 10 email per recipient email nell'ultima ora
+        const oneHourAgo = new Date(Date.now() - 3600e3).toISOString()
+        const { count: recentCount } = await supabase
+          .from('email_send_log')
+          .select('id', { count: 'exact', head: true })
+          .eq('recipient_email', recipientEmail.toLowerCase())
+          .gte('created_at', oneHourAgo)
+        if ((recentCount ?? 0) >= 10) {
+          return Response.json({ success: false, reason: 'rate_limited' }, { status: 429 })
+        }
+
         // Validate reservation exists (anti-spam: must reference a real reservation)
         const { data: resv } = await supabase
           .from('reservations')

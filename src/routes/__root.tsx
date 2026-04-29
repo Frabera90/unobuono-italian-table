@@ -1,6 +1,7 @@
 import { Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 import { SplashScreen } from "@/components/SplashScreen";
+import { CookieBanner } from "@/components/CookieBanner";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -48,6 +49,7 @@ export const Route = createRootRoute({
       <SplashScreen />
       <Outlet />
       <Toaster position="top-center" richColors />
+      <CookieBanner />
     </>
   ),
   notFoundComponent: NotFoundComponent,
