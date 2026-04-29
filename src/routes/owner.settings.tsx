@@ -167,40 +167,31 @@ function SettingsPage() {
         </p>
       </div>
 
-      {/* AI / Gemini info */}
+      {/* AI info */}
       <div className="mt-5 rounded-2xl border border-border bg-card p-5">
         <h2 className="mb-1 font-display text-lg italic text-terracotta">Intelligenza Artificiale</h2>
-        <p className="mb-4 text-xs text-muted-foreground">Le funzioni AI (assistente, descrizioni, foto, social calendar) usano Google Gemini.</p>
+        <p className="mb-4 text-xs text-muted-foreground">Le funzioni AI (assistente, descrizioni menu, miglioramento foto, social calendar) sono incluse nella piattaforma.</p>
 
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
           <p className="mb-1 text-sm font-semibold text-amber-900 dark:text-amber-200">I crediti AI sono limitati</p>
           <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-300">
-            Ogni richiesta all'AI consuma crediti Google Gemini. Il piano gratuito include circa{" "}
-            <strong>1.500 richieste al giorno</strong> su Gemini Flash e <strong>50/giorno</strong> su Gemini Pro
-            (usato per analisi complesse e estrazione menu da foto). Quando i crediti si esauriscono,
-            le funzioni AI mostrano un avviso e vengono temporaneamente disabilitate fino alla mezzanotte.
+            Ogni richiesta all'AI consuma crediti inclusi nel piano Unobuono. Quando i crediti
+            si esauriscono, le funzioni AI mostrano un avviso e vengono temporaneamente
+            disabilitate fino al giorno successivo. Per un uso intensivo (es. migliaia di foto
+            al giorno) contatta il supporto.
           </p>
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-3 text-center text-xs">
-          <div className="rounded-lg border border-border bg-background p-3">
-            <div className="font-mono text-xl font-bold">1.500</div>
-            <div className="text-muted-foreground">richieste Flash/giorno</div>
-          </div>
-          <div className="rounded-lg border border-border bg-background p-3">
-            <div className="font-mono text-xl font-bold">50</div>
-            <div className="text-muted-foreground">richieste Pro/giorno</div>
-          </div>
-          <div className="rounded-lg border border-border bg-background p-3">
-            <div className="font-mono text-xl font-bold">€ 0</div>
-            <div className="text-muted-foreground">costo attuale</div>
-          </div>
+        <div className="mt-4 space-y-2 text-xs text-muted-foreground">
+          <p>Funzioni che usano crediti AI:</p>
+          <ul className="ml-3 list-disc space-y-1">
+            <li>Assistente AI (chat + azioni sul menu)</li>
+            <li>Miglioramento foto piatti</li>
+            <li>Estrazione menu da foto</li>
+            <li>Social calendar automatico</li>
+            <li>Riscrivi descrizioni menu</li>
+          </ul>
         </div>
-
-        <p className="mt-3 text-[11px] text-muted-foreground/60">
-          I limiti si resettano ogni giorno a mezzanotte UTC. Powered by{" "}
-          <a href="https://ai.google.dev" target="_blank" rel="noreferrer" className="underline">Google AI Studio</a>.
-        </p>
       </div>
 
       <button onClick={save} disabled={busy} className="mt-5 rounded-lg bg-terracotta px-6 py-3 font-medium text-paper disabled:opacity-40">{busy ? "Salvo..." : "Salva modifiche"}</button>

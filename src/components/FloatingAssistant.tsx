@@ -259,7 +259,7 @@ export function FloatingAssistant() {
               </button>
             </div>
             <div className="border-t border-ink/10 bg-cream px-3 py-1.5 text-center text-[10px] text-muted-foreground/60">
-              Powered by Google Gemini · crediti limitati (1.500 req/giorno)
+              Powered by Gemini · crediti inclusi nel piano, uso soggetto a limiti
             </div>
           </div>
         </div>
