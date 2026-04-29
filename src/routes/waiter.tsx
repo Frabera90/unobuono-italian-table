@@ -54,7 +54,7 @@ function WaiterPage() {
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [pin, setPin] = useState<string | null>(null);
   const [staffName, setStaffName] = useState<string>("");
-  const [tab, setTab] = useState<Tab>("calls");
+  const [tab, setTab] = useState<Tab>("reservations");
   const [calls, setCalls] = useState<Call[]>([]);
   const [reservations, setReservations] = useState<Resv[]>([]);
   const [preorders, setPreorders] = useState<Preo[]>([]);
@@ -175,6 +175,15 @@ function WaiterPage() {
         const newStatus = (p.new as any)?.status;
         if (p.eventType === "DELETE" || newStatus === "cancelled" || newStatus === "completed") {
           setReservations((prev) => prev.filter((r) => r.id !== row.id));
+        } else if (p.eventType === "INSERT") {
+          setReservations((prev) => {
+            if (prev.some((r) => r.id === row.id)) return prev;
+            try { playDing(); } catch {}
+            const src = (p.new as any)?.source === "walkin" ? "Walk-in" : "Nuova prenotazione";
+            toast.success(`📋 ${src} · ${row.time} · ${row.customer_name} (${row.party_size}p)`);
+            notifyOS(`📋 ${src} · ${row.time}`, `${row.customer_name} · ${row.party_size} pers`);
+            return [...prev, row].sort((a, b) => a.time.localeCompare(b.time));
+          });
         } else {
           setReservations((prev) => {
             const i = prev.findIndex((r) => r.id === row.id);
@@ -671,13 +680,20 @@ function OrdiniTab({ preorders, reservations, onMarkServed, onBillRequest }: {
                   <span className="rounded-full bg-orange-500/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-orange-300">
                     💳 Conto
                   </span>
-                ) : (
+                ) : p.course_status === "served" ? (
                   <button
                     onClick={() => onBillRequest(p.id)}
                     className="rounded-lg border border-orange-400/40 px-3 py-2 text-xs font-bold uppercase tracking-wider text-orange-300 hover:bg-orange-400/10"
                   >
                     💳 Conto
                   </button>
+                ) : (
+                  <span
+                    className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-paper/30"
+                    title="Conto disponibile solo dopo che l'ordine è stato servito"
+                  >
+                    🔒 Servi prima
+                  </span>
                 )}
               </div>
             </div>
@@ -793,13 +809,20 @@ function ResvList({ reservations, preorders, onToggle, onOrder, onBillRequest }:
                     <div className="mt-1 flex items-center justify-center gap-2 rounded-lg border-2 border-orange-400/30 bg-orange-400/10 py-2.5 text-sm font-bold text-orange-300">
                       💳 Conto richiesto — in attesa chiusura
                     </div>
-                  ) : (
+                  ) : pre.course_status === "served" ? (
                     <button
                       onClick={() => onBillRequest(pre.id)}
                       className="mt-1 w-full rounded-lg border-2 border-orange-400 py-2.5 text-sm font-bold uppercase tracking-wider text-orange-300 hover:bg-orange-400/10"
                     >
                       💳 Chiedi conto
                     </button>
+                  ) : (
+                    <div
+                      className="mt-1 flex items-center justify-center gap-2 rounded-lg border-2 border-white/10 bg-white/5 py-2.5 text-xs font-bold uppercase tracking-wider text-paper/40"
+                      title="Puoi richiedere il conto solo dopo aver servito tutto l'ordine"
+                    >
+                      🔒 Servi prima tutto l'ordine per chiudere il conto
+                    </div>
                   )
                 )}
               </div>
@@ -981,16 +1004,8 @@ function CucinaTab({ restaurantId, pin }: { restaurantId: string; pin: string })
     return () => { void supabase.removeChannel(ch); };
   }, [restaurantId, loadOrders]);
 
-  async function advance(order: KitchenOrder) {
-    const action = KITCHEN_ACTION[order.course_status];
-    if (!action) return;
-    const { data, error } = await supabase.rpc("staff_set_course_status", {
-      _pin: pin,
-      _preorder_id: order.id,
-      _course_status: action.next,
-    });
-    if (error || !data) toast.error("Errore aggiornamento stato");
-  }
+  // Read-only per cameriere: solo la cucina può cambiare lo stato di preparazione.
+  // Il cameriere vede l'avanzamento in tempo reale ma non può modificare gli stati.
 
   const cols = KITCHEN_COLS.map((c) => ({
     ...c,
@@ -1026,7 +1041,7 @@ function CucinaTab({ restaurantId, pin }: { restaurantId: string; pin: string })
             ) : (
               <div className="space-y-2">
                 {colOrders.map((order) => {
-                  const action = KITCHEN_ACTION[order.course_status];
+                  const stLabel = KITCHEN_COLS.find((c) => c.key === order.course_status)?.label ?? order.course_status;
                   return (
                     <div key={order.id} className="rounded-xl border border-white/10 bg-white/5 p-3">
                       <div className="flex items-start justify-between gap-2">
@@ -1039,14 +1054,12 @@ function CucinaTab({ restaurantId, pin }: { restaurantId: string; pin: string })
                             {order.reservationTime && ` · ${order.reservationTime}`}
                           </div>
                         </div>
-                        {action && (
-                          <button
-                            onClick={() => advance(order)}
-                            className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-bold uppercase tracking-wider ${action.cls}`}
-                          >
-                            {action.label}
-                          </button>
-                        )}
+                        <span
+                          className="shrink-0 rounded-full border border-white/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-paper/50"
+                          title="Solo la cucina può cambiare stato"
+                        >
+                          👁 {stLabel}
+                        </span>
                       </div>
                       <ul className="mt-2 divide-y divide-white/10">
                         {order.items.map((it, i) => (
