@@ -268,7 +268,12 @@ function WaiterPage() {
       setWalkinOpen(false);
       setWalkinName(""); setWalkinSize(2); setWalkinTable("");
     } catch (err: any) {
-      toast.error(err.message || "Errore creazione walk-in");
+      const msg = err?.message || "";
+      if (msg.toLowerCase().includes("tavolo") && msg.toLowerCase().includes("occupato")) {
+        toast.error("⚠️ Tavolo già occupato in questo orario — scegli un altro tavolo");
+      } else {
+        toast.error(msg || "Errore creazione walk-in");
+      }
     } finally {
       setWalkinBusy(false);
     }
