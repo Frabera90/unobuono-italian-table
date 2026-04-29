@@ -11,16 +11,16 @@ interface Props {
   bookingCode?: string
 }
 
-const BookingConfirmation = ({ customerName, restaurantName, date, time, partySize, manageUrl, bookingCode }: Props) => (
+const WaitlistConfirmed = ({ customerName, restaurantName, date, time, partySize, manageUrl, bookingCode }: Props) => (
   <Html lang="it" dir="ltr">
     <Head />
-    <Preview>{`Prenotazione confermata${restaurantName ? ` da ${restaurantName}` : ''}`}</Preview>
+    <Preview>{`Buone notizie! Si è liberato un posto${restaurantName ? ` da ${restaurantName}` : ''}`}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Prenotazione confermata ✓</Heading>
+        <Heading style={h1}>🎉 Si è liberato un posto!</Heading>
         <Text style={text}>
-          {customerName ? `Ciao ${customerName}, ` : 'Ciao, '}
-          la tua prenotazione{restaurantName ? ` da ${restaurantName}` : ''} è confermata.
+          {customerName ? `Ciao ${customerName},` : 'Ciao,'} la tua attesa è finita.
+          La tua prenotazione{restaurantName ? ` da ${restaurantName}` : ''} è confermata!
         </Text>
         <Section style={card}>
           <Text style={row}><strong>Quando:</strong> {date} alle {time}</Text>
@@ -31,7 +31,7 @@ const BookingConfirmation = ({ customerName, restaurantName, date, time, partySi
         </Section>
         {manageUrl && (
           <>
-            <Text style={text}>Puoi modificare, pre-ordinare o disdire qui:</Text>
+            <Text style={text}>Puoi modificare il pre-ordine o disdire qui:</Text>
             <Button href={manageUrl} style={button}>Gestisci prenotazione</Button>
           </>
         )}
@@ -43,9 +43,9 @@ const BookingConfirmation = ({ customerName, restaurantName, date, time, partySi
 )
 
 export const template = {
-  component: BookingConfirmation,
-  subject: (d: Record<string, any>) => `Prenotazione confermata${d?.date ? ` per ${d.date}` : ''}`,
-  displayName: 'Conferma prenotazione',
+  component: WaitlistConfirmed,
+  subject: (d: Record<string, any>) => `Posto confermato${d?.date ? ` per ${d.date}` : ''} — ci vediamo!`,
+  displayName: 'Waitlist confermata',
   previewData: {
     customerName: 'Marta',
     restaurantName: 'Unobuono',

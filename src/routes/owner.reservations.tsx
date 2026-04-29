@@ -9,7 +9,7 @@ export const Route = createFileRoute("/owner/reservations")({
   component: ReservationsPage,
 });
 
-type Waitlist = { id: string; customer_name: string; customer_phone: string | null; party_size: number; date: string; preferred_time: string | null; status: string; created_at: string };
+type Waitlist = { id: string; customer_name: string; customer_phone: string | null; customer_email: string | null; party_size: number; date: string; preferred_time: string | null; status: string; created_at: string };
 type TableLite = { id: string; code: string; seats: number; zone_id: string | null };
 type Preorder = { id: string; customer_name: string | null; reservation_id: string | null; total: number | null; status: string | null; items: Array<{ name: string; qty: number; price: number }> | null; created_at: string };
 type WaiterCall = { id: string; table_number: string; message: string; status: string; created_at: string };
@@ -162,19 +162,43 @@ function ReservationsPage() {
   }
   async function confirmWait(w: Waitlist) {
     if (!restaurantId) return;
-    await supabase.from("reservations").insert({
+    const { data: newRes } = await supabase.from("reservations").insert({
       restaurant_id: restaurantId,
       customer_name: w.customer_name,
       customer_phone: w.customer_phone,
+      customer_email: w.customer_email || null,
       party_size: w.party_size,
       date: w.date,
       time: w.preferred_time || "20:00",
-    });
+    } as any).select("id, manage_token, booking_code").single();
     await supabase.from("waitlist").update({ status: "confirmed" }).eq("id", w.id);
     toast.success("Prenotazione confermata!");
+    const restSettings = (await supabase.from("restaurant_settings").select("name").eq("restaurant_id", restaurantId).maybeSingle()).data;
+    // Email di conferma waitlist (se disponibile)
+    if (w.customer_email && newRes?.id) {
+      const manageUrl = newRes.manage_token ? `${window.location.origin}/manage/${newRes.manage_token}` : undefined;
+      void fetch("/api/public/email/booking-confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateName: "waitlist-confirmed",
+          recipientEmail: w.customer_email,
+          reservationId: newRes.id,
+          idempotencyKey: `waitlist-confirmed-${newRes.id}`,
+          templateData: {
+            customerName: w.customer_name,
+            restaurantName: restSettings?.name,
+            date: fmtDate(w.date),
+            time: w.preferred_time || "20:00",
+            partySize: w.party_size,
+            manageUrl,
+            bookingCode: (newRes as any).booking_code || undefined,
+          },
+        }),
+      });
+    }
     // Notifica il cliente su WhatsApp
     if (w.customer_phone) {
-      const restSettings = (await supabase.from("restaurant_settings").select("name").eq("restaurant_id", restaurantId).maybeSingle()).data;
       const msg = `Ciao ${w.customer_name}! Si è liberato un posto${restSettings?.name ? ` da ${restSettings.name}` : ""}. La tua prenotazione è confermata per il ${fmtDate(w.date)} alle ${w.preferred_time || "20:00"} per ${w.party_size} ${w.party_size === 1 ? "persona" : "persone"}. A presto!`;
       const phone = w.customer_phone.replace(/[^0-9]/g, "");
       window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");

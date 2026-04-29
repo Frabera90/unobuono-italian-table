@@ -91,7 +91,7 @@ async function checkAndSendEmails() {
   if (settings.reminder_24h) {
     const { data: toRemind } = await supabase
       .from("reservations")
-      .select("id, customer_name, customer_email, date, time, party_size")
+      .select("id, customer_name, customer_email, date, time, party_size, manage_token")
       .eq("restaurant_id", restaurant.id)
       .eq("date", tomorrow)
       .eq("reminder_sent", false)
@@ -101,6 +101,7 @@ async function checkAndSendEmails() {
     for (const r of toRemind || []) {
       if (!r.customer_email) continue;
       try {
+        const manageUrl = (r as any).manage_token ? `${origin}/manage/${(r as any).manage_token}` : undefined;
         const res = await fetch(`${origin}/api/public/email/booking-confirm`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -108,7 +109,7 @@ async function checkAndSendEmails() {
             templateName: "booking-reminder",
             recipientEmail: r.customer_email,
             reservationId: r.id,
-            templateData: { customerName: r.customer_name, restaurantName: settings.name, date: fmtDate(r.date), time: r.time, partySize: r.party_size },
+            templateData: { customerName: r.customer_name, restaurantName: settings.name, date: fmtDate(r.date), time: r.time, partySize: r.party_size, manageUrl },
           }),
         });
         if (res.ok) await supabase.from("reservations").update({ reminder_sent: true }).eq("id", r.id);

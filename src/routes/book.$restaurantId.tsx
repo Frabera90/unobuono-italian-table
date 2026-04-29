@@ -60,6 +60,7 @@ function BookingPage() {
 
   const [wlName, setWlName] = useState("");
   const [wlPhone, setWlPhone] = useState("+39 ");
+  const [wlEmail, setWlEmail] = useState("");
   const [wlPreferred, setWlPreferred] = useState("20:00");
 
   const [reservations, setReservations] = useState<ReservationLite[]>([]);
@@ -260,10 +261,11 @@ function BookingPage() {
       restaurant_id: resolvedRestaurantId,
       customer_name: wlName,
       customer_phone: wlPhone,
+      customer_email: wlEmail.trim() || null,
       party_size: partySize,
       date,
       preferred_time: wlPreferred,
-    });
+    } as any);
     if (error) {
       toast.error("Errore: " + error.message);
       return;
@@ -272,6 +274,7 @@ function BookingPage() {
     setStep(1);
     setWlName("");
     setWlPhone("+39 ");
+    setWlEmail("");
   }
 
   return (
@@ -574,6 +577,9 @@ function BookingPage() {
             </Field>
             <Field label="Numero WhatsApp">
               <input className="input" value={wlPhone} onChange={(e) => setWlPhone(e.target.value)} />
+            </Field>
+            <Field label="Email (per la conferma)">
+              <input className="input" type="email" placeholder="nome@esempio.it" value={wlEmail} onChange={(e) => setWlEmail(e.target.value)} />
             </Field>
             <Field label="Orario preferito">
               <select className="input" value={wlPreferred} onChange={(e) => setWlPreferred(e.target.value)}>

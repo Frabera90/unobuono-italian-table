@@ -47,6 +47,7 @@ export async function notifyOwner(args: Args): Promise<void> {
           time: args.time,
           partySize: args.partySize,
           details: args.details,
+          dashboardUrl: origin ? `${origin}/owner` : undefined,
         },
       }),
     });
