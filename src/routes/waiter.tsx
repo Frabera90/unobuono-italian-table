@@ -175,6 +175,15 @@ function WaiterPage() {
         const newStatus = (p.new as any)?.status;
         if (p.eventType === "DELETE" || newStatus === "cancelled" || newStatus === "completed") {
           setReservations((prev) => prev.filter((r) => r.id !== row.id));
+        } else if (p.eventType === "INSERT") {
+          setReservations((prev) => {
+            if (prev.some((r) => r.id === row.id)) return prev;
+            try { playDing(); } catch {}
+            const src = (p.new as any)?.source === "walkin" ? "Walk-in" : "Nuova prenotazione";
+            toast.success(`📋 ${src} · ${row.time} · ${row.customer_name} (${row.party_size}p)`);
+            notifyOS(`📋 ${src} · ${row.time}`, `${row.customer_name} · ${row.party_size} pers`);
+            return [...prev, row].sort((a, b) => a.time.localeCompare(b.time));
+          });
         } else {
           setReservations((prev) => {
             const i = prev.findIndex((r) => r.id === row.id);
