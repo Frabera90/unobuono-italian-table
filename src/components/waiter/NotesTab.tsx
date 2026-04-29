@@ -65,7 +65,7 @@ export function NotesTab({
     const { data, error } = await supabase.rpc("staff_create_note", {
       _pin: pin,
       _body: body.trim(),
-      _author_name: staffName || null,
+      _author_name: staffName || undefined,
     });
     setBusy(false);
     if (error || !data) {
