@@ -1027,7 +1027,7 @@ function CucinaTab({ restaurantId, pin }: { restaurantId: string; pin: string })
             ) : (
               <div className="space-y-2">
                 {colOrders.map((order) => {
-                  const action = KITCHEN_ACTION[order.course_status];
+                  const stLabel = KITCHEN_COLS.find((c) => c.key === order.course_status)?.label ?? order.course_status;
                   return (
                     <div key={order.id} className="rounded-xl border border-white/10 bg-white/5 p-3">
                       <div className="flex items-start justify-between gap-2">
@@ -1040,14 +1040,12 @@ function CucinaTab({ restaurantId, pin }: { restaurantId: string; pin: string })
                             {order.reservationTime && ` · ${order.reservationTime}`}
                           </div>
                         </div>
-                        {action && (
-                          <button
-                            onClick={() => advance(order)}
-                            className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-bold uppercase tracking-wider ${action.cls}`}
-                          >
-                            {action.label}
-                          </button>
-                        )}
+                        <span
+                          className="shrink-0 rounded-full border border-white/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-paper/50"
+                          title="Solo la cucina può cambiare stato"
+                        >
+                          👁 {stLabel}
+                        </span>
                       </div>
                       <ul className="mt-2 divide-y divide-white/10">
                         {order.items.map((it, i) => (
