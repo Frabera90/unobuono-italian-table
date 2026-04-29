@@ -24,6 +24,7 @@ type ActiveReservation = {
   party_size: number;
   date: string;
   time: string;
+  arrived: boolean;
 };
 
 function MenuPage() {
