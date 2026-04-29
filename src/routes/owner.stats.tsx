@@ -13,18 +13,15 @@ function StatsPage() {
   const [period, setPeriod] = useState<Period>(30);
   const [resv, setResv] = useState<any[]>([]);
   const [pre, setPre] = useState<any[]>([]);
-  const [reviews, setReviews] = useState<any[]>([]);
 
   useEffect(() => {
     const since = new Date(Date.now() - period * 86400e3).toISOString().slice(0, 10);
     Promise.all([
       supabase.from("reservations").select("date, party_size, arrived").gte("date", since),
       supabase.from("preorders").select("total, created_at").gte("created_at", since),
-      supabase.from("reviews").select("rating, date"),
-    ]).then(([r, p, rv]) => {
+    ]).then(([r, p]) => {
       setResv(r.data || []);
       setPre(p.data || []);
-      setReviews(rv.data || []);
     });
   }, [period]);
 
@@ -34,9 +31,8 @@ function StatsPage() {
     const noShowRate = resv.length ? Math.round(((resv.length - arrived) / resv.length) * 100) : 0;
     const revenue = pre.reduce((s, p) => s + Number(p.total || 0), 0);
     const avgTicket = pre.length ? revenue / pre.length : 0;
-    const avgRating = reviews.length ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : "—";
-    return { covers, resvCount: resv.length, noShowRate, revenue, avgTicket, avgRating, reviewCount: reviews.length };
-  }, [resv, pre, reviews]);
+    return { covers, resvCount: resv.length, noShowRate, revenue, avgTicket };
+  }, [resv, pre]);
 
   const byDay = useMemo(() => {
     const map = new Map<string, number>();
@@ -83,6 +79,7 @@ function StatsPage() {
         <Card label="Pre-ordini €" value={`€${stats.revenue.toFixed(0)}`} />
         <Card label="Scontrino medio" value={stats.avgTicket ? `€${stats.avgTicket.toFixed(0)}` : "—"} />
       </div>
+
       <p className="mt-2 text-[11px] text-muted-foreground/60">
         ℹ️ Gli importi mostrati si riferiscono ai soli <strong>pre-ordini digitali</strong> ricevuti tramite app — non includono i conti pagati al tavolo.
       </p>
@@ -128,31 +125,6 @@ function StatsPage() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-border bg-card p-5 lg:col-span-2">
-          <h2 className="mb-4 font-display text-xl">Recensioni</h2>
-          <div className="flex items-center gap-8">
-            <div className="text-center">
-              <div className="font-display text-6xl text-terracotta">{stats.avgRating}</div>
-              <div className="mt-1 text-amber-500">★★★★★</div>
-              <div className="mt-1 text-sm text-muted-foreground">{stats.reviewCount} recensioni</div>
-            </div>
-            <div className="flex-1 space-y-2">
-              {[5, 4, 3, 2, 1].map((star) => {
-                const count = reviews.filter((r) => r.rating === star).length;
-                const pct = reviews.length ? Math.round((count / reviews.length) * 100) : 0;
-                return (
-                  <div key={star} className="flex items-center gap-2 text-xs">
-                    <span className="w-4 text-right text-muted-foreground">{star}★</span>
-                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-border">
-                      <div className="h-full rounded-full bg-amber-400 transition-all" style={{ width: `${pct}%` }} />
-                    </div>
-                    <span className="w-6 text-muted-foreground">{count}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
       </div>
     </div>
   );

@@ -26,23 +26,17 @@ export const Route = createFileRoute("/r/$slug")({
   component: PublicPage,
 });
 
-type Review = { id: string; author: string | null; rating: number | null; text: string | null; date: string | null };
 
 function PublicPage() {
   const data = Route.useLoaderData() as { settings: RestaurantSettings | null; restaurant: Restaurant | null };
   const { settings, restaurant } = data;
   const [menu, setMenu] = useState<MenuItem[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
 
   useEffect(() => {
     if (!restaurant) return;
     void (async () => {
-      const [m, r] = await Promise.all([
-        supabase.from("menu_items").select("*").eq("restaurant_id", restaurant.id).eq("available", true).order("sort_order"),
-        supabase.from("reviews").select("id,author,rating,text,date").eq("restaurant_id", restaurant.id).gte("rating", 4).order("date", { ascending: false }).limit(6),
-      ]);
+      const m = await supabase.from("menu_items").select("*").eq("restaurant_id", restaurant.id).eq("available", true).order("sort_order");
       setMenu((m.data || []) as MenuItem[]);
-      setReviews((r.data || []) as Review[]);
     })();
   }, [restaurant]);
 
@@ -60,7 +54,6 @@ function PublicPage() {
     return <div className="grid min-h-screen place-items-center bg-cream px-5 text-center"><div><h1 className="font-display text-3xl">Ristorante non trovato</h1><Link to="/" className="mt-4 inline-block underline">Torna alla home</Link></div></div>;
   }
 
-  const avgRating = reviews.length ? (reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length).toFixed(1) : null;
   const cover = settings?.cover_photo_url;
   const bookId = restaurant.id;
 
@@ -80,9 +73,6 @@ function PublicPage() {
           <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-ink/60">{settings?.address?.split(",").pop()?.trim() || "Italia"}</p>
           <h1 className="mt-2 font-display text-5xl uppercase tracking-tight md:text-6xl">{settings?.name || "Ristorante"}</h1>
           {settings?.bio && <p className="mx-auto mt-3 max-w-xl text-base text-ink/70">{settings.bio}</p>}
-          {avgRating && (
-            <p className="mt-3 font-mono text-xs text-ink/60">★ {avgRating}/5 · {reviews.length} recensioni</p>
-          )}
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link
               to="/book/$restaurantId"
@@ -156,22 +146,6 @@ function PublicPage() {
           </div>
         )}
       </section>
-
-      {/* Reviews */}
-      {reviews.length > 0 && (
-        <section className="mx-auto max-w-4xl px-5 py-10">
-          <h2 className="mb-6 font-display text-3xl uppercase tracking-tight">Dicono di noi</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {reviews.map((r) => (
-              <article key={r.id} className="rounded-2xl border-2 border-ink bg-paper p-4">
-                <p className="font-mono text-xs text-ink/60">{"★".repeat(r.rating || 5)}</p>
-                <p className="mt-2 line-clamp-4 text-sm">{r.text}</p>
-                <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-ink/50">— {r.author || "Cliente"}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* CTA bottom */}
       <section className="border-t-2 border-ink bg-ink py-12 text-center text-paper">

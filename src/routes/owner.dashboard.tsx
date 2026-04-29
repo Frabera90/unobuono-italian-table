@@ -67,7 +67,7 @@ function playDing() {
 
 function DashboardPage() {
   const today = isoDate(new Date());
-  const [stats, setStats] = useState({ resv: 0, preo: 0, reviews: 0 });
+  const [stats, setStats] = useState({ resv: 0, preo: 0 });
   const [sala, setSala] = useState<ActiveResv[]>([]);
   const [activity, setActivity] = useState<Activity[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -78,12 +78,11 @@ function DashboardPage() {
   async function loadStats() {
     const restaurant = await getMyRestaurant();
     if (restaurant && !restId) setRestId(restaurant.id);
-    const [r, p, rv] = await Promise.all([
+    const [r, p] = await Promise.all([
       supabase.from("reservations").select("id", { count: "exact", head: true }).eq("date", today).neq("status", "cancelled"),
       supabase.from("preorders").select("id", { count: "exact", head: true }).gte("created_at", today + "T00:00:00").neq("status", "cancelled"),
-      supabase.from("reviews").select("id", { count: "exact", head: true }).eq("status", "new"),
     ]);
-    setStats({ resv: r.count || 0, preo: p.count || 0, reviews: rv.count || 0 });
+    setStats({ resv: r.count || 0, preo: p.count || 0 });
   }
 
   async function loadSala() {
@@ -231,11 +230,6 @@ function DashboardPage() {
         const r = p.new as any;
         push({ id: r.id, ts: r.created_at, icon: "🔔", text: `Tavolo ${r.table_number}: ${r.message}` });
       }).subscribe(),
-      supabase.channel(`d-rev-${uid}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "reviews" }, (p) => {
-        const r = p.new as any;
-        push({ id: r.id, ts: r.date || r.created_at, icon: "⭐", text: `Nuova recensione ${r.rating}★ da ${r.author}` });
-        loadStats();
-      }).subscribe(),
       supabase.channel(`d-menu-${uid}`).on("postgres_changes", { event: "UPDATE", schema: "public", table: "menu_items" }, (p) => {
         const r = p.new as any;
         push({ id: r.id + r.updated_at, ts: r.updated_at, icon: "📋", text: `Menu aggiornato: ${r.name}` });
@@ -282,10 +276,9 @@ function DashboardPage() {
         </header>
 
         {/* Stats */}
-        <section className="grid grid-cols-3 gap-2.5 sm:gap-3">
+        <section className="grid grid-cols-2 gap-2.5 sm:gap-3">
           <StatCard icon="📅" label="Prenotazioni oggi" value={stats.resv} to="/owner/reservations" accent="yellow" />
           <StatCard icon="🍽️" label="Ordini attivi" value={stats.preo} to="/owner/reservations" accent="dark" />
-          <StatCard icon="⭐" label="Recensioni nuove" value={stats.reviews} alert={stats.reviews > 0} accent="white" />
         </section>
 
         {/* ── SALA LIVE ──────────────────────────────────────────────────── */}
