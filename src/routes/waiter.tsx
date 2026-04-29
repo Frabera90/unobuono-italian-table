@@ -96,6 +96,25 @@ function WaiterPage() {
     if (!localStorage.getItem("waiter-install-dismissed")) setShowInstall(true);
   }, [nav]);
 
+  // Unlock AudioContext + request notification permission on first user interaction
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onFirstInteraction = () => {
+      try { unlockAudio(); } catch {}
+      try {
+        if ("Notification" in window && Notification.permission === "default") {
+          void Notification.requestPermission();
+        }
+      } catch {}
+    };
+    window.addEventListener("pointerdown", onFirstInteraction, { once: true });
+    window.addEventListener("keydown", onFirstInteraction, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", onFirstInteraction);
+      window.removeEventListener("keydown", onFirstInteraction);
+    };
+  }, []);
+
   // Data loading + real-time subscriptions
   useEffect(() => {
     if (!restaurantId) return;
