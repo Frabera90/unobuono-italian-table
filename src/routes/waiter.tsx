@@ -54,7 +54,7 @@ function WaiterPage() {
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [pin, setPin] = useState<string | null>(null);
   const [staffName, setStaffName] = useState<string>("");
-  const [tab, setTab] = useState<Tab>("calls");
+  const [tab, setTab] = useState<Tab>("reservations");
   const [calls, setCalls] = useState<Call[]>([]);
   const [reservations, setReservations] = useState<Resv[]>([]);
   const [preorders, setPreorders] = useState<Preo[]>([]);
