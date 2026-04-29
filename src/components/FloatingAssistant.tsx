@@ -239,7 +239,7 @@ export function FloatingAssistant() {
             )}
 
             {/* Input */}
-            <div className="flex gap-2 border-t-2 border-ink bg-paper p-3">
+            <div className="flex gap-2 border-t-2 border-ink bg-paper p-3 relative">
               <input
                 ref={inputRef}
                 value={input}
@@ -257,6 +257,9 @@ export function FloatingAssistant() {
               >
                 <Send className="h-4 w-4" strokeWidth={2.5} />
               </button>
+            </div>
+            <div className="border-t border-ink/10 bg-cream px-3 py-1.5 text-center text-[10px] text-muted-foreground/60">
+              Powered by Google Gemini · crediti limitati (1.500 req/giorno)
             </div>
           </div>
         </div>
