@@ -482,11 +482,45 @@ function WaiterPage() {
                 <input value={walkinName} onChange={(e) => setWalkinName(e.target.value)} placeholder="Walk-in"
                   className="w-full rounded-lg border-2 border-white/15 bg-white/5 px-3 py-2 text-paper placeholder:text-paper/30 focus:border-yellow focus:outline-none" />
               </label>
-              <label className="block">
+              <div>
                 <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-paper/70">Numero persone *</span>
-                <input type="number" min={1} max={30} value={walkinSize} onChange={(e) => setWalkinSize(Math.max(1, Number(e.target.value)))} required
-                  className="w-full rounded-lg border-2 border-white/15 bg-white/5 px-3 py-2 text-center font-display text-2xl text-yellow focus:border-yellow focus:outline-none" />
-              </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setWalkinSize((s) => Math.max(1, s - 1))}
+                    disabled={walkinSize <= 1}
+                    className="grid h-12 w-12 shrink-0 place-items-center rounded-lg border-2 border-white/15 bg-white/5 text-2xl text-yellow hover:border-yellow disabled:opacity-30"
+                    aria-label="Diminuisci"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={30}
+                    value={walkinSize}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "") { setWalkinSize(1); return; }
+                      const n = Number(v);
+                      if (!Number.isNaN(n)) setWalkinSize(Math.max(1, Math.min(30, n)));
+                    }}
+                    onFocus={(e) => e.target.select()}
+                    required
+                    className="w-full rounded-lg border-2 border-white/15 bg-white/5 px-3 py-2 text-center font-display text-2xl text-yellow focus:border-yellow focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setWalkinSize((s) => Math.min(30, s + 1))}
+                    disabled={walkinSize >= 30}
+                    className="grid h-12 w-12 shrink-0 place-items-center rounded-lg border-2 border-white/15 bg-white/5 text-2xl text-yellow hover:border-yellow disabled:opacity-30"
+                    aria-label="Aumenta"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
               <label className="block">
                 <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-paper/70">Tavolo</span>
                 <select value={walkinTable} onChange={(e) => setWalkinTable(e.target.value)}
