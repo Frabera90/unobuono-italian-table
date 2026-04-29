@@ -697,11 +697,20 @@ function ResvList({ reservations, preorders, onToggle, onOrder, onBillRequest }:
         const pre = preMap.get(r.id);
         const hasActiveOrder = pre && pre.course_status !== "served";
         return (
-          <li key={r.id} className="rounded-2xl border border-white/10 bg-white/5">
-            <button onClick={() => setOpen(exp ? null : r.id)} className="flex w-full items-center gap-4 p-4 text-left">
+          <li key={r.id} className={`overflow-hidden rounded-2xl border bg-white/5 transition-colors ${exp ? "border-yellow/60 bg-white/10" : "border-white/10 hover:border-white/20"}`}>
+            <button
+              onClick={() => setOpen(exp ? null : r.id)}
+              className="flex w-full items-center gap-4 p-4 text-left active:bg-white/5"
+              aria-expanded={exp}
+            >
               <div className="font-display text-3xl text-yellow">{r.time}</div>
               <div className="min-w-0 flex-1">
-                <div className="font-display text-base">{r.customer_name} · {r.party_size} pers</div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-display text-base">{r.customer_name} · {r.party_size} pers</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-paper/40">
+                    {exp ? "" : "tocca per dettagli"}
+                  </span>
+                </div>
                 <div className="truncate text-xs text-paper/60">{r.zone_name}</div>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   {r.occasion && <Badge>🎂 {r.occasion}</Badge>}
@@ -725,6 +734,12 @@ function ResvList({ reservations, preorders, onToggle, onOrder, onBillRequest }:
                   Segna arrivato
                 </button>
               )}
+              <span
+                className={`ml-1 grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/20 text-paper/60 transition-transform ${exp ? "rotate-180 border-yellow/40 text-yellow" : ""}`}
+                aria-hidden
+              >
+                ▾
+              </span>
             </button>
 
             {exp && (
