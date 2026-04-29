@@ -1183,6 +1183,10 @@ export type Database = {
         Args: { _pin: string; _task_id: string }
         Returns: boolean
       }
+      staff_confirm_preorder: {
+        Args: { _pin: string; _preorder_id: string }
+        Returns: boolean
+      }
       staff_create_note: {
         Args: { _author_name?: string; _body: string; _pin: string }
         Returns: string
