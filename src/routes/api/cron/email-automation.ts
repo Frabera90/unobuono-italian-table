@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { render } from '@react-email/components'
-import { createClient } from '@supabase/supabase-js'
 import { createFileRoute } from '@tanstack/react-router'
+import { supabaseAdmin } from '@/integrations/supabase/client.server'
 import { TEMPLATES } from '@/lib/email-templates/registry'
 import { fmtDate } from '@/lib/restaurant'
 
@@ -14,10 +14,9 @@ export const Route = createFileRoute('/api/cron/email-automation')({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
         const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-        if (!supabaseUrl || !supabaseServiceKey) {
+        if (!supabaseServiceKey) {
           return Response.json({ error: 'Server configuration error' }, { status: 500 })
         }
 
@@ -26,10 +25,8 @@ export const Route = createFileRoute('/api/cron/email-automation')({
           return Response.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        const supabase = createClient(supabaseUrl, supabaseServiceKey)
-        const origin = request.headers.get('origin') ||
-          (await supabase.from('vault_decrypted' as any).select('decrypted_secret').eq('name', 'app_base_url').maybeSingle().then(r => (r.data as any)?.decrypted_secret)) ||
-          'https://www.unobuono.xyz'
+        const supabase = supabaseAdmin
+        const origin = request.headers.get('origin') || 'https://www.unobuono.xyz'
 
         const now = new Date()
         const tomorrow = new Date(now.getTime() + 86400e3).toISOString().slice(0, 10)
@@ -132,7 +129,7 @@ const SENDER_DOMAIN = 'notify.unobuono.xyz'
 const SITE_NAME = 'Unobuono'
 
 async function enqueueEmail(
-  supabase: ReturnType<typeof createClient>,
+  supabase: typeof supabaseAdmin,
   opts: {
     templateName: string
     recipientEmail: string
