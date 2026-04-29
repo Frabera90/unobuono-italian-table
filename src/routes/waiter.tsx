@@ -2,9 +2,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { relTime, isoDate } from "@/lib/restaurant";
-import { playDing } from "@/lib/sounds";
+import { playDing, unlockAudio } from "@/lib/sounds";
 import { toast } from "sonner";
-import { TodoTab, AddTaskModal } from "@/components/waiter/TodoTab";
+import { NotesTab } from "@/components/waiter/NotesTab";
+import { AddTaskModal } from "@/components/waiter/TodoTab";
 
 export const Route = createFileRoute("/waiter")({
   head: () => ({
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/waiter")({
   component: WaiterPage,
 });
 
-type Tab = "calls" | "todo" | "reservations" | "ordini" | "cucina";
+type Tab = "calls" | "notes" | "reservations" | "ordini" | "cucina";
 
 type KitchenOrder = {
   id: string; reservation_id: string | null; customer_name: string | null;
