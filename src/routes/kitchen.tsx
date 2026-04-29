@@ -228,7 +228,7 @@ function KitchenPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
         {cols.map(({ key, label, color, orders: colOrders }) => (
           <div key={key} className={`rounded-2xl border-2 p-3 ${color.split(" ")[0]}`}>
             <div className={`mb-3 flex items-center justify-between ${color.split(" ")[1]}`}>
