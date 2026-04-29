@@ -34,15 +34,17 @@ type Order = {
 };
 
 const COLS = [
-  { key: "pending", label: "In attesa", color: "border-white/20 text-paper/60" },
-  { key: "cooking", label: "In cucina", color: "border-yellow text-yellow" },
-  { key: "ready",   label: "Pronti",    color: "border-emerald-400 text-emerald-400" },
+  { key: "awaiting", label: "Da confermare", color: "border-orange-400/60 text-orange-300" },
+  { key: "pending",  label: "In attesa",     color: "border-white/20 text-paper/60" },
+  { key: "cooking",  label: "In cucina",     color: "border-yellow text-yellow" },
+  { key: "ready",    label: "Pronti",        color: "border-emerald-400 text-emerald-400" },
 ] as const;
 
-const NEXT_ACTION: Record<string, { label: string; next: string; cls: string }> = {
-  pending: { label: "▶ Inizia",  next: "cooking", cls: "bg-yellow text-ink" },
-  cooking: { label: "✓ Pronto",  next: "ready",   cls: "bg-emerald-500 text-paper" },
-  ready:   { label: "✓ Servito", next: "served",  cls: "bg-emerald-700/80 text-paper" },
+const NEXT_ACTION: Record<string, { label: string; next: string; cls: string } | null> = {
+  awaiting: null, // bloccato: solo il cameriere può confermare
+  pending:  { label: "▶ Inizia",          next: "cooking", cls: "bg-yellow text-ink" },
+  cooking:  { label: "✓ Pronto",          next: "ready",   cls: "bg-emerald-500 text-paper" },
+  ready:    { label: "✓ Chiudi comanda",  next: "served",  cls: "bg-emerald-700 text-paper" },
 };
 
 function KitchenPage() {
