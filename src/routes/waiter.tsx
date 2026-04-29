@@ -809,13 +809,20 @@ function ResvList({ reservations, preorders, onToggle, onOrder, onBillRequest }:
                     <div className="mt-1 flex items-center justify-center gap-2 rounded-lg border-2 border-orange-400/30 bg-orange-400/10 py-2.5 text-sm font-bold text-orange-300">
                       💳 Conto richiesto — in attesa chiusura
                     </div>
-                  ) : (
+                  ) : pre.course_status === "served" ? (
                     <button
                       onClick={() => onBillRequest(pre.id)}
                       className="mt-1 w-full rounded-lg border-2 border-orange-400 py-2.5 text-sm font-bold uppercase tracking-wider text-orange-300 hover:bg-orange-400/10"
                     >
                       💳 Chiedi conto
                     </button>
+                  ) : (
+                    <div
+                      className="mt-1 flex items-center justify-center gap-2 rounded-lg border-2 border-white/10 bg-white/5 py-2.5 text-xs font-bold uppercase tracking-wider text-paper/40"
+                      title="Puoi richiedere il conto solo dopo aver servito tutto l'ordine"
+                    >
+                      🔒 Servi prima tutto l'ordine per chiudere il conto
+                    </div>
                   )
                 )}
               </div>
