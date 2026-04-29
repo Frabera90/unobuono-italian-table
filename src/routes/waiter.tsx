@@ -78,10 +78,28 @@ function WaiterPage() {
 
   const today = isoDate(new Date());
 
-  const pronti = useMemo(
-    () => preorders.filter((p) => (p.course_status || "pending") === "ready"),
-    [preorders],
-  );
+  // Item singoli pronti (status === "ready" all'interno di items[])
+  type ReadyItem = { preorderId: string; itemIndex: number; name: string; qty: number; notes?: string; customerName: string; tableCode?: string | null };
+  const pronti = useMemo<ReadyItem[]>(() => {
+    const out: ReadyItem[] = [];
+    preorders.forEach((p) => {
+      if ((p.course_status || "pending") === "served") return;
+      const items = Array.isArray(p.items) ? p.items : [];
+      items.forEach((it: any, idx: number) => {
+        if ((it?.status || "pending") === "ready") {
+          out.push({
+            preorderId: p.id,
+            itemIndex: idx,
+            name: it.name,
+            qty: it.qty || 1,
+            notes: it.notes,
+            customerName: p.customer_name || "Tavolo",
+          });
+        }
+      });
+    });
+    return out;
+  }, [preorders]);
 
   // Auth gate
   useEffect(() => {
@@ -193,7 +211,12 @@ function WaiterPage() {
         }
       }).subscribe();
 
-    // Real-time: ordini — notifica piatto pronto
+    // Real-time: ordini — notifica per ogni piatto che diventa "ready"
+    const countReadyItems = (items: any): { count: number; names: string[] } => {
+      const arr = Array.isArray(items) ? items : [];
+      const ready = arr.filter((it: any) => (it?.status || "pending") === "ready");
+      return { count: ready.length, names: ready.map((it: any) => it.name) };
+    };
     const c3 = supabase.channel(`w-pre-${restaurantId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "preorders", filter: `restaurant_id=eq.${restaurantId}` }, (p) => {
         const row = (p.new || p.old) as Preo;
@@ -201,12 +224,18 @@ function WaiterPage() {
           setPreorders((prev) => prev.filter((r) => r.id !== row.id));
           return;
         }
-        // Notifica cameriere quando la cucina marca "pronto"
-        if (p.eventType === "UPDATE" && (p.new as any).course_status === "ready") {
-          try { playDing(); setTimeout(playDing, 300); } catch {}
-          const customer = (p.new as any).customer_name || "Tavolo";
-          toast.success(`🍽️ Pronto — ${customer}`);
-          notifyOS("🍽️ Piatto pronto", customer);
+        // Notifica per ogni nuovo item che diventa "ready"
+        if (p.eventType === "UPDATE") {
+          const before = countReadyItems((p.old as any)?.items);
+          const after = countReadyItems((p.new as any)?.items);
+          const newlyReady = after.names.filter((n) => !before.names.includes(n));
+          if (newlyReady.length > 0) {
+            try { playDing(); setTimeout(playDing, 300); } catch {}
+            const customer = (p.new as any).customer_name || "Tavolo";
+            const dishLabel = newlyReady.length === 1 ? newlyReady[0] : `${newlyReady.length} piatti`;
+            toast.success(`🍽️ Pronto — ${customer} · ${dishLabel}`);
+            notifyOS(`🍽️ ${dishLabel}`, customer);
+          }
         }
         setPreorders((prev) => {
           const i = prev.findIndex((r) => r.id === row.id);
@@ -373,32 +402,27 @@ function WaiterPage() {
         <TabBtn active={tab === "cucina"} onClick={() => setTab("cucina")}>👨‍🍳 Cucina</TabBtn>
       </div>
 
-      {/* Piatti pronti — banner sempre visibile */}
+      {/* Piatti pronti — singoli item, sempre visibile. La consegna è registrata dalla cucina. */}
       {pronti.length > 0 && (
         <div className="border-b-2 border-emerald-400 bg-emerald-900/40 px-4 py-3">
           <p className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-400">
-            🍽️ {pronti.length} {pronti.length === 1 ? "piatto pronto" : "piatti pronti"} — vai a prendere!
+            🍽️ {pronti.length} {pronti.length === 1 ? "piatto pronto" : "piatti pronti"} — al passe!
           </p>
           <ul className="space-y-1.5">
-            {pronti.map((p) => {
-              const resv = reservations.find((r) => r.id === p.reservation_id);
-              return (
-                <li key={p.id} className="flex items-center justify-between gap-3 rounded-lg border border-emerald-400/20 bg-emerald-600/10 px-3 py-2">
-                  <div className="min-w-0">
-                    <span className="text-sm font-bold text-paper">{p.customer_name || resv?.customer_name || "Walk-in"}</span>
-                    <span className="ml-2 text-xs text-emerald-300/80">
-                      {(Array.isArray(p.items) ? p.items : []).map((it: any) => `${it.qty}× ${it.name}`).join(", ")}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => markServed(p.id)}
-                    className="shrink-0 rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-paper hover:bg-emerald-400 active:scale-95"
-                  >
-                    ✓ Servito
-                  </button>
-                </li>
-              );
-            })}
+            {pronti.map((it) => (
+              <li key={`${it.preorderId}-${it.itemIndex}`} className="flex items-center justify-between gap-3 rounded-lg border border-emerald-400/20 bg-emerald-600/10 px-3 py-2">
+                <div className="min-w-0">
+                  <span className="text-sm font-bold text-paper">{it.customerName}</span>
+                  <span className="ml-2 text-xs text-emerald-300/90">
+                    {it.qty}× {it.name}
+                    {it.notes && <span className="ml-1 italic text-paper/60">· {it.notes}</span>}
+                  </span>
+                </div>
+                <span className="shrink-0 rounded-md border border-emerald-400/40 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                  Da portare
+                </span>
+              </li>
+            ))}
           </ul>
         </div>
       )}
