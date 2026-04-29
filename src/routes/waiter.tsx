@@ -145,12 +145,23 @@ function WaiterPage() {
       .then(({ data }) => setMenuItems((data || []) as MenuItemLite[]));
 
     // Real-time: chiamate tavolo
+    const notifyOS = (title: string, body: string) => {
+      try {
+        if (typeof document !== "undefined" && !document.hidden) return; // tab attiva: basta toast
+        if (typeof window === "undefined" || !("Notification" in window)) return;
+        if (Notification.permission !== "granted") return;
+        new Notification(title, { body, icon: "/icons/icon-192.png", tag: title });
+      } catch {}
+    };
+
     const c1 = supabase.channel(`w-calls-${restaurantId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "waiter_calls", filter: `restaurant_id=eq.${restaurantId}` }, (p) => {
         if (p.eventType === "INSERT") {
-          setCalls((prev) => [p.new as Call, ...prev]);
-          try { playDing(); } catch {}
-          toast.success(`🔔 Tavolo ${(p.new as Call).table_number}`);
+          const call = p.new as Call;
+          setCalls((prev) => [call, ...prev]);
+          try { playDing(); setTimeout(playDing, 400); } catch {}
+          toast.success(`🔔 Tavolo ${call.table_number}`);
+          notifyOS(`🔔 Tavolo ${call.table_number}`, call.message || "Chiamata in attesa");
         } else if (p.eventType === "UPDATE") {
           setCalls((prev) => prev.map((x) => x.id === (p.new as Call).id ? (p.new as Call) : x).filter((x) => x.status === "pending"));
         }
