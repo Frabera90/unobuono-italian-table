@@ -247,7 +247,7 @@ function KitchenPage() {
                 {colOrders.map((order) => {
                   const action = NEXT_ACTION[order.course_status];
                   return (
-                    <div key={order.id} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div key={order.id} className={`rounded-xl border p-3 ${order.course_status === "awaiting" ? "border-orange-400/40 bg-orange-400/5" : "border-white/10 bg-white/5"}`}>
                       <div className="mb-2 flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           {order.tableCode && (
@@ -258,14 +258,18 @@ function KitchenPage() {
                             {order.reservationTime && ` · ${order.reservationTime}`}
                           </div>
                         </div>
-                        {action && (
+                        {action ? (
                           <button
                             onClick={() => advance(order)}
                             className={`shrink-0 rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wider ${action.cls}`}
                           >
                             {action.label}
                           </button>
-                        )}
+                        ) : order.course_status === "awaiting" ? (
+                          <span className="shrink-0 rounded-lg border border-orange-400/40 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-orange-300" title="Attendere conferma del cameriere">
+                            ⏸ Attesa cameriere
+                          </span>
+                        ) : null}
                       </div>
                       <ul className="mt-2 divide-y divide-white/10">
                         {order.items.map((it, i) => (
