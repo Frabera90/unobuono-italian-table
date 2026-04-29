@@ -154,7 +154,11 @@ function MenuPage() {
         </div>
         {activeRes ? (
           <div className="mx-auto mt-3 max-w-3xl rounded-xl border-2 border-ink bg-paper px-3 py-2 text-sm">
-            👋 Ciao <strong>{activeRes.customer_name}</strong>! Prenotazione delle {activeRes.time} per {activeRes.party_size}.
+            {activeRes.arrived ? (
+              <>🍽️ <strong>Servizio in corso</strong> — il cameriere sta gestendo il tuo ordine. Sfoglia il menu o chiamalo se ti serve qualcosa.</>
+            ) : (
+              <>👋 Ciao <strong>{activeRes.customer_name}</strong>! Prenotazione delle {activeRes.time} per {activeRes.party_size}.</>
+            )}
           </div>
         ) : (
           <div className="mx-auto mt-3 max-w-3xl rounded-xl border-2 border-ink bg-paper px-3 py-2 text-sm">
