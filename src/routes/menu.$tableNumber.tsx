@@ -220,18 +220,20 @@ function MenuPage() {
           >
             🙋 Cameriere
           </button>
-          <button
-            onClick={() => setPreorderOpen(true)}
-            className="flex-1 rounded-xl border-2 border-ink bg-yellow py-3.5 text-sm font-bold uppercase tracking-wider text-ink shadow-brut-sm transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-brut"
-            title={activeRes ? "Fai preparare i piatti in anticipo." : "Pre-ordina anche senza prenotazione: lo staff lo riceve subito."}
-          >
-            🛵 {activeRes ? "Pre-ordina" : "Ordina"}
-          </button>
+          {!activeRes?.arrived && (
+            <button
+              onClick={() => setPreorderOpen(true)}
+              className="flex-1 rounded-xl border-2 border-ink bg-yellow py-3.5 text-sm font-bold uppercase tracking-wider text-ink shadow-brut-sm transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-brut"
+              title={activeRes ? "Fai preparare i piatti in anticipo." : "Pre-ordina anche senza prenotazione: lo staff lo riceve subito."}
+            >
+              🛵 {activeRes ? "Pre-ordina" : "Ordina"}
+            </button>
+          )}
         </div>
       </div>
 
       {callOpen && <WaiterCallSheet table={tableNumber} restaurantId={restaurantId} reservationId={activeRes?.id ?? null} defaultName={activeRes?.customer_name ?? ""} onClose={() => setCallOpen(false)} />}
-      {preorderOpen && <PreorderOverlay items={items} restaurantId={restaurantId} reservationId={activeRes?.id ?? null} tableNumber={tableNumber} defaultName={activeRes?.customer_name ?? ""} onClose={() => setPreorderOpen(false)} />}
+      {preorderOpen && !activeRes?.arrived && <PreorderOverlay items={items} restaurantId={restaurantId} reservationId={activeRes?.id ?? null} tableNumber={tableNumber} defaultName={activeRes?.customer_name ?? ""} onClose={() => setPreorderOpen(false)} />}
     </main>
   );
 }
