@@ -107,6 +107,10 @@ function MenuPage() {
             return n;
           }), 2200);
         })
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "reservations", filter: `restaurant_id=eq.${rid}` }, (payload) => {
+          const row = payload.new as any;
+          setActiveRes((cur) => (cur && cur.id === row.id ? { ...cur, arrived: !!row.arrived } : cur));
+        })
         .subscribe();
       return () => { supabase.removeChannel(ch); };
     })();
