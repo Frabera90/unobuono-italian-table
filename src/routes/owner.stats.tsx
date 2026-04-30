@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getMyRestaurant } from "@/lib/restaurant";
 
 export const Route = createFileRoute("/owner/stats")({
   head: () => ({ meta: [{ title: "Statistiche — Unobuono" }] }),
@@ -15,14 +16,17 @@ function StatsPage() {
   const [pre, setPre] = useState<any[]>([]);
 
   useEffect(() => {
-    const since = new Date(Date.now() - period * 86400e3).toISOString().slice(0, 10);
-    Promise.all([
-      supabase.from("reservations").select("date, party_size, arrived").gte("date", since),
-      supabase.from("preorders").select("total, created_at").gte("created_at", since),
-    ]).then(([r, p]) => {
+    void (async () => {
+      const restaurant = await getMyRestaurant();
+      if (!restaurant) return;
+      const since = new Date(Date.now() - period * 86400e3).toISOString().slice(0, 10);
+      const [r, p] = await Promise.all([
+        supabase.from("reservations").select("date, party_size, arrived").eq("restaurant_id", restaurant.id).gte("date", since),
+        supabase.from("preorders").select("total, created_at").eq("restaurant_id", restaurant.id).gte("created_at", since),
+      ]);
       setResv(r.data || []);
       setPre(p.data || []);
-    });
+    })();
   }, [period]);
 
   const stats = useMemo(() => {

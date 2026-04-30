@@ -89,6 +89,26 @@ function PublicPage() {
                 📞 Chiama
               </a>
             )}
+            {settings?.phone && (
+              <a
+                href={`https://wa.me/${settings.phone.replace(/[^\d+]/g, "").replace(/^\+/, "")}`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-xl border-2 border-ink bg-[#25D366] px-6 py-3 text-sm font-bold uppercase tracking-wider text-white hover:opacity-90"
+              >
+                💬 WhatsApp
+              </a>
+            )}
+            {(settings?.google_maps_url || settings?.address) && (
+              <a
+                href={settings?.google_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings?.address || "")}`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-xl border-2 border-ink bg-paper px-6 py-3 text-sm font-bold uppercase tracking-wider hover:bg-cream-dark"
+              >
+                📍 Indicazioni
+              </a>
+            )}
           </div>
         </div>
       </header>
@@ -96,20 +116,25 @@ function PublicPage() {
       {/* Info */}
       {settings && (
         <section className="border-b-2 border-ink/10 bg-paper">
-          <div className="mx-auto grid max-w-4xl gap-4 px-5 py-6 text-sm sm:grid-cols-3">
+          <div className="mx-auto grid max-w-4xl gap-6 px-5 py-6 text-sm sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-wider text-ink/50">Indirizzo</p>
-              <p className="mt-1">{settings.address}</p>
+              <p className="mt-1">{settings.address || "—"}</p>
             </div>
             <div>
               <p className="font-mono text-[10px] uppercase tracking-wider text-ink/50">Telefono</p>
               <p className="mt-1">{settings.phone || "—"}</p>
             </div>
             <div>
+              <p className="font-mono text-[10px] uppercase tracking-wider text-ink/50">Orari</p>
+              <OpeningHours hours={settings.opening_hours} />
+            </div>
+            <div>
               <p className="font-mono text-[10px] uppercase tracking-wider text-ink/50">Social</p>
               <p className="mt-1 space-x-2">
                 {settings.instagram_handle && <a className="underline" href={`https://instagram.com/${settings.instagram_handle.replace("@", "")}`} target="_blank" rel="noreferrer">Instagram</a>}
                 {settings.facebook_handle && <a className="underline" href={`https://facebook.com/${settings.facebook_handle.replace("@", "")}`} target="_blank" rel="noreferrer">Facebook</a>}
+                {!settings.instagram_handle && !settings.facebook_handle && <span className="text-ink/40">—</span>}
               </p>
             </div>
           </div>
@@ -160,5 +185,34 @@ function PublicPage() {
         </Link>
       </section>
     </div>
+  );
+}
+
+const DAY_LABELS: Record<string, string> = {
+  mon: "Lun", tue: "Mar", wed: "Mer", thu: "Gio", fri: "Ven", sat: "Sab", sun: "Dom",
+  monday: "Lun", tuesday: "Mar", wednesday: "Mer", thursday: "Gio", friday: "Ven", saturday: "Sab", sunday: "Dom",
+  lun: "Lun", mar: "Mar", mer: "Mer", gio: "Gio", ven: "Ven", sab: "Sab", dom: "Dom",
+};
+const DAY_ORDER = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+
+function OpeningHours({ hours }: { hours: Record<string, string> | null | undefined }) {
+  if (!hours || typeof hours !== "object" || Object.keys(hours).length === 0) {
+    return <p className="mt-1 text-ink/40">—</p>;
+  }
+  // ordina per giorno se possibile
+  const entries = Object.entries(hours).sort(([a], [b]) => {
+    const ai = DAY_ORDER.indexOf(a.toLowerCase().slice(0, 3));
+    const bi = DAY_ORDER.indexOf(b.toLowerCase().slice(0, 3));
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  });
+  return (
+    <ul className="mt-1 space-y-0.5 text-xs">
+      {entries.map(([day, val]) => (
+        <li key={day} className="flex justify-between gap-2">
+          <span className="font-mono uppercase text-ink/60">{DAY_LABELS[day.toLowerCase()] || day}</span>
+          <span>{val || "Chiuso"}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
