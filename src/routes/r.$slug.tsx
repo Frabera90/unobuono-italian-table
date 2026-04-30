@@ -89,6 +89,26 @@ function PublicPage() {
                 📞 Chiama
               </a>
             )}
+            {settings?.phone && (
+              <a
+                href={`https://wa.me/${settings.phone.replace(/[^\d+]/g, "").replace(/^\+/, "")}`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-xl border-2 border-ink bg-[#25D366] px-6 py-3 text-sm font-bold uppercase tracking-wider text-white hover:opacity-90"
+              >
+                💬 WhatsApp
+              </a>
+            )}
+            {(settings?.google_maps_url || settings?.address) && (
+              <a
+                href={settings?.google_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings?.address || "")}`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-xl border-2 border-ink bg-paper px-6 py-3 text-sm font-bold uppercase tracking-wider hover:bg-cream-dark"
+              >
+                📍 Indicazioni
+              </a>
+            )}
           </div>
         </div>
       </header>
