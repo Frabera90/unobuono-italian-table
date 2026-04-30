@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { type MenuItem, type RestaurantSettings } from "@/lib/restaurant";
+import { allergenBadge, dietBadge } from "@/lib/allergens";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/menu/$tableNumber")({
@@ -233,6 +234,12 @@ function MenuPage() {
                       </div>
                       {it.description && <p className="mt-1 text-sm text-ink/70">{it.description}</p>}
                       <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-bold uppercase tracking-wider">
+                        {(it.diet_tags || []).map((d) => (
+                          <span key={`d-${d}`} className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-800">{dietBadge(d)}</span>
+                        ))}
+                        {(it.allergen_tags || []).map((a) => (
+                          <span key={`a-${a}`} className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-900">{allergenBadge(a)}</span>
+                        ))}
                         {it.allergens && <span className="rounded-full bg-cream-dark px-2 py-0.5 text-ink/70">{it.allergens}</span>}
                         {!it.available && <span className="rounded-full bg-destructive px-2 py-0.5 text-paper">Non disponibile stasera</span>}
                         {flash && <span className="rounded-full bg-ink px-2 py-0.5 text-yellow">⚡ aggiornato</span>}
@@ -418,8 +425,18 @@ function PreorderOverlay({ items, restaurantId, reservationId, tableNumber, defa
                   <div className="text-xs text-muted-foreground">Totale</div>
                   <div className="font-display text-2xl text-terracotta">€ {total.toFixed(2).replace(".", ",")}</div>
                 </div>
-                <button onClick={submit} disabled={busy || !name.trim() || total === 0} className="rounded-md bg-terracotta px-6 py-3 font-medium text-paper hover:bg-terracotta-dark disabled:opacity-40">{busy ? "Invio..." : (reservationId ? "Manda pre-ordine" : "Manda ordine")}</button>
+                <button
+                  onClick={submit}
+                  disabled={busy || !name.trim() || total === 0}
+                  title={!name.trim() ? "Inserisci il tuo nome" : total === 0 ? "Aggiungi almeno un piatto" : ""}
+                  className="rounded-md bg-terracotta px-6 py-3 font-medium text-paper hover:bg-terracotta-dark disabled:opacity-40"
+                >{busy ? "Invio..." : (reservationId ? "Manda pre-ordine" : "Manda ordine")}</button>
               </div>
+              {(!name.trim() || total === 0) && (
+                <p className="mt-2 text-center text-[11px] text-muted-foreground">
+                  {!name.trim() ? "💬 Inserisci il tuo nome per inviare l'ordine" : "🛒 Aggiungi almeno un piatto per inviare l'ordine"}
+                </p>
+              )}
             </div>
           </div>
         </>

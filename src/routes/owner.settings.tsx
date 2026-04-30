@@ -132,6 +132,22 @@ function SettingsPage() {
           <Field label="Età minima (lascia vuoto se non c'è)"><input type="number" className="set-in" value={s.min_age ?? ""} onChange={(e) => setS({ ...s, min_age: e.target.value ? Number(e.target.value) : null })} /></Field>
         </Section>
 
+        <Section title="🛵 Delivery / Asporto">
+          <p className="-mt-1 text-xs text-muted-foreground">Se il tuo locale è disponibile su Just Eat, Deliveroo o altre piattaforme, inserisci i link: appariranno come bottoni nella pagina pubblica.</p>
+          <Toggle label="Delivery attivo (mostra bottoni nella landing)" v={!!s.delivery_enabled} onChange={(v) => setS({ ...s, delivery_enabled: v })} />
+          {s.delivery_enabled && (
+            <>
+              <Field label="🛵 Just Eat"><input className="set-in" value={s.delivery_just_eat_url || ""} onChange={(e) => setS({ ...s, delivery_just_eat_url: e.target.value })} placeholder="https://www.justeat.it/..." /></Field>
+              <Field label="🦘 Deliveroo"><input className="set-in" value={s.delivery_deliveroo_url || ""} onChange={(e) => setS({ ...s, delivery_deliveroo_url: e.target.value })} placeholder="https://deliveroo.it/..." /></Field>
+              <Field label="🛒 Glovo"><input className="set-in" value={s.delivery_glovo_url || ""} onChange={(e) => setS({ ...s, delivery_glovo_url: e.target.value })} placeholder="https://glovoapp.com/..." /></Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Altro – etichetta"><input className="set-in" value={s.delivery_other_label || ""} onChange={(e) => setS({ ...s, delivery_other_label: e.target.value })} placeholder="es. Asporto" /></Field>
+                <Field label="Altro – URL"><input className="set-in" value={s.delivery_other_url || ""} onChange={(e) => setS({ ...s, delivery_other_url: e.target.value })} placeholder="https://..." /></Field>
+              </div>
+            </>
+          )}
+        </Section>
+
         <Section title="Prenotazioni">
           <Toggle label="Chiedi occasione speciale" v={s.ask_occasion} onChange={(v) => setS({ ...s, ask_occasion: v })} />
           <Toggle label="Chiedi allergie" v={s.ask_allergies} onChange={(v) => setS({ ...s, ask_allergies: v })} />

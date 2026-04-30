@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSettingsBySlug, type RestaurantSettings, type MenuItem, type Restaurant } from "@/lib/restaurant";
+import { allergenBadge, dietBadge } from "@/lib/allergens";
 
 export const Route = createFileRoute("/r/$slug")({
   head: ({ loaderData }) => {
@@ -110,6 +111,27 @@ function PublicPage() {
               </a>
             )}
           </div>
+
+          {/* Delivery buttons */}
+          {settings?.delivery_enabled && (settings.delivery_just_eat_url || settings.delivery_deliveroo_url || settings.delivery_glovo_url || settings.delivery_other_url) && (
+            <div className="relative mt-6">
+              <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink/60">🛵 Ordina a domicilio</p>
+              <div className="mt-2 flex flex-wrap justify-center gap-2">
+                {settings.delivery_just_eat_url && (
+                  <a href={settings.delivery_just_eat_url} target="_blank" rel="noreferrer" className="rounded-xl border-2 border-ink bg-[#ff8000] px-4 py-2 text-sm font-bold uppercase tracking-wider text-white hover:opacity-90">Just Eat</a>
+                )}
+                {settings.delivery_deliveroo_url && (
+                  <a href={settings.delivery_deliveroo_url} target="_blank" rel="noreferrer" className="rounded-xl border-2 border-ink bg-[#00ccbc] px-4 py-2 text-sm font-bold uppercase tracking-wider text-white hover:opacity-90">Deliveroo</a>
+                )}
+                {settings.delivery_glovo_url && (
+                  <a href={settings.delivery_glovo_url} target="_blank" rel="noreferrer" className="rounded-xl border-2 border-ink bg-[#fc0] px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink hover:opacity-90">Glovo</a>
+                )}
+                {settings.delivery_other_url && (
+                  <a href={settings.delivery_other_url} target="_blank" rel="noreferrer" className="rounded-xl border-2 border-ink bg-paper px-4 py-2 text-sm font-bold uppercase tracking-wider hover:bg-cream-dark">{settings.delivery_other_label || "Asporto"}</a>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
@@ -160,6 +182,16 @@ function PublicPage() {
                           {it.price != null && <span className="font-mono text-sm font-bold">€ {Number(it.price).toFixed(2)}</span>}
                         </div>
                         {it.description && <p className="mt-1 text-sm text-ink/70">{it.description}</p>}
+                        {((it.allergen_tags && it.allergen_tags.length > 0) || (it.diet_tags && it.diet_tags.length > 0)) && (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {(it.diet_tags || []).map((d) => (
+                              <span key={`d-${d}`} className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 ring-1 ring-emerald-600/20">{dietBadge(d)}</span>
+                            ))}
+                            {(it.allergen_tags || []).map((a) => (
+                              <span key={`a-${a}`} className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800 ring-1 ring-amber-600/20">{allergenBadge(a)}</span>
+                            ))}
+                          </div>
+                        )}
                         {it.allergens && <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-amber-700">⚠ {it.allergens}</p>}
                       </div>
                       {it.photo_url && <img src={it.photo_url} alt={it.name} loading="lazy" className="h-16 w-16 shrink-0 rounded-lg border border-ink/10 object-cover" />}
