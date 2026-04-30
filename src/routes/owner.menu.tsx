@@ -23,7 +23,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Trash2 } from "lucide-react";
-import { ALLERGENS, DIETS, type AllergenKey, type DietKey } from "@/lib/allergens";
+import { ALLERGENS, DIETS, reconcileTags, type AllergenKey, type DietKey } from "@/lib/allergens";
 
 export const Route = createFileRoute("/owner/menu")({
   head: () => ({ meta: [{ title: "Menu — Unobuono" }] }),
@@ -358,7 +358,13 @@ function MenuPage() {
                         onClick={() => {
                           const cur = new Set(edit.allergen_tags || []);
                           if (active) cur.delete(a.key); else cur.add(a.key);
-                          setEdit({ ...edit, allergen_tags: Array.from(cur) as AllergenKey[] });
+                          const r = reconcileTags(
+                            Array.from(cur) as AllergenKey[],
+                            (edit.diet_tags || []) as DietKey[],
+                            { type: "allergen", key: a.key }
+                          );
+                          if (r.warnings.length) toast.message(r.warnings.join(" · "));
+                          setEdit({ ...edit, allergen_tags: r.allergens, diet_tags: r.diets });
                         }}
                         className={`rounded-full border px-2 py-1 text-xs transition ${active ? "border-terracotta bg-terracotta/10 text-terracotta" : "border-border text-muted-foreground hover:bg-cream"}`}
                       >
@@ -380,7 +386,13 @@ function MenuPage() {
                         onClick={() => {
                           const cur = new Set(edit.diet_tags || []);
                           if (active) cur.delete(d.key); else cur.add(d.key);
-                          setEdit({ ...edit, diet_tags: Array.from(cur) as DietKey[] });
+                          const r = reconcileTags(
+                            (edit.allergen_tags || []) as AllergenKey[],
+                            Array.from(cur) as DietKey[],
+                            { type: "diet", key: d.key }
+                          );
+                          if (r.warnings.length) toast.message(r.warnings.join(" · "));
+                          setEdit({ ...edit, allergen_tags: r.allergens, diet_tags: r.diets });
                         }}
                         className={`rounded-full border px-2 py-1 text-xs transition ${active ? "border-emerald-600 bg-emerald-600/10 text-emerald-700" : "border-border text-muted-foreground hover:bg-cream"}`}
                       >
