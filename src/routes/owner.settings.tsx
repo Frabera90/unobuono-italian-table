@@ -11,11 +11,44 @@ export const Route = createFileRoute("/owner/settings")({
 
 function SettingsPage() {
   const [s, setS] = useState<any>(null);
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [pinBusy, setPinBusy] = useState(false);
 
   useEffect(() => {
-    supabase.from("restaurant_settings").select("*").limit(1).maybeSingle().then(({ data }) => setS(data));
+    (async () => {
+      // 1) Get the current user's restaurant_id (only the owner sees this row)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast.error("Devi accedere come proprietario"); return; }
+
+      const { data: rest } = await supabase
+        .from("restaurants")
+        .select("id")
+        .eq("owner_id", user.id)
+        .maybeSingle();
+
+      if (!rest?.id) { toast.error("Ristorante non trovato per questo account"); return; }
+      setRestaurantId(rest.id);
+
+      // 2) Load settings filtered explicitly by restaurant_id (no cross-account leakage)
+      const { data: settings } = await supabase
+        .from("restaurant_settings")
+        .select("*")
+        .eq("restaurant_id", rest.id)
+        .maybeSingle();
+
+      if (settings) {
+        setS(settings);
+      } else {
+        // No settings row yet — create a minimal one so the form has something to update
+        const { data: created } = await supabase
+          .from("restaurant_settings")
+          .insert({ restaurant_id: rest.id })
+          .select("*")
+          .maybeSingle();
+        setS(created);
+      }
+    })();
   }, []);
 
   async function regeneratePin() {
@@ -33,9 +66,15 @@ function SettingsPage() {
   }
 
   async function save() {
-    if (!s) return;
+    if (!s || !restaurantId) return;
     setBusy(true);
-    const { error } = await supabase.from("restaurant_settings").update({ ...s, updated_at: new Date().toISOString() }).eq("id", s.id);
+    // Strip identity fields and force-scope to the current owner's restaurant_id.
+    // Never trust the in-memory `s.restaurant_id` — always re-bind to the verified owner's id.
+    const { id: _ignoreId, restaurant_id: _ignoreRid, created_at: _ignoreCreated, ...rest } = s;
+    const { error } = await supabase
+      .from("restaurant_settings")
+      .update({ ...rest, updated_at: new Date().toISOString() })
+      .eq("restaurant_id", restaurantId);
     setBusy(false);
     if (error) toast.error(error.message);
     else toast.success("Salvato");
