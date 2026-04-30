@@ -448,13 +448,25 @@ function BookingPage() {
                     <p className="font-display text-lg">Siamo al completo per questa data</p>
                     <p className="mt-1 text-sm text-muted-foreground">
                       Non ci sono tavoli disponibili per questa combinazione di data e numero di persone.
-                      Prova un'altra data o contatta direttamente il ristorante.
+                      {settings?.waitlist_enabled
+                        ? " Iscriviti alla lista d'attesa: ti avviseremo se si libera un tavolo."
+                        : " Prova un'altra data o contatta direttamente il ristorante."}
                     </p>
-                    {settings?.phone && (
-                      <a href={`tel:${settings.phone}`} className="mt-4 inline-flex rounded-md border border-terracotta px-4 py-2 text-sm font-medium text-terracotta hover:bg-terracotta hover:text-paper">
-                        📞 Chiama {settings.phone}
-                      </a>
-                    )}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {settings?.waitlist_enabled && (
+                        <button
+                          onClick={() => setShowWaitlist(true)}
+                          className="rounded-md border-2 border-terracotta bg-terracotta px-4 py-2 text-sm font-bold text-paper hover:opacity-90"
+                        >
+                          ⏳ Mettiti in lista d'attesa
+                        </button>
+                      )}
+                      {settings?.phone && (
+                        <a href={`tel:${settings.phone}`} className="inline-flex rounded-md border border-terracotta px-4 py-2 text-sm font-medium text-terracotta hover:bg-terracotta hover:text-paper">
+                          📞 Chiama {settings.phone}
+                        </a>
+                      )}
+                    </div>
                   </div>
                 )}
               </>
