@@ -104,7 +104,9 @@ function CrmPage() {
 
       if (iName < 0) { toast.error("Manca la colonna 'name'"); return; }
 
+      if (!restaurantId) { toast.error("Ristorante non trovato"); return; }
       const records = rows.slice(1).map((r) => ({
+        restaurant_id: restaurantId,
         name: r[iName]?.trim() || "Anonimo",
         phone: iPhone >= 0 ? (r[iPhone]?.trim() || null) : null,
         visit_count: iVisits >= 0 ? Number(r[iVisits]) || 1 : 1,
