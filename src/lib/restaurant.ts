@@ -37,6 +37,12 @@ export type RestaurantSettings = {
   min_age?: number | null;
   good_to_know?: string | null;
   google_maps_url?: string | null;
+  delivery_enabled?: boolean | null;
+  delivery_just_eat_url?: string | null;
+  delivery_deliveroo_url?: string | null;
+  delivery_glovo_url?: string | null;
+  delivery_other_url?: string | null;
+  delivery_other_label?: string | null;
 };
 
 export type RoomZone = {
