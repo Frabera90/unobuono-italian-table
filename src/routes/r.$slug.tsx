@@ -182,6 +182,16 @@ function PublicPage() {
                           {it.price != null && <span className="font-mono text-sm font-bold">€ {Number(it.price).toFixed(2)}</span>}
                         </div>
                         {it.description && <p className="mt-1 text-sm text-ink/70">{it.description}</p>}
+                        {((it.allergen_tags && it.allergen_tags.length > 0) || (it.diet_tags && it.diet_tags.length > 0)) && (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {(it.diet_tags || []).map((d) => (
+                              <span key={`d-${d}`} className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 ring-1 ring-emerald-600/20">{dietBadge(d)}</span>
+                            ))}
+                            {(it.allergen_tags || []).map((a) => (
+                              <span key={`a-${a}`} className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800 ring-1 ring-amber-600/20">{allergenBadge(a)}</span>
+                            ))}
+                          </div>
+                        )}
                         {it.allergens && <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-amber-700">⚠ {it.allergens}</p>}
                       </div>
                       {it.photo_url && <img src={it.photo_url} alt={it.name} loading="lazy" className="h-16 w-16 shrink-0 rounded-lg border border-ink/10 object-cover" />}
