@@ -57,12 +57,14 @@ function QrPage() {
   }, [tables, restaurant, origin]);
 
   function download(canvas: HTMLCanvasElement | null | undefined, filename: string) {
-    if (!canvas) return;
+    if (!canvas) { toast.error("QR non pronto"); return; }
     const url = canvas.toDataURL("image/png");
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
+    document.body.appendChild(a);
     a.click();
+    a.remove();
     toast.success("QR scaricato");
   }
 
