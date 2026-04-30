@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { callAI } from "@/server/ai";
 import { playDing } from "@/lib/sounds";
-import { relTime, getSettings, type RestaurantSettings } from "@/lib/restaurant";
+import { relTime, getSettings, getMyRestaurant, type RestaurantSettings } from "@/lib/restaurant";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/owner/reviews")({
