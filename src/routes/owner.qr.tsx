@@ -57,12 +57,14 @@ function QrPage() {
   }, [tables, restaurant, origin]);
 
   function download(canvas: HTMLCanvasElement | null | undefined, filename: string) {
-    if (!canvas) return;
+    if (!canvas) { toast.error("QR non pronto"); return; }
     const url = canvas.toDataURL("image/png");
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
+    document.body.appendChild(a);
     a.click();
+    a.remove();
     toast.success("QR scaricato");
   }
 
@@ -71,17 +73,26 @@ function QrPage() {
     toast.success("Link copiato");
   }
 
-  function downloadAll() {
+  async function downloadAll() {
     if (!restaurant) return;
-    let count = 0;
-    for (const t of tables) {
-      const canvas = tableCanvases.current.get(t.id);
-      if (canvas) {
-        download(canvas, `qr-${restaurant.slug}-${t.code}.png`);
-        count++;
-      }
+    const items = tables
+      .map((t) => ({ canvas: tableCanvases.current.get(t.id), code: t.code }))
+      .filter((x): x is { canvas: HTMLCanvasElement; code: string } => !!x.canvas);
+    if (items.length === 0) { toast.error("Nessun tavolo da scaricare"); return; }
+    toast.info(`Scarico ${items.length} QR…`);
+    // Sequenza con piccolo delay: alcuni browser bloccano click() multipli sincroni
+    for (let i = 0; i < items.length; i++) {
+      const { canvas, code } = items[i];
+      const url = canvas.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `qr-${restaurant.slug}-${code}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      await new Promise((r) => setTimeout(r, 250));
     }
-    if (count === 0) toast.error("Nessun tavolo da scaricare");
+    toast.success(`${items.length} QR scaricati`);
   }
 
   if (loading) return <div className="p-8 text-sm text-muted-foreground">Caricamento...</div>;

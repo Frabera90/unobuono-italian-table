@@ -63,24 +63,32 @@ function KitchenPage() {
 
   const loadOrders = useCallback(async (rid: string) => {
     const today = isoDate(new Date());
+    // 1) Reservation di oggi del ristorante
+    const { data: todayResvs } = await supabase
+      .from("reservations")
+      .select("id, time, table_id, customer_name")
+      .eq("restaurant_id", rid)
+      .eq("date", today)
+      .neq("status", "cancelled");
+    const todayResvIds = (todayResvs || []).map((r) => r.id);
+
+    // 2) Preorder collegati a quelle reservation + walk-in di oggi senza reservation
+    const orFilter = todayResvIds.length
+      ? `reservation_id.in.(${todayResvIds.join(",")}),and(reservation_id.is.null,created_at.gte.${today})`
+      : `and(reservation_id.is.null,created_at.gte.${today})`;
     const { data: preorders } = await supabase
       .from("preorders")
       .select("id, reservation_id, customer_name, items, course_status, created_at")
       .eq("restaurant_id", rid)
-      .gte("created_at", today)
       .neq("course_status", "served")
+      .or(orFilter)
       .order("created_at");
 
     if (!preorders?.length) { setOrders([]); return; }
 
-    const resvIds = [...new Set(preorders.map((p) => p.reservation_id).filter(Boolean))];
-    const [{ data: resvs }, { data: tbls }] = await Promise.all([
-      resvIds.length
-        ? supabase.from("reservations").select("id, time, table_id").in("id", resvIds as string[])
-        : Promise.resolve({ data: [] }),
-      supabase.from("tables").select("id, code").eq("restaurant_id", rid),
-    ]);
-    const resvMap = new Map((resvs || []).map((r) => [r.id, r]));
+    const { data: tbls } = await supabase
+      .from("tables").select("id, code").eq("restaurant_id", rid);
+    const resvMap = new Map((todayResvs || []).map((r) => [r.id, r]));
     const tableMap = new Map((tbls || []).map((t) => [t.id, t.code]));
 
     setOrders(
@@ -90,7 +98,7 @@ function KitchenPage() {
         return {
           id: p.id,
           reservation_id: p.reservation_id,
-          customer_name: p.customer_name,
+          customer_name: p.customer_name || resv?.customer_name || null,
           items: Array.isArray(p.items) ? (p.items as OrderItem[]) : [],
           course_status: (p as any).course_status ?? "pending",
           created_at: p.created_at ?? "",
@@ -219,13 +227,29 @@ function KitchenPage() {
     );
   }
 
-  // Ordina: awaiting in fondo (cucina deve aspettare conferma cameriere); altrimenti per orario
-  const sorted = [...orders].sort((a, b) => {
-    const aw = a.course_status === "awaiting" ? 1 : 0;
-    const bw = b.course_status === "awaiting" ? 1 : 0;
-    if (aw !== bw) return aw - bw;
-    return (a.reservationTime || a.created_at).localeCompare(b.reservationTime || b.created_at);
-  });
+  // Raggruppa per tavolo (o per reservation se senza tavolo, o per ID preorder se walk-in senza nulla).
+  // Cucina vuole vedere "Tavolo 5" con tutti i piatti, non card separate per ogni round di ordine.
+  const groupsByTable = useMemo(() => {
+    const map = new Map<string, Order[]>();
+    for (const o of orders) {
+      const key = o.tableCode ? `T:${o.tableCode}` : (o.reservation_id ? `R:${o.reservation_id}` : `O:${o.id}`);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(o);
+    }
+    // Ordina i gruppi: awaiting in fondo, poi per orario
+    return Array.from(map.entries())
+      .map(([key, grp]) => ({
+        key,
+        orders: grp.sort((a, b) => a.created_at.localeCompare(b.created_at)),
+        // status del gruppo = se ALMENO uno è non-awaiting allora il gruppo è attivo
+        anyActive: grp.some((g) => g.course_status !== "awaiting"),
+        firstTime: grp[0].reservationTime || grp[0].created_at,
+      }))
+      .sort((a, b) => {
+        if (a.anyActive !== b.anyActive) return a.anyActive ? -1 : 1;
+        return a.firstTime.localeCompare(b.firstTime);
+      });
+  }, [orders]);
 
   const total = orders.length;
 
@@ -236,7 +260,7 @@ function KitchenPage() {
         <div className="flex items-center gap-3">
           {total > 0 && (
             <span className="rounded-full border border-yellow/30 px-2.5 py-0.5 font-mono text-xs text-yellow">
-              {total} comande attive
+              {groupsByTable.length} tavoli · {total} comande
             </span>
           )}
           <span className="font-mono text-xs text-paper/30">
@@ -251,7 +275,7 @@ function KitchenPage() {
         </div>
       </div>
 
-      {sorted.length === 0 ? (
+      {groupsByTable.length === 0 ? (
         <div className="mt-20 text-center">
           <div className="text-6xl">✅</div>
           <p className="mt-4 font-display text-2xl text-paper/40">Cucina libera</p>
@@ -259,10 +283,10 @@ function KitchenPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {sorted.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
+          {groupsByTable.map((g) => (
+            <TableGroupCard
+              key={g.key}
+              orders={g.orders}
               menuCats={menuCats}
               onAdvanceItem={advanceItem}
             />
@@ -273,48 +297,41 @@ function KitchenPage() {
   );
 }
 
-function OrderCard({
-  order,
+// (OrderCard rimosso — sostituito da TableGroupCard + OrderItems sotto)
+
+function TableGroupCard({
+  orders,
   menuCats,
   onAdvanceItem,
 }: {
-  order: Order;
+  orders: Order[];
   menuCats: Map<string, string | null>;
   onAdvanceItem: (orderId: string, itemIndex: number, status: ItemStatus) => void;
 }) {
-  const isAwaiting = order.course_status === "awaiting";
-
-  // Raggruppa items per categoria mantenendo l'indice originale
-  const grouped = useMemo(() => {
-    const groups = new Map<string, { idx: number; item: OrderItem }[]>();
-    order.items.forEach((it, idx) => {
-      const cat = it.category || menuCats.get(it.name) || "Altro";
-      if (!groups.has(cat)) groups.set(cat, []);
-      groups.get(cat)!.push({ idx, item: it });
-    });
-    return Array.from(groups.entries());
-  }, [order.items, menuCats]);
-
-  // Stats per progress
-  const total = order.items.reduce((s, i) => s + (i.qty || 1), 0);
-  const served = order.items.filter((i) => getItemStatus(i) === "served").reduce((s, i) => s + (i.qty || 1), 0);
-  const ready = order.items.filter((i) => getItemStatus(i) === "ready").length;
-  const cooking = order.items.filter((i) => getItemStatus(i) === "cooking").length;
+  const head = orders[0];
+  const multi = orders.length > 1;
+  // Stats aggregate
+  const allItems = orders.flatMap((o) => o.items);
+  const total = allItems.reduce((s, i) => s + (i.qty || 1), 0);
+  const served = allItems.filter((i) => getItemStatus(i) === "served").reduce((s, i) => s + (i.qty || 1), 0);
+  const cooking = allItems.filter((i) => getItemStatus(i) === "cooking").length;
+  const ready = allItems.filter((i) => getItemStatus(i) === "ready").length;
+  const allAwaiting = orders.every((o) => o.course_status === "awaiting");
 
   return (
-    <div className={`rounded-2xl border-2 p-4 ${isAwaiting ? "border-orange-400/50 bg-orange-400/5" : "border-white/15 bg-white/5"}`}>
-      {/* Header */}
+    <div className={`rounded-2xl border-2 p-4 ${allAwaiting ? "border-orange-400/50 bg-orange-400/5" : "border-white/15 bg-white/5"}`}>
       <div className="mb-3 flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          {order.tableCode && (
-            <div className="font-display text-4xl leading-none text-yellow">{order.tableCode}</div>
+          {head.tableCode && (
+            <div className="font-display text-4xl leading-none text-yellow">{head.tableCode}</div>
           )}
           <div className="mt-1 truncate text-sm text-paper/70">
-            {order.customer_name || "Cliente"}
-            {order.reservationTime && ` · ${order.reservationTime}`}
+            {head.customer_name || "Cliente"}
+            {head.reservationTime && ` · ${head.reservationTime}`}
+            {multi && <span className="ml-2 text-xs text-paper/40">· {orders.length} round</span>}
           </div>
         </div>
-        {isAwaiting ? (
+        {allAwaiting ? (
           <span className="shrink-0 rounded-lg border border-orange-400/40 bg-orange-400/10 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-orange-300">
             ⏸ Attesa cameriere
           </span>
@@ -332,47 +349,80 @@ function OrderCard({
         )}
       </div>
 
-      {/* Items grouped by category */}
       <div className="space-y-3">
-        {grouped.map(([cat, entries]) => (
-          <div key={cat}>
-            <div className="mb-1.5 flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-paper/40">{cat}</span>
-              <span className="h-px flex-1 bg-white/10" />
-            </div>
-            <ul className="space-y-1.5">
-              {entries.map(({ idx, item }) => {
-                const status = getItemStatus(item);
-                const action = ITEM_NEXT[status];
-                return (
-                  <li
-                    key={idx}
-                    className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 ${ITEM_BADGE[status]}`}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-mono text-xs">{item.qty}×</span>
-                        <span className="text-sm font-medium">{item.name}</span>
-                      </div>
-                      {item.notes && (
-                        <div className="mt-0.5 text-xs italic text-paper/50">📝 {item.notes}</div>
-                      )}
-                    </div>
-                    {!isAwaiting && action && (
-                      <button
-                        onClick={() => onAdvanceItem(order.id, idx, status)}
-                        className={`shrink-0 rounded-md px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider ${action.cls}`}
-                      >
-                        {action.label}
-                      </button>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+        {orders.map((o, i) => (
+          <div key={o.id}>
+            {multi && (
+              <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-paper/40">
+                Round {i + 1}
+                {o.course_status === "awaiting" && " · in attesa"}
+              </div>
+            )}
+            <OrderItems order={o} menuCats={menuCats} onAdvanceItem={onAdvanceItem} />
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function OrderItems({
+  order,
+  menuCats,
+  onAdvanceItem,
+}: {
+  order: Order;
+  menuCats: Map<string, string | null>;
+  onAdvanceItem: (orderId: string, itemIndex: number, status: ItemStatus) => void;
+}) {
+  const isAwaiting = order.course_status === "awaiting";
+  const grouped = useMemo(() => {
+    const groups = new Map<string, { idx: number; item: OrderItem }[]>();
+    order.items.forEach((it, idx) => {
+      const cat = it.category || menuCats.get(it.name) || "Altro";
+      if (!groups.has(cat)) groups.set(cat, []);
+      groups.get(cat)!.push({ idx, item: it });
+    });
+    return Array.from(groups.entries());
+  }, [order.items, menuCats]);
+
+  return (
+    <div className="space-y-3">
+      {grouped.map(([cat, entries]) => (
+        <div key={cat}>
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-paper/40">{cat}</span>
+            <span className="h-px flex-1 bg-white/10" />
+          </div>
+          <ul className="space-y-1.5">
+            {entries.map(({ idx, item }) => {
+              const status = getItemStatus(item);
+              const action = ITEM_NEXT[status];
+              return (
+                <li key={idx} className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 ${ITEM_BADGE[status]}`}>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-mono text-xs">{item.qty}×</span>
+                      <span className="text-sm font-medium">{item.name}</span>
+                    </div>
+                    {item.notes && (
+                      <div className="mt-0.5 text-xs italic text-paper/50">📝 {item.notes}</div>
+                    )}
+                  </div>
+                  {!isAwaiting && action && (
+                    <button
+                      onClick={() => onAdvanceItem(order.id, idx, status)}
+                      className={`shrink-0 rounded-md px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider ${action.cls}`}
+                    >
+                      {action.label}
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 }
