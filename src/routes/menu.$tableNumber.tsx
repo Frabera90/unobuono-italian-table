@@ -62,28 +62,63 @@ function MenuPage() {
       setSettings(s as RestaurantSettings | null);
       setItems((m || []) as MenuItem[]);
 
-      // Find an active reservation today on this table
+      // Find an active reservation today
       const today = new Date().toISOString().slice(0, 10);
-      let resQ = supabase
-        .from("reservations")
-        .select("id,customer_name,party_size,date,time,arrived")
-        .eq("restaurant_id", rid)
-        .eq("date", today)
-        .neq("status", "cancelled")
-        .order("time");
-      if (tid) resQ = resQ.eq("table_id", tid);
-      const { data: rs } = await resQ;
-      // pick the closest in time, but only if within ±3h (altrimenti walk-in)
-      if (rs && rs.length) {
+      const bookingCode = params.get("bc");
+
+      // 1) Match diretto via booking_code (link in email/SMS)
+      let matched: ActiveReservation | null = null;
+      if (bookingCode) {
+        const { data: byCode } = await supabase
+          .from("reservations")
+          .select("id,customer_name,party_size,date,time,arrived")
+          .eq("restaurant_id", rid)
+          .eq("booking_code", bookingCode.toUpperCase())
+          .neq("status", "cancelled")
+          .maybeSingle();
+        if (byCode) matched = byCode as ActiveReservation;
+      }
+
+      // 2) Match via table_id se la prenotazione ha tavolo assegnato
+      if (!matched && tid) {
+        const { data: byTable } = await supabase
+          .from("reservations")
+          .select("id,customer_name,party_size,date,time,arrived")
+          .eq("restaurant_id", rid)
+          .eq("date", today)
+          .eq("table_id", tid)
+          .neq("status", "cancelled")
+          .order("time");
         const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
-        const sorted = [...rs]
+        const best = (byTable || [])
           .map((r) => ({ r, diff: Math.abs(toMin(r.time) - nowMin) }))
+          .sort((a, b) => a.diff - b.diff)[0];
+        if (best && best.diff <= 180) matched = best.r as ActiveReservation;
+      }
+
+      // 3) Fallback: prenotazione del ristorante più vicina nel tempo (±90 min)
+      // Copre il caso in cui table_id non è assegnato (la maggior parte delle prenotazioni online)
+      if (!matched) {
+        const { data: anyRes } = await supabase
+          .from("reservations")
+          .select("id,customer_name,party_size,date,time,arrived")
+          .eq("restaurant_id", rid)
+          .eq("date", today)
+          .neq("status", "cancelled")
+          .order("time");
+        const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+        const candidates = (anyRes || [])
+          .map((r) => ({ r, diff: Math.abs(toMin(r.time) - nowMin) }))
+          .filter((c) => c.diff <= 90)
           .sort((a, b) => a.diff - b.diff);
-        const best = sorted[0];
-        if (best && best.diff <= 180) {
-          setActiveRes(best.r as ActiveReservation);
+        // Solo se c'è UNA sola prenotazione vicina, la mostriamo automaticamente
+        // (evita di mostrare a Mario la prenotazione di Luigi se entrambi sono lì)
+        if (candidates.length === 1) {
+          matched = candidates[0].r as ActiveReservation;
         }
       }
+
+      if (matched) setActiveRes(matched);
 
       const ch = supabase
         .channel("menu-public-" + rid)
