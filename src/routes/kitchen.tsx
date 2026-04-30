@@ -400,3 +400,131 @@ function OrderCard({
     </div>
   );
 }
+
+function TableGroupCard({
+  orders,
+  menuCats,
+  onAdvanceItem,
+}: {
+  orders: Order[];
+  menuCats: Map<string, string | null>;
+  onAdvanceItem: (orderId: string, itemIndex: number, status: ItemStatus) => void;
+}) {
+  const head = orders[0];
+  const multi = orders.length > 1;
+  // Stats aggregate
+  const allItems = orders.flatMap((o) => o.items);
+  const total = allItems.reduce((s, i) => s + (i.qty || 1), 0);
+  const served = allItems.filter((i) => getItemStatus(i) === "served").reduce((s, i) => s + (i.qty || 1), 0);
+  const cooking = allItems.filter((i) => getItemStatus(i) === "cooking").length;
+  const ready = allItems.filter((i) => getItemStatus(i) === "ready").length;
+  const allAwaiting = orders.every((o) => o.course_status === "awaiting");
+
+  return (
+    <div className={`rounded-2xl border-2 p-4 ${allAwaiting ? "border-orange-400/50 bg-orange-400/5" : "border-white/15 bg-white/5"}`}>
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          {head.tableCode && (
+            <div className="font-display text-4xl leading-none text-yellow">{head.tableCode}</div>
+          )}
+          <div className="mt-1 truncate text-sm text-paper/70">
+            {head.customer_name || "Cliente"}
+            {head.reservationTime && ` · ${head.reservationTime}`}
+            {multi && <span className="ml-2 text-xs text-paper/40">· {orders.length} round</span>}
+          </div>
+        </div>
+        {allAwaiting ? (
+          <span className="shrink-0 rounded-lg border border-orange-400/40 bg-orange-400/10 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-orange-300">
+            ⏸ Attesa cameriere
+          </span>
+        ) : (
+          <div className="shrink-0 text-right text-xs">
+            <div className="font-mono text-paper/50">{served}/{total}</div>
+            {(cooking > 0 || ready > 0) && (
+              <div className="mt-0.5 text-[10px]">
+                {cooking > 0 && <span className="text-yellow">{cooking}🔥</span>}
+                {cooking > 0 && ready > 0 && " "}
+                {ready > 0 && <span className="text-emerald-400">{ready}✓</span>}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        {orders.map((o, i) => (
+          <div key={o.id}>
+            {multi && (
+              <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-paper/40">
+                Round {i + 1}
+                {o.course_status === "awaiting" && " · in attesa"}
+              </div>
+            )}
+            <OrderItems order={o} menuCats={menuCats} onAdvanceItem={onAdvanceItem} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OrderItems({
+  order,
+  menuCats,
+  onAdvanceItem,
+}: {
+  order: Order;
+  menuCats: Map<string, string | null>;
+  onAdvanceItem: (orderId: string, itemIndex: number, status: ItemStatus) => void;
+}) {
+  const isAwaiting = order.course_status === "awaiting";
+  const grouped = useMemo(() => {
+    const groups = new Map<string, { idx: number; item: OrderItem }[]>();
+    order.items.forEach((it, idx) => {
+      const cat = it.category || menuCats.get(it.name) || "Altro";
+      if (!groups.has(cat)) groups.set(cat, []);
+      groups.get(cat)!.push({ idx, item: it });
+    });
+    return Array.from(groups.entries());
+  }, [order.items, menuCats]);
+
+  return (
+    <div className="space-y-3">
+      {grouped.map(([cat, entries]) => (
+        <div key={cat}>
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-paper/40">{cat}</span>
+            <span className="h-px flex-1 bg-white/10" />
+          </div>
+          <ul className="space-y-1.5">
+            {entries.map(({ idx, item }) => {
+              const status = getItemStatus(item);
+              const action = ITEM_NEXT[status];
+              return (
+                <li key={idx} className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 ${ITEM_BADGE[status]}`}>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-mono text-xs">{item.qty}×</span>
+                      <span className="text-sm font-medium">{item.name}</span>
+                    </div>
+                    {item.notes && (
+                      <div className="mt-0.5 text-xs italic text-paper/50">📝 {item.notes}</div>
+                    )}
+                  </div>
+                  {!isAwaiting && action && (
+                    <button
+                      onClick={() => onAdvanceItem(order.id, idx, status)}
+                      className={`shrink-0 rounded-md px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider ${action.cls}`}
+                    >
+                      {action.label}
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
