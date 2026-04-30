@@ -735,11 +735,93 @@ function BookingPage() {
         )}
       </div>
 
+      {showWaitlist && (
+        <WaitlistDialog
+          restaurantId={resolvedRestaurantId}
+          date={date}
+          partySize={partySize}
+          preferredTime={time}
+          onClose={() => setShowWaitlist(false)}
+          done={waitlistDone}
+          setDone={setWaitlistDone}
+          busy={waitlistBusy}
+          setBusy={setWaitlistBusy}
+        />
+      )}
+
       <style>{`
         .input { width: 100%; border-radius: 0.5rem; border: 1px solid var(--color-border); background: var(--color-card); padding: 0.7rem 0.9rem; font-family: var(--font-body); }
         .input:focus { outline: 2px solid var(--color-terracotta); outline-offset: -1px; }
       `}</style>
     </main>
+  );
+}
+
+function WaitlistDialog({
+  restaurantId, date, partySize, preferredTime, onClose, done, setDone, busy, setBusy,
+}: {
+  restaurantId: string | null;
+  date: string;
+  partySize: number;
+  preferredTime: string | null;
+  onClose: () => void;
+  done: boolean;
+  setDone: (v: boolean) => void;
+  busy: boolean;
+  setBusy: (v: boolean) => void;
+}) {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("+39 ");
+
+  async function submit() {
+    if (!restaurantId) return;
+    if (name.trim().length < 2) { toast.error("Inserisci il tuo nome"); return; }
+    if (phone.replace(/\D/g, "").length < 8) { toast.error("Numero di telefono non valido"); return; }
+    setBusy(true);
+    const { error } = await supabase.from("waitlist").insert({
+      restaurant_id: restaurantId,
+      customer_name: name.trim(),
+      customer_phone: phone.trim(),
+      party_size: partySize,
+      date,
+      preferred_time: preferredTime,
+      status: "waiting",
+    });
+    setBusy(false);
+    if (error) { toast.error("Errore: " + error.message); return; }
+    setDone(true);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/60 px-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-2xl border-2 border-ink bg-paper p-6 shadow-[6px_6px_0_0_hsl(var(--ink))]" onClick={(e) => e.stopPropagation()}>
+        {done ? (
+          <>
+            <div className="text-center">
+              <div className="text-5xl">✅</div>
+              <h2 className="mt-3 font-display text-2xl text-terracotta">Sei in lista!</h2>
+              <p className="mt-2 text-sm text-muted-foreground">Ti contatteremo se si libera un tavolo per il {fmtDate(date)}.</p>
+            </div>
+            <button onClick={onClose} className="mt-5 w-full rounded-md border-2 border-ink bg-yellow py-2.5 text-sm font-bold uppercase tracking-wider hover:bg-yellow/80">Chiudi</button>
+          </>
+        ) : (
+          <>
+            <h2 className="font-display text-2xl text-terracotta">Lista d'attesa</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{fmtDate(date)} · {partySize} {partySize === 1 ? "persona" : "persone"}</p>
+            <div className="mt-4 space-y-3">
+              <input className="input" placeholder="Nome e cognome" value={name} onChange={(e) => setName(e.target.value)} />
+              <input className="input" placeholder="Telefono" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            </div>
+            <div className="mt-5 flex gap-2">
+              <button onClick={onClose} className="flex-1 rounded-md border border-border bg-card py-2.5 text-sm">Annulla</button>
+              <button onClick={submit} disabled={busy} className="flex-1 rounded-md border-2 border-ink bg-terracotta py-2.5 text-sm font-bold text-paper disabled:opacity-50">
+                {busy ? "Invio..." : "Iscrivimi"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
