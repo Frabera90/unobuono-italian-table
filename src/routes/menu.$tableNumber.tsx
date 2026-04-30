@@ -425,8 +425,18 @@ function PreorderOverlay({ items, restaurantId, reservationId, tableNumber, defa
                   <div className="text-xs text-muted-foreground">Totale</div>
                   <div className="font-display text-2xl text-terracotta">€ {total.toFixed(2).replace(".", ",")}</div>
                 </div>
-                <button onClick={submit} disabled={busy || !name.trim() || total === 0} className="rounded-md bg-terracotta px-6 py-3 font-medium text-paper hover:bg-terracotta-dark disabled:opacity-40">{busy ? "Invio..." : (reservationId ? "Manda pre-ordine" : "Manda ordine")}</button>
+                <button
+                  onClick={submit}
+                  disabled={busy || !name.trim() || total === 0}
+                  title={!name.trim() ? "Inserisci il tuo nome" : total === 0 ? "Aggiungi almeno un piatto" : ""}
+                  className="rounded-md bg-terracotta px-6 py-3 font-medium text-paper hover:bg-terracotta-dark disabled:opacity-40"
+                >{busy ? "Invio..." : (reservationId ? "Manda pre-ordine" : "Manda ordine")}</button>
               </div>
+              {(!name.trim() || total === 0) && (
+                <p className="mt-2 text-center text-[11px] text-muted-foreground">
+                  {!name.trim() ? "💬 Inserisci il tuo nome per inviare l'ordine" : "🛒 Aggiungi almeno un piatto per inviare l'ordine"}
+                </p>
+              )}
             </div>
           </div>
         </>
