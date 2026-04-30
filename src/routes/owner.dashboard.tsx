@@ -192,52 +192,60 @@ function DashboardPage() {
   }
 
   useEffect(() => {
-    loadStats();
-    loadSala();
-    supabase.from("menu_items").select("*").order("category").order("sort_order")
-      .then(({ data }) => setItems((data || []) as MenuItem[]));
+    let cleanup: (() => void) | undefined;
+    void (async () => {
+      const restaurant = await getMyRestaurant();
+      if (!restaurant) return;
+      setRestId(restaurant.id);
+      const rid = restaurant.id;
 
-    const push = (a: Activity) => setActivity((prev) => [a, ...prev].slice(0, 20));
+      await loadStats();
+      await loadSala();
+      const { data: menuData } = await supabase.from("menu_items").select("*").eq("restaurant_id", rid).order("category").order("sort_order");
+      setItems((menuData || []) as MenuItem[]);
 
-    const uid = Math.random().toString(36).slice(2, 8);
+      const push = (a: Activity) => setActivity((prev) => [a, ...prev].slice(0, 20));
+      const uid = Math.random().toString(36).slice(2, 8);
 
-    const channels = [
-      supabase.channel(`d-resv-${uid}`).on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, (p) => {
-        const r = (p.new || p.old) as any;
-        if (p.eventType === "INSERT") {
-          push({ id: r.id, ts: r.created_at, icon: "📅", text: `Nuova prenotazione: ${r.customer_name} per ${r.party_size} alle ${r.time}` });
-        } else if (p.eventType === "UPDATE" && r.status === "cancelled") {
-          push({ id: r.id + "c", ts: new Date().toISOString(), icon: "❌", text: `Disdetta: ${r.customer_name} (${r.party_size}p alle ${r.time})` });
-        }
-        loadStats();
-        loadSala();
-      }).subscribe(),
-      supabase.channel(`d-pre-${uid}`).on("postgres_changes", { event: "*", schema: "public", table: "preorders" }, (p) => {
-        const r = (p.new || p.old) as any;
-        if (p.eventType === "INSERT") {
-          const itms = Array.isArray(r.items) ? r.items.slice(0, 2).map((i: any) => `${i.qty}× ${i.name}`).join(", ") : "";
-          push({ id: r.id, ts: r.created_at, icon: "🍽️", text: `Ordine da ${r.customer_name}: ${itms}…` });
-        } else if (p.eventType === "UPDATE" && r.course_status === "ready") {
-          push({ id: r.id + "r", ts: new Date().toISOString(), icon: "✅", text: `Pronto — ${r.customer_name}` });
-        } else if (p.eventType === "UPDATE" && r.status === "bill_requested") {
-          push({ id: r.id + "b", ts: new Date().toISOString(), icon: "💳", text: `Conto richiesto — ${r.customer_name}` });
-          toast("💳 Conto richiesto!", { description: r.customer_name || "Un cliente", duration: 10000 });
-          playDing();
-        }
-        loadStats();
-        loadSala();
-      }).subscribe(),
-      supabase.channel(`d-call-${uid}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "waiter_calls" }, (p) => {
-        const r = p.new as any;
-        push({ id: r.id, ts: r.created_at, icon: "🔔", text: `Tavolo ${r.table_number}: ${r.message}` });
-      }).subscribe(),
-      supabase.channel(`d-menu-${uid}`).on("postgres_changes", { event: "UPDATE", schema: "public", table: "menu_items" }, (p) => {
-        const r = p.new as any;
-        push({ id: r.id + r.updated_at, ts: r.updated_at, icon: "📋", text: `Menu aggiornato: ${r.name}` });
-        setItems((prev) => prev.map((x) => x.id === r.id ? r : x));
-      }).subscribe(),
-    ];
-    return () => { channels.forEach((c) => supabase.removeChannel(c)); };
+      const channels = [
+        supabase.channel(`d-resv-${uid}`).on("postgres_changes", { event: "*", schema: "public", table: "reservations", filter: `restaurant_id=eq.${rid}` }, (p) => {
+          const r = (p.new || p.old) as any;
+          if (p.eventType === "INSERT") {
+            push({ id: r.id, ts: r.created_at, icon: "📅", text: `Nuova prenotazione: ${r.customer_name} per ${r.party_size} alle ${r.time}` });
+          } else if (p.eventType === "UPDATE" && r.status === "cancelled") {
+            push({ id: r.id + "c", ts: new Date().toISOString(), icon: "❌", text: `Disdetta: ${r.customer_name} (${r.party_size}p alle ${r.time})` });
+          }
+          loadStats();
+          loadSala();
+        }).subscribe(),
+        supabase.channel(`d-pre-${uid}`).on("postgres_changes", { event: "*", schema: "public", table: "preorders", filter: `restaurant_id=eq.${rid}` }, (p) => {
+          const r = (p.new || p.old) as any;
+          if (p.eventType === "INSERT") {
+            const itms = Array.isArray(r.items) ? r.items.slice(0, 2).map((i: any) => `${i.qty}× ${i.name}`).join(", ") : "";
+            push({ id: r.id, ts: r.created_at, icon: "🍽️", text: `Ordine da ${r.customer_name}: ${itms}…` });
+          } else if (p.eventType === "UPDATE" && r.course_status === "ready") {
+            push({ id: r.id + "r", ts: new Date().toISOString(), icon: "✅", text: `Pronto — ${r.customer_name}` });
+          } else if (p.eventType === "UPDATE" && r.status === "bill_requested") {
+            push({ id: r.id + "b", ts: new Date().toISOString(), icon: "💳", text: `Conto richiesto — ${r.customer_name}` });
+            toast("💳 Conto richiesto!", { description: r.customer_name || "Un cliente", duration: 10000 });
+            playDing();
+          }
+          loadStats();
+          loadSala();
+        }).subscribe(),
+        supabase.channel(`d-call-${uid}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "waiter_calls", filter: `restaurant_id=eq.${rid}` }, (p) => {
+          const r = p.new as any;
+          push({ id: r.id, ts: r.created_at, icon: "🔔", text: `Tavolo ${r.table_number}: ${r.message}` });
+        }).subscribe(),
+        supabase.channel(`d-menu-${uid}`).on("postgres_changes", { event: "UPDATE", schema: "public", table: "menu_items", filter: `restaurant_id=eq.${rid}` }, (p) => {
+          const r = p.new as any;
+          push({ id: r.id + r.updated_at, ts: r.updated_at, icon: "📋", text: `Menu aggiornato: ${r.name}` });
+          setItems((prev) => prev.map((x) => x.id === r.id ? r : x));
+        }).subscribe(),
+      ];
+      cleanup = () => { channels.forEach((c) => supabase.removeChannel(c)); };
+    })();
+    return () => { cleanup?.(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [today]);
 
