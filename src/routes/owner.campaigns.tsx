@@ -98,14 +98,21 @@ function CampaignsPage() {
   const [generating, setGenerating] = useState(false);
   const [sendingList, setSendingList] = useState<{ clients: Client[]; message: string; campaignName: string } | null>(null);
 
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
+
   useEffect(() => {
     void load();
   }, []);
 
   async function load() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: rest } = await supabase.from("restaurants").select("id").eq("owner_id", user.id).maybeSingle();
+    if (!rest) return;
+    setRestaurantId(rest.id);
     const [c, k] = await Promise.all([
-      supabase.from("clients").select("*").order("visit_count", { ascending: false }),
-      supabase.from("campaigns").select("*").order("created_at", { ascending: false }).limit(20),
+      supabase.from("clients").select("*").eq("restaurant_id", rest.id).order("visit_count", { ascending: false }),
+      supabase.from("campaigns").select("*").eq("restaurant_id", rest.id).order("created_at", { ascending: false }).limit(20),
     ]);
     setClients((c.data || []) as Client[]);
     setCampaigns((k.data || []) as Campaign[]);
