@@ -63,24 +63,32 @@ function KitchenPage() {
 
   const loadOrders = useCallback(async (rid: string) => {
     const today = isoDate(new Date());
+    // 1) Reservation di oggi del ristorante
+    const { data: todayResvs } = await supabase
+      .from("reservations")
+      .select("id, time, table_id, customer_name")
+      .eq("restaurant_id", rid)
+      .eq("date", today)
+      .neq("status", "cancelled");
+    const todayResvIds = (todayResvs || []).map((r) => r.id);
+
+    // 2) Preorder collegati a quelle reservation + walk-in di oggi senza reservation
+    const orFilter = todayResvIds.length
+      ? `reservation_id.in.(${todayResvIds.join(",")}),and(reservation_id.is.null,created_at.gte.${today})`
+      : `and(reservation_id.is.null,created_at.gte.${today})`;
     const { data: preorders } = await supabase
       .from("preorders")
       .select("id, reservation_id, customer_name, items, course_status, created_at")
       .eq("restaurant_id", rid)
-      .gte("created_at", today)
       .neq("course_status", "served")
+      .or(orFilter)
       .order("created_at");
 
     if (!preorders?.length) { setOrders([]); return; }
 
-    const resvIds = [...new Set(preorders.map((p) => p.reservation_id).filter(Boolean))];
-    const [{ data: resvs }, { data: tbls }] = await Promise.all([
-      resvIds.length
-        ? supabase.from("reservations").select("id, time, table_id").in("id", resvIds as string[])
-        : Promise.resolve({ data: [] }),
-      supabase.from("tables").select("id, code").eq("restaurant_id", rid),
-    ]);
-    const resvMap = new Map((resvs || []).map((r) => [r.id, r]));
+    const { data: tbls } = await supabase
+      .from("tables").select("id, code").eq("restaurant_id", rid);
+    const resvMap = new Map((todayResvs || []).map((r) => [r.id, r]));
     const tableMap = new Map((tbls || []).map((t) => [t.id, t.code]));
 
     setOrders(
@@ -90,7 +98,7 @@ function KitchenPage() {
         return {
           id: p.id,
           reservation_id: p.reservation_id,
-          customer_name: p.customer_name,
+          customer_name: p.customer_name || resv?.customer_name || null,
           items: Array.isArray(p.items) ? (p.items as OrderItem[]) : [],
           course_status: (p as any).course_status ?? "pending",
           created_at: p.created_at ?? "",
