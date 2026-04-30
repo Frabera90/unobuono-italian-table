@@ -24,14 +24,22 @@ function ReviewsPage() {
   const [tone, setTone] = useState<(typeof TONES)[number]>("Caloroso");
 
   useEffect(() => {
-    getSettings().then(setSettings);
-    supabase.from("reviews").select("*").order("date", { ascending: false }).then(({ data }) => setList((data || []) as Review[]));
-    const ch = supabase.channel("o-rev").on("postgres_changes", { event: "INSERT", schema: "public", table: "reviews" }, (p) => {
-      setList((prev) => [p.new as Review, ...prev]);
-      try { playDing(); setTimeout(playDing, 250); } catch {}
-      toast.success(`⭐ Nuova recensione ${(p.new as any).rating}★`);
-    }).subscribe();
-    return () => { supabase.removeChannel(ch); };
+    void (async () => {
+      const [s, r] = await Promise.all([getSettings(), getMyRestaurant()]);
+      setSettings(s);
+      if (!r) return;
+      const { data } = await supabase.from("reviews").select("*").eq("restaurant_id", r.id).order("date", { ascending: false });
+      setList((data || []) as Review[]);
+      const ch = supabase
+        .channel("o-rev-" + r.id)
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "reviews", filter: `restaurant_id=eq.${r.id}` }, (p) => {
+          setList((prev) => [p.new as Review, ...prev]);
+          try { playDing(); setTimeout(playDing, 250); } catch {}
+          toast.success(`⭐ Nuova recensione ${(p.new as any).rating}★`);
+        })
+        .subscribe();
+      return () => { supabase.removeChannel(ch); };
+    })();
   }, []);
 
   async function generate(rev: Review) {
