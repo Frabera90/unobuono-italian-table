@@ -506,6 +506,12 @@ export type Database = {
           avg_table_duration: number | null
           bio: string | null
           cover_photo_url: string | null
+          delivery_deliveroo_url: string | null
+          delivery_enabled: boolean | null
+          delivery_glovo_url: string | null
+          delivery_just_eat_url: string | null
+          delivery_other_label: string | null
+          delivery_other_url: string | null
           facebook_handle: string | null
           followup_enabled: boolean | null
           good_to_know: string | null
@@ -539,6 +545,12 @@ export type Database = {
           avg_table_duration?: number | null
           bio?: string | null
           cover_photo_url?: string | null
+          delivery_deliveroo_url?: string | null
+          delivery_enabled?: boolean | null
+          delivery_glovo_url?: string | null
+          delivery_just_eat_url?: string | null
+          delivery_other_label?: string | null
+          delivery_other_url?: string | null
           facebook_handle?: string | null
           followup_enabled?: boolean | null
           good_to_know?: string | null
@@ -572,6 +584,12 @@ export type Database = {
           avg_table_duration?: number | null
           bio?: string | null
           cover_photo_url?: string | null
+          delivery_deliveroo_url?: string | null
+          delivery_enabled?: boolean | null
+          delivery_glovo_url?: string | null
+          delivery_just_eat_url?: string | null
+          delivery_other_label?: string | null
+          delivery_other_url?: string | null
           facebook_handle?: string | null
           followup_enabled?: boolean | null
           good_to_know?: string | null
