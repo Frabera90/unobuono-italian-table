@@ -60,8 +60,15 @@ function CrmPage() {
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
+
   async function load() {
-    const { data } = await supabase.from("clients").select("*").order("visit_count", { ascending: false });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: rest } = await supabase.from("restaurants").select("id").eq("owner_id", user.id).maybeSingle();
+    if (!rest) return;
+    setRestaurantId(rest.id);
+    const { data } = await supabase.from("clients").select("*").eq("restaurant_id", rest.id).order("visit_count", { ascending: false });
     setClients((data || []) as Client[]);
   }
 
