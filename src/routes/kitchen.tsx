@@ -227,13 +227,29 @@ function KitchenPage() {
     );
   }
 
-  // Ordina: awaiting in fondo (cucina deve aspettare conferma cameriere); altrimenti per orario
-  const sorted = [...orders].sort((a, b) => {
-    const aw = a.course_status === "awaiting" ? 1 : 0;
-    const bw = b.course_status === "awaiting" ? 1 : 0;
-    if (aw !== bw) return aw - bw;
-    return (a.reservationTime || a.created_at).localeCompare(b.reservationTime || b.created_at);
-  });
+  // Raggruppa per tavolo (o per reservation se senza tavolo, o per ID preorder se walk-in senza nulla).
+  // Cucina vuole vedere "Tavolo 5" con tutti i piatti, non card separate per ogni round di ordine.
+  const groupsByTable = useMemo(() => {
+    const map = new Map<string, Order[]>();
+    for (const o of orders) {
+      const key = o.tableCode ? `T:${o.tableCode}` : (o.reservation_id ? `R:${o.reservation_id}` : `O:${o.id}`);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(o);
+    }
+    // Ordina i gruppi: awaiting in fondo, poi per orario
+    return Array.from(map.entries())
+      .map(([key, grp]) => ({
+        key,
+        orders: grp.sort((a, b) => a.created_at.localeCompare(b.created_at)),
+        // status del gruppo = se ALMENO uno è non-awaiting allora il gruppo è attivo
+        anyActive: grp.some((g) => g.course_status !== "awaiting"),
+        firstTime: grp[0].reservationTime || grp[0].created_at,
+      }))
+      .sort((a, b) => {
+        if (a.anyActive !== b.anyActive) return a.anyActive ? -1 : 1;
+        return a.firstTime.localeCompare(b.firstTime);
+      });
+  }, [orders]);
 
   const total = orders.length;
 
@@ -244,7 +260,7 @@ function KitchenPage() {
         <div className="flex items-center gap-3">
           {total > 0 && (
             <span className="rounded-full border border-yellow/30 px-2.5 py-0.5 font-mono text-xs text-yellow">
-              {total} comande attive
+              {groupsByTable.length} tavoli · {total} comande
             </span>
           )}
           <span className="font-mono text-xs text-paper/30">
@@ -259,7 +275,7 @@ function KitchenPage() {
         </div>
       </div>
 
-      {sorted.length === 0 ? (
+      {groupsByTable.length === 0 ? (
         <div className="mt-20 text-center">
           <div className="text-6xl">✅</div>
           <p className="mt-4 font-display text-2xl text-paper/40">Cucina libera</p>
@@ -267,10 +283,10 @@ function KitchenPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {sorted.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
+          {groupsByTable.map((g) => (
+            <TableGroupCard
+              key={g.key}
+              orders={g.orders}
               menuCats={menuCats}
               onAdvanceItem={advanceItem}
             />
