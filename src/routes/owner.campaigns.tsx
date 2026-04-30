@@ -144,7 +144,9 @@ function CampaignsPage() {
     if (!confirm(`Preparare "${name}" per ${recipients.length} clienti via ${channel.toUpperCase()}?`)) return;
     setSending(true);
     try {
+      if (!restaurantId) { toast.error("Ristorante non trovato"); setSending(false); return; }
       const { data, error } = await supabase.from("campaigns").insert({
+        restaurant_id: restaurantId,
         name,
         channel,
         message,
