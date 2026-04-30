@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSettingsBySlug, type RestaurantSettings, type MenuItem, type Restaurant } from "@/lib/restaurant";
+import { allergenBadge, dietBadge } from "@/lib/allergens";
 
 export const Route = createFileRoute("/r/$slug")({
   head: ({ loaderData }) => {
