@@ -77,10 +77,11 @@ function DashboardPage() {
 
   async function loadStats() {
     const restaurant = await getMyRestaurant();
-    if (restaurant && !restId) setRestId(restaurant.id);
+    if (!restaurant) return;
+    if (!restId) setRestId(restaurant.id);
     const [r, p] = await Promise.all([
-      supabase.from("reservations").select("id", { count: "exact", head: true }).eq("date", today).neq("status", "cancelled"),
-      supabase.from("preorders").select("id", { count: "exact", head: true }).gte("created_at", today + "T00:00:00").neq("status", "cancelled"),
+      supabase.from("reservations").select("id", { count: "exact", head: true }).eq("restaurant_id", restaurant.id).eq("date", today).neq("status", "cancelled"),
+      supabase.from("preorders").select("id", { count: "exact", head: true }).eq("restaurant_id", restaurant.id).gte("created_at", today + "T00:00:00").neq("status", "cancelled"),
     ]);
     setStats({ resv: r.count || 0, preo: p.count || 0 });
   }
