@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { type MenuItem, type RestaurantSettings } from "@/lib/restaurant";
+import { allergenBadge, dietBadge } from "@/lib/allergens";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/menu/$tableNumber")({
@@ -233,6 +234,12 @@ function MenuPage() {
                       </div>
                       {it.description && <p className="mt-1 text-sm text-ink/70">{it.description}</p>}
                       <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-bold uppercase tracking-wider">
+                        {(it.diet_tags || []).map((d) => (
+                          <span key={`d-${d}`} className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-800">{dietBadge(d)}</span>
+                        ))}
+                        {(it.allergen_tags || []).map((a) => (
+                          <span key={`a-${a}`} className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-900">{allergenBadge(a)}</span>
+                        ))}
                         {it.allergens && <span className="rounded-full bg-cream-dark px-2 py-0.5 text-ink/70">{it.allergens}</span>}
                         {!it.available && <span className="rounded-full bg-destructive px-2 py-0.5 text-paper">Non disponibile stasera</span>}
                         {flash && <span className="rounded-full bg-ink px-2 py-0.5 text-yellow">⚡ aggiornato</span>}
