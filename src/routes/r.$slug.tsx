@@ -187,3 +187,32 @@ function PublicPage() {
     </div>
   );
 }
+
+const DAY_LABELS: Record<string, string> = {
+  mon: "Lun", tue: "Mar", wed: "Mer", thu: "Gio", fri: "Ven", sat: "Sab", sun: "Dom",
+  monday: "Lun", tuesday: "Mar", wednesday: "Mer", thursday: "Gio", friday: "Ven", saturday: "Sab", sunday: "Dom",
+  lun: "Lun", mar: "Mar", mer: "Mer", gio: "Gio", ven: "Ven", sab: "Sab", dom: "Dom",
+};
+const DAY_ORDER = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+
+function OpeningHours({ hours }: { hours: Record<string, string> | null | undefined }) {
+  if (!hours || typeof hours !== "object" || Object.keys(hours).length === 0) {
+    return <p className="mt-1 text-ink/40">—</p>;
+  }
+  // ordina per giorno se possibile
+  const entries = Object.entries(hours).sort(([a], [b]) => {
+    const ai = DAY_ORDER.indexOf(a.toLowerCase().slice(0, 3));
+    const bi = DAY_ORDER.indexOf(b.toLowerCase().slice(0, 3));
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  });
+  return (
+    <ul className="mt-1 space-y-0.5 text-xs">
+      {entries.map(([day, val]) => (
+        <li key={day} className="flex justify-between gap-2">
+          <span className="font-mono uppercase text-ink/60">{DAY_LABELS[day.toLowerCase()] || day}</span>
+          <span>{val || "Chiuso"}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
