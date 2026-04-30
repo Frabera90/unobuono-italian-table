@@ -57,6 +57,9 @@ function BookingPage() {
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [confirmedRes, setConfirmedRes] = useState<{ id: string; manage_token: string; booking_code: string | null } | null>(null);
+  const [showWaitlist, setShowWaitlist] = useState(false);
+  const [waitlistDone, setWaitlistDone] = useState(false);
+  const [waitlistBusy, setWaitlistBusy] = useState(false);
 
   const [reservations, setReservations] = useState<ReservationLite[]>([]);
   const [featured, setFeatured] = useState<MenuItem[]>([]);
