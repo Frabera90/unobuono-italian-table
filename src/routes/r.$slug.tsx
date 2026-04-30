@@ -111,6 +111,27 @@ function PublicPage() {
               </a>
             )}
           </div>
+
+          {/* Delivery buttons */}
+          {settings?.delivery_enabled && (settings.delivery_just_eat_url || settings.delivery_deliveroo_url || settings.delivery_glovo_url || settings.delivery_other_url) && (
+            <div className="relative mt-6">
+              <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-ink/60">🛵 Ordina a domicilio</p>
+              <div className="mt-2 flex flex-wrap justify-center gap-2">
+                {settings.delivery_just_eat_url && (
+                  <a href={settings.delivery_just_eat_url} target="_blank" rel="noreferrer" className="rounded-xl border-2 border-ink bg-[#ff8000] px-4 py-2 text-sm font-bold uppercase tracking-wider text-white hover:opacity-90">Just Eat</a>
+                )}
+                {settings.delivery_deliveroo_url && (
+                  <a href={settings.delivery_deliveroo_url} target="_blank" rel="noreferrer" className="rounded-xl border-2 border-ink bg-[#00ccbc] px-4 py-2 text-sm font-bold uppercase tracking-wider text-white hover:opacity-90">Deliveroo</a>
+                )}
+                {settings.delivery_glovo_url && (
+                  <a href={settings.delivery_glovo_url} target="_blank" rel="noreferrer" className="rounded-xl border-2 border-ink bg-[#fc0] px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink hover:opacity-90">Glovo</a>
+                )}
+                {settings.delivery_other_url && (
+                  <a href={settings.delivery_other_url} target="_blank" rel="noreferrer" className="rounded-xl border-2 border-ink bg-paper px-4 py-2 text-sm font-bold uppercase tracking-wider hover:bg-cream-dark">{settings.delivery_other_label || "Asporto"}</a>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
